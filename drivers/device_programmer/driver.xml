@@ -1,0 +1,371 @@
+<devicedata>
+  <name>Device Programmer</name>
+  <version/>
+  <manufacturer>Finite Labs</manufacturer>
+  <model>Device Programmer</model>
+  <creator>Derek Miller</creator>
+  <small image_source="c4z">icons/device_sm.png</small>
+  <large image_source="c4z">icons/device_lg.png</large>
+  <control>lua_gen</control>
+  <driver>DriverWorks</driver>
+  <copyright>Copyright 2026 Finite Labs, LLC. All rights reserved.</copyright>
+  <created>02/07/2026 12:00:00 PM</created>
+  <modified/>
+  <combo>true</combo>
+  <minimum_os_version>3.3.0</minimum_os_version>
+  <composer_categories>
+    <category>Sensors</category>
+  </composer_categories>
+  <conditionals/>
+  <events/>
+  <config>
+    <script file="driver.lua" jit="1"/>
+    <documentation file="www/documentation/index.html"/>
+    <properties>
+      <property>
+        <name>Cloud Settings</name>
+        <type>LABEL</type>
+        <default>Cloud Settings</default>
+      </property>
+      <!-- #ifdef DRIVERCENTRAL -->
+      <property>
+        <name>Cloud Status</name>
+        <default/>
+        <type>STRING</type>
+        <readonly>true</readonly>
+      </property>
+      <!-- #endif -->
+      <property>
+        <name>Automatic Updates</name>
+        <type>LIST</type>
+        <items>
+          <item>Off</item>
+          <item>On</item>
+        </items>
+        <default>On</default>
+      </property>
+      <!-- #ifndef DRIVERCENTRAL -->
+      <property>
+        <name>Update Channel</name>
+        <type>LIST</type>
+        <default>Production</default>
+        <items>
+          <item>Production</item>
+          <item>Prerelease</item>
+        </items>
+      </property>
+      <!-- #endif -->
+      <property>
+        <name>Driver Settings</name>
+        <type>LABEL</type>
+        <default>Driver Settings</default>
+      </property>
+      <property>
+        <name>Driver Status</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Driver Version</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Log Level</name>
+        <type>LIST</type>
+        <default>3 - Info</default>
+        <items>
+          <item>0 - Fatal</item>
+          <item>1 - Error</item>
+          <item>2 - Warning</item>
+          <item>3 - Info</item>
+          <item>4 - Debug</item>
+          <item>5 - Trace</item>
+          <item>6 - Ultra</item>
+        </items>
+      </property>
+      <property>
+        <name>Log Mode</name>
+        <type>LIST</type>
+        <default>Off</default>
+        <items>
+          <item>Off</item>
+          <item>Print</item>
+          <item>Log</item>
+          <item>Print and Log</item>
+        </items>
+      </property>
+      <!-- Device Configuration -->
+      <property>
+        <name>Device Configuration</name>
+        <type>LABEL</type>
+        <default>Device Configuration</default>
+      </property>
+      <property>
+        <name>Temperature Names</name>
+        <type>STRING</type>
+        <default/>
+        <description>Comma-delimited list of temperature sensor names (e.g., Living Room, Kitchen)</description>
+      </property>
+      <property>
+        <name>Humidity Names</name>
+        <type>STRING</type>
+        <default/>
+        <description>Comma-delimited list of humidity sensor names (e.g., Living Room, Kitchen)</description>
+      </property>
+      <property>
+        <name>Contact Names</name>
+        <type>STRING</type>
+        <default/>
+        <description>Comma-delimited list of contact sensor names (e.g., Front Door, Garage)</description>
+      </property>
+      <property>
+        <name>Relay Names</name>
+        <type>STRING</type>
+        <default/>
+        <description>Comma-delimited list of relay names (e.g., Front Gate, Garage Door)</description>
+      </property>
+      <!-- Utilities -->
+      <property>
+        <name>Utilities</name>
+        <type>LABEL</type>
+        <default>Utilities</default>
+      </property>
+      <property>
+        <name>Hide Devices</name>
+        <type>DEVICE_SELECTOR</type>
+        <multiselect>true</multiselect>
+        <items>
+          <!-- Lights -->
+          <item>light.c4i</item>
+          <item>light_v2.c4i</item>
+          <item>outlet_light.c4i</item>
+          <!-- Relays/Switches -->
+          <item>control4_relaysingle.c4i</item>
+          <!-- Fans -->
+          <item>fan.c4i</item>
+          <!-- Blinds -->
+          <item>blind.c4i</item>
+          <!-- Thermostats -->
+          <item>thermostatV2.c4i</item>
+          <item>control4_thermostat_proxy.c4i</item>
+          <!-- Locks -->
+          <item>lock.c4i</item>
+          <!-- Cameras -->
+          <item>camera.c4i</item>
+          <!-- Security -->
+          <item>securitypanel.c4i</item>
+          <!-- Media -->
+          <item>receiver.c4i</item>
+          <item>tv.c4i</item>
+          <item>projector.c4i</item>
+          <!-- Pool -->
+          <item>pool.c4i</item>
+          <!-- Sensors -->
+          <item>contactsingle_contactswitch_c4.c4i</item>
+          <item>contactsingle_doorcontactsensor_c4.c4i</item>
+          <item>contactsingle_garagedoorsensor_c4.c4i</item>
+          <item>contactsingle_gate_c4.c4i</item>
+          <item>contactsingle_motionsensor.c4i</item>
+          <item>contactsingle_motionsensor_c4.c4i</item>
+          <item>contactsingle_drivewaysensor_c4.c4i</item>
+          <item>contactsingle_doorbell_c4.c4i</item>
+          <item>contactsingle_watersensor_c4.c4i</item>
+          <item>contactsingle_smokedetector_c4.c4i</item>
+          <item>contactsingle_carbonmonoxidedetector_c4.c4i</item>
+          <!-- Doors/Gates/Garage -->
+          <item>garagedoor_relay_control.c4z</item>
+          <item>gate_relay_control.c4z</item>
+          <item>door_relay_control.c4z</item>
+          <item>window_relay_control.c4z</item>
+          <!-- Intercom -->
+          <item>intercomproxy.c4i</item>
+          <!-- Fireplace -->
+          <item>fireplace.c4i</item>
+        </items>
+        <default/>
+        <description>Select devices to hide from all navigators. Selection is applied immediately and then cleared.</description>
+      </property>
+    </properties>
+    <actions>
+      <!-- #ifndef DRIVERCENTRAL -->
+      <action>
+        <name>Update Drivers</name>
+        <command>Update_Drivers</command>
+      </action>
+      <!-- #endif -->
+      <action>
+        <name>Reset Driver</name>
+        <command>Reset_Driver</command>
+        <params>
+          <param>
+            <name>Are You Sure?</name>
+            <type>LIST</type>
+            <items>
+              <item>No</item>
+              <item>Yes</item>
+            </items>
+          </param>
+        </params>
+      </action>
+    </actions>
+    <commands>
+      <command>
+        <name>Set Temperature</name>
+        <description>Set NAME temperature PARAM1 to PARAM2</description>
+        <params>
+          <param>
+            <name>Name</name>
+            <type>DYNAMIC_LIST</type>
+          </param>
+          <param>
+            <name>Value</name>
+            <type>STRING</type>
+          </param>
+          <param>
+            <name>Scale</name>
+            <type>LIST</type>
+            <items>
+              <item>Fahrenheit</item>
+              <item>Celsius</item>
+            </items>
+          </param>
+        </params>
+      </command>
+      <command>
+        <name>Set Humidity</name>
+        <description>Set NAME humidity PARAM1 to PARAM2</description>
+        <params>
+          <param>
+            <name>Name</name>
+            <type>DYNAMIC_LIST</type>
+          </param>
+          <param>
+            <name>Value</name>
+            <type>STRING</type>
+          </param>
+        </params>
+      </command>
+      <command>
+        <name>Set Contact</name>
+        <description>Set NAME contact PARAM1 to PARAM2</description>
+        <params>
+          <param>
+            <name>Name</name>
+            <type>DYNAMIC_LIST</type>
+          </param>
+          <param>
+            <name>State</name>
+            <type>LIST</type>
+            <items>
+              <item>Open</item>
+              <item>Closed</item>
+            </items>
+          </param>
+        </params>
+      </command>
+      <command>
+        <name>Set Temperature from Variable</name>
+        <description>Set NAME temperature PARAM1 from variable PARAM2 in PARAM3</description>
+        <params>
+          <param>
+            <name>Name</name>
+            <type>DYNAMIC_LIST</type>
+          </param>
+          <param>
+            <name>Variable</name>
+            <type>VARIABLE_SELECTOR_VALUE</type>
+            <variabletype>number</variabletype>
+          </param>
+          <param>
+            <name>Scale</name>
+            <type>LIST</type>
+            <items>
+              <item>Fahrenheit</item>
+              <item>Celsius</item>
+            </items>
+          </param>
+        </params>
+      </command>
+      <command>
+        <name>Set Humidity from Variable</name>
+        <description>Set NAME humidity PARAM1 from variable PARAM2</description>
+        <params>
+          <param>
+            <name>Name</name>
+            <type>DYNAMIC_LIST</type>
+          </param>
+          <param>
+            <name>Variable</name>
+            <type>VARIABLE_SELECTOR_VALUE</type>
+            <variabletype>number</variabletype>
+          </param>
+        </params>
+      </command>
+      <command>
+        <name>Set Contact from Variable</name>
+        <description>Set NAME contact PARAM1 from variable PARAM2</description>
+        <params>
+          <param>
+            <name>Name</name>
+            <type>DYNAMIC_LIST</type>
+          </param>
+          <param>
+            <name>Variable</name>
+            <type>VARIABLE_SELECTOR_VALUE</type>
+            <variabletype>boolean</variabletype>
+          </param>
+        </params>
+      </command>
+      <command>
+        <name>Open Relay</name>
+        <description>Open NAME relay PARAM1</description>
+        <params>
+          <param>
+            <name>Name</name>
+            <type>DYNAMIC_LIST</type>
+          </param>
+        </params>
+      </command>
+      <command>
+        <name>Close Relay</name>
+        <description>Close NAME relay PARAM1</description>
+        <params>
+          <param>
+            <name>Name</name>
+            <type>DYNAMIC_LIST</type>
+          </param>
+        </params>
+      </command>
+      <command>
+        <name>Toggle Relay</name>
+        <description>Toggle NAME relay PARAM1</description>
+        <params>
+          <param>
+            <name>Name</name>
+            <type>DYNAMIC_LIST</type>
+          </param>
+        </params>
+      </command>
+      <command>
+        <name>Set Relay from Variable</name>
+        <description>Set NAME relay PARAM1 from variable PARAM2</description>
+        <params>
+          <param>
+            <name>Name</name>
+            <type>DYNAMIC_LIST</type>
+          </param>
+          <param>
+            <name>Variable</name>
+            <type>VARIABLE_SELECTOR_VALUE</type>
+            <variabletype>boolean</variabletype>
+          </param>
+        </params>
+      </command>
+    </commands>
+  </config>
+  <capabilities/>
+  <connections/>
+</devicedata>

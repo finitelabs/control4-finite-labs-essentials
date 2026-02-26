@@ -1,0 +1,147 @@
+<devicedata>
+  <name>Light Relay</name>
+  <version/>
+  <manufacturer>Finite Labs</manufacturer>
+  <model>Light Relay</model>
+  <creator>Derek Miller</creator>
+  <small image_source="c4z">icons/device_sm.png</small>
+  <large image_source="c4z">icons/device_lg.png</large>
+  <control>lua_gen</control>
+  <driver>DriverWorks</driver>
+  <copyright>Copyright 2026 Finite Labs, LLC. All rights reserved.</copyright>
+  <created>02/11/2026 12:00:00 PM</created>
+  <modified/>
+  <combo>true</combo>
+  <minimum_os_version>3.3.0</minimum_os_version>
+  <composer_categories>
+    <category>Miscellaneous</category>
+  </composer_categories>
+  <conditionals/>
+  <events/>
+  <config>
+    <script file="driver.lua" jit="1"/>
+    <documentation file="www/documentation/index.html"/>
+    <properties>
+      <property>
+        <name>Cloud Settings</name>
+        <type>LABEL</type>
+        <default>Cloud Settings</default>
+      </property>
+      <!-- #ifdef DRIVERCENTRAL -->
+      <property>
+        <name>Cloud Status</name>
+        <default/>
+        <type>STRING</type>
+        <readonly>true</readonly>
+      </property>
+      <!-- #endif -->
+      <property>
+        <name>Automatic Updates</name>
+        <type>LIST</type>
+        <items>
+          <item>Off</item>
+          <item>On</item>
+        </items>
+        <default>On</default>
+      </property>
+      <!-- #ifndef DRIVERCENTRAL -->
+      <property>
+        <name>Update Channel</name>
+        <type>LIST</type>
+        <default>Production</default>
+        <items>
+          <item>Production</item>
+          <item>Prerelease</item>
+        </items>
+      </property>
+      <!-- #endif -->
+      <property>
+        <name>Driver Settings</name>
+        <type>LABEL</type>
+        <default>Driver Settings</default>
+      </property>
+      <property>
+        <name>Driver Status</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Driver Version</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Log Level</name>
+        <type>LIST</type>
+        <default>3 - Info</default>
+        <items>
+          <item>0 - Fatal</item>
+          <item>1 - Error</item>
+          <item>2 - Warning</item>
+          <item>3 - Info</item>
+          <item>4 - Debug</item>
+          <item>5 - Trace</item>
+          <item>6 - Ultra</item>
+        </items>
+      </property>
+      <property>
+        <name>Log Mode</name>
+        <type>LIST</type>
+        <default>Off</default>
+        <items>
+          <item>Off</item>
+          <item>Print</item>
+          <item>Log</item>
+          <item>Print and Log</item>
+        </items>
+      </property>
+      <!-- Light Configuration -->
+      <property>
+        <name>Light Configuration</name>
+        <type>LABEL</type>
+        <default>Light Configuration</default>
+      </property>
+      <property>
+        <name>Convert Lights To Relays</name>
+        <type>DEVICE_SELECTOR</type>
+        <items>
+          <item>light.c4i</item>
+          <item>light_v2.c4i</item>
+          <item>outlet_light.c4i</item>
+        </items>
+        <multiselect>true</multiselect>
+      </property>
+    </properties>
+    <actions>
+      <!-- #ifndef DRIVERCENTRAL -->
+      <action>
+        <name>Update Drivers</name>
+        <command>Update_Drivers</command>
+      </action>
+      <!-- #endif -->
+      <action>
+        <name>Reset Driver</name>
+        <command>Reset_Driver</command>
+        <params>
+          <param>
+            <name>Are You Sure?</name>
+            <type>LIST</type>
+            <items>
+              <item>No</item>
+              <item>Yes</item>
+            </items>
+          </param>
+        </params>
+      </action>
+      <action>
+        <name>Hide Lights In All Rooms</name>
+        <command>Hide_Lights_In_All_Rooms</command>
+      </action>
+    </actions>
+    <commands/>
+  </config>
+  <capabilities/>
+  <connections/>
+</devicedata>
