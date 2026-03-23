@@ -1,16 +1,14 @@
 <img alt="Finite Labs Essentials" src="./images/header.png" width="500"/>
 
-------------------------------------------------------------------------
+---
 
 # <span style="color:#109EFF">Overview</span>
 
-> DISCLAIMER: This software is neither affiliated with nor endorsed by
-> Control4.
+> DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
 
-Finite Labs Essentials is a collection of independent Control4 drivers
-that extend your system with advanced management capabilities. Each
-driver operates standalone and can be installed individually or
-together.
+Finite Labs Essentials is a collection of independent Control4 drivers that
+extend your system with advanced management capabilities. Each driver operates
+standalone and can be installed individually or together.
 
 # <span style="color:#109EFF">Index</span>
 
@@ -39,10 +37,9 @@ together.
 
 ## Sensor Aggregator
 
-Combine multiple sensor inputs into single aggregated outputs using
-configurable functions. Connect up to 20 temperature, 20 humidity, and
-20 contact sensor inputs from other Control4 drivers and produce
-aggregated output bindings.
+Combine multiple sensor inputs into single aggregated outputs using configurable
+functions. Connect up to 20 temperature, 20 humidity, and 20 contact sensor
+inputs from other Control4 drivers and produce aggregated output bindings.
 
 **Key features:**
 
@@ -54,10 +51,10 @@ aggregated output bindings.
 
 ## Sensor Multiplexer
 
-Switch between named groups of sensor inputs, passing the selected
-group's values to output bindings. Unlike the Sensor Aggregator which
-combines N inputs into 1 via math, the Sensor Multiplexer selects 1-of-N
-named groups to pass through.
+Switch between named groups of sensor inputs, passing the selected group's
+values to output bindings. Unlike the Sensor Aggregator which combines N inputs
+into 1 via math, the Sensor Multiplexer selects 1-of-N named groups to pass
+through.
 
 **Key features:**
 
@@ -69,29 +66,26 @@ named groups to pass through.
 
 ### Use Case: Thermostat Temperature Source
 
-Use the Sensor Multiplexer with multiple Sensor Aggregators to feed
-different temperature readings to a thermostat based on mode:
+Use the Sensor Multiplexer with multiple Sensor Aggregators to feed different
+temperature readings to a thermostat based on mode:
 
 `Individual Sensors -> Sensor Aggregators (per-mode) -> Sensor Multiplexer -> Thermostat`
 
-1.  Create Sensor Aggregator instances for each mode (e.g., Away, Home,
-    Sleep)
+1.  Create Sensor Aggregator instances for each mode (e.g., Away, Home, Sleep)
 2.  Connect appropriate sensors to each aggregator
 3.  Add a Sensor Multiplexer with Input Names set to `Away,Home,Sleep`
 4.  Connect aggregator outputs to multiplexer inputs
 5.  Connect multiplexer output to the thermostat
 6.  Use programming to switch modes via the "Select Input" command
 
-See the individual Sensor Multiplexer documentation for the full
-walkthrough.
+See the individual Sensor Multiplexer documentation for the full walkthrough.
 
 ## Device Programmer
 
-Create virtual sensors and relays controllable via Control4 programming.
-Enter comma-delimited names per type (temperature, humidity, contact,
-relay) and the driver exposes those as output bindings. Programming
-commands allow setting each sensor's value or state, and opening,
-closing, or toggling relays.
+Create virtual sensors and relays controllable via Control4 programming. Enter
+comma-delimited names per type (temperature, humidity, contact, relay) and the
+driver exposes those as output bindings. Programming commands allow setting each
+sensor's value or state, and opening, closing, or toggling relays.
 
 **Key features:**
 
@@ -103,10 +97,10 @@ closing, or toggling relays.
 
 ## Light Relay
 
-Dynamically creates relay connections for one or more selected light
-devices using a single driver instance. This enables controlling devices
-that use relay drivers (e.g., fans, fireplaces) from a light switch,
-with bidirectional state synchronization.
+Dynamically creates relay connections for one or more selected light devices
+using a single driver instance. This enables controlling devices that use relay
+drivers (e.g., fans, fireplaces) from a light switch, with bidirectional state
+synchronization.
 
 **Key features:**
 
@@ -124,19 +118,19 @@ with bidirectional state synchronization.
 1.  Download the latest `control4-finite-labs-essentials.zip` from
     [Github](https://github.com/finitelabs/control4-finite-labs-essentials/releases/latest).
 2.  Extract and install the desired `.c4z` driver files.
-3.  Use the "Search" tab in Composer Pro to find the driver by name and
-    add it to your project.
+3.  Use the "Search" tab in Composer Pro to find the driver by name and add it
+    to your project.
 
-Each driver includes its own documentation accessible from within
-Composer Pro. Refer to the individual driver documentation for detailed
-property descriptions, programming reference, and configuration guides.
+Each driver includes its own documentation accessible from within Composer Pro.
+Refer to the individual driver documentation for detailed property descriptions,
+programming reference, and configuration guides.
 
 <div style="page-break-after: always"></div>
 
 # <span style="color:#109EFF">Support</span>
 
-If you have any questions or issues integrating these drivers with
-Control4, you can file an issue on GitHub:
+If you have any questions or issues integrating these drivers with Control4, you
+can file an issue on GitHub:
 
 <https://github.com/finitelabs/control4-finite-labs-essentials/issues/new>
 
