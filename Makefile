@@ -115,7 +115,7 @@ docs: docs-readme docs-html docs-pdf ## Generate all documentation
 
 docs-readme: preprocess
 	rm -rf ./images
-	cp -r documentation/images .
+	@if [ -d documentation/images ]; then cp -r documentation/images .; fi
 	pandoc build/$(README_BUILD)/documentation/index.md \
 		-f gfm -t gfm --lua-filter=tools/pandoc-remove-style.lua -o README.md
 
