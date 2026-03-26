@@ -784,7 +784,7 @@ end
 function OPC.Automatic_Updates(propertyValue)
   log:trace("OPC.Automatic_Updates('%s')", propertyValue)
   --#ifndef DRIVERCENTRAL
-  if not gInitialized and not isLeaderInstance then
+  if not gInitialized then
     return
   end
   syncPropertyToOtherInstances("Automatic Updates", propertyValue)
@@ -794,7 +794,7 @@ end
 --#ifndef DRIVERCENTRAL
 function OPC.Update_Channel(propertyValue)
   log:trace("OPC.Update_Channel('%s')", propertyValue)
-  if not gInitialized and not isLeaderInstance then
+  if not gInitialized then
     return
   end
   syncPropertyToOtherInstances("Update Channel", propertyValue)
