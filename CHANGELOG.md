@@ -14,11 +14,6 @@
 
 ## Unreleased
 
-### Fixed
-
-- Fixed automatic driver updates not working when the leader instance is removed
-  from the project
-
 ### Added
 
 - Initial release of Device Programmer
