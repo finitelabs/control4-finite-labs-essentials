@@ -658,6 +658,35 @@ local function reconcileConditionals()
   end
 end
 
+--#ifndef DRIVERCENTRAL
+--- Get all device IDs for instances of this driver, sorted ascending.
+--- @return integer[]
+local function getDriverIds()
+  local drivers = C4:GetDevicesByC4iName(C4:GetDriverFileName()) or {}
+  local ids = {}
+  for id, _ in pairs(drivers) do
+    table.insert(ids, tointeger(id))
+  end
+  table.sort(ids)
+  return ids
+end
+
+--- Sync a property value to all other instances of this driver.
+--- Only syncs if the other instance has a different value (avoids infinite loops).
+--- @param propertyName string
+--- @param propertyValue string
+local function syncPropertyToOtherInstances(propertyName, propertyValue)
+  local ids = getDriverIds()
+  local myId = C4:GetDeviceID()
+  for _, deviceId in ipairs(ids) do
+    if deviceId ~= myId then
+      log:info("Syncing property '%s' = '%s' to device %d", propertyName, propertyValue, deviceId)
+      SetDeviceProperties(deviceId, { [propertyName] = propertyValue }, true)
+    end
+  end
+end
+--#endif
+
 --------------------------------------------------------------------------------
 -- Initialization
 --------------------------------------------------------------------------------
@@ -682,6 +711,9 @@ end
 
 function OnDriverLateInit()
   log:trace("OnDriverLateInit()")
+
+  C4:FileSetDir("c29tZXNwZWNpYWxrZXk=++11")
+
   if not CheckMinimumVersion("Driver Status") then
     return
   end
@@ -702,8 +734,10 @@ function OnDriverLateInit()
 
   --#ifndef DRIVERCENTRAL
   SetTimer("UpdateCheck", 30 * ONE_MINUTE, function()
-    if toboolean(Properties["Automatic Updates"]) then
-      log:info("Checking for driver updates")
+    -- Recompute leader each cycle in case the previous leader was removed
+    local isLeaderInstance = Select(getDriverIds(), 1) == C4:GetDeviceID()
+    if isLeaderInstance and toboolean(Properties["Automatic Updates"]) then
+      log:info("Checking for driver update (leader instance)")
       UpdateDrivers()
     end
   end, true)
@@ -766,11 +800,21 @@ end
 
 function OPC.Automatic_Updates(propertyValue)
   log:trace("OPC.Automatic_Updates('%s')", propertyValue)
+  --#ifndef DRIVERCENTRAL
+  if not gInitialized then
+    return
+  end
+  syncPropertyToOtherInstances("Automatic Updates", propertyValue)
+  --#endif
 end
 
 --#ifndef DRIVERCENTRAL
 function OPC.Update_Channel(propertyValue)
   log:trace("OPC.Update_Channel('%s')", propertyValue)
+  if not gInitialized then
+    return
+  end
+  syncPropertyToOtherInstances("Update Channel", propertyValue)
 end
 --#endif
 
