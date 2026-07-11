@@ -28,16 +28,6 @@ local githubUpdater = require("lib.github-updater")
 -- Constants
 --------------------------------------------------------------------------------
 
---- Output variable holding the most recent Create String result.
-local VAR_STRING = "STRING"
-
---- Output variable holding the most recent Calculate Equation result.
-local VAR_NUMBER = "NUMBER"
-
---- Static event ids (must match driver.xml <events>).
-local EVENT_STRING_CREATED = 1
-local EVENT_EQUATION_CALCULATED = 2
-
 --- Namespace for dynamic per-expression events.
 local NS_EXPRESSION = "Expression"
 
@@ -47,13 +37,6 @@ local RESULT_SUFFIX = " Result"
 --- Debounce window for auto recompute of expressions (trailing edge).
 local RECALC_DEBOUNCE_MS = 1000
 
---- Persist keys for the legacy ad hoc outputs and rendered expressions
---- (restored on boot).
-local PERSIST_STRING = "StringOutput"
-local PERSIST_NUMBER = "NumberOutput"
-local PERSIST_STRING_EXPR = "StringExpression"
-local PERSIST_NUMBER_EXPR = "NumberExpression"
-
 --- Persist keys for named expressions and their last results.
 local PERSIST_EXPRESSIONS = "Expressions"
 local PERSIST_RESULTS = "ExpressionResults"
@@ -61,28 +44,9 @@ local PERSIST_RESULTS = "ExpressionResults"
 --- Placeholder emitted when a PARAM{} token references a missing variable.
 local ERROR_VARIABLE_NOT_FOUND = "ERROR_VARIABLE_NOT_FOUND"
 
---- Message shown in the Equation Output property when an equation fails.
-local ERROR_IN_EQUATION = "ERROR IN EQUATION"
-
 --------------------------------------------------------------------------------
 -- Token Substitution
 --------------------------------------------------------------------------------
-
---- Decode the XML entities Composer applies to command string parameters.
---- Composer escapes `<`, `>`, `&`, and quotes, so `a < b` arrives as `a &lt; b`.
---- `&amp;` is decoded first so a double-escaped `&amp;lt;` resolves correctly.
---- @param s string? The raw parameter value.
---- @return string decoded
-local function unescapeEntities(s)
-  s = s or ""
-  s = s:gsub("&amp;", "&")
-  s = s:gsub("&lt;", "<")
-  s = s:gsub("&gt;", ">")
-  s = s:gsub("&quot;", '"')
-  s = s:gsub("&#39;", "'")
-  s = s:gsub("&apos;", "'")
-  return s
-end
 
 --- Lua pattern matching a PARAM{device,variable} token, capturing the two ids
 --- with surrounding whitespace trimmed.
@@ -354,30 +318,15 @@ local engine = ExpressionEngine:new({
 
 --- Director does not deliver variable watch events for a driver's own
 --- variables, so after writing one of our outputs, poke the engine directly.
---- This keeps expressions that reference another expression's Result (or the
---- legacy STRING/NUMBER outputs) recomputing. The writing expression is
---- excluded to avoid self-referential loops.
+--- This keeps expressions that reference another expression's Result
+--- recomputing. The writing expression is excluded to avoid self-referential
+--- loops.
 --- @param varName string The output variable name that was just written.
 --- @param excludeName string? Expression name to skip.
 function notifyOwnVariableChanged(varName, excludeName)
   local variableId = resolveVariable(C4:GetDeviceID(), varName)
   if variableId then
     engine:notifyVariableChanged(C4:GetDeviceID(), variableId, excludeName)
-  end
-end
-
---------------------------------------------------------------------------------
--- Legacy Output Variables
---------------------------------------------------------------------------------
-
---- Create the STRING and NUMBER output variables if they do not already exist,
---- seeding them with the last persisted values so they survive a driver restart.
-local function ensureOutputVariables()
-  if Variables[VAR_STRING] == nil then
-    C4:AddVariable(VAR_STRING, persist:get(PERSIST_STRING, "") or "", "STRING", true, false)
-  end
-  if Variables[VAR_NUMBER] == nil then
-    C4:AddVariable(VAR_NUMBER, persist:get(PERSIST_NUMBER, 0) or 0, "NUMBER", true, false)
   end
 end
 
@@ -441,11 +390,22 @@ function OnDriverLateInit()
     return
   end
 
-  ensureOutputVariables()
-
   -- Restore dynamic values (per-expression outputs) and events
   values:restoreValues()
   events:restoreEvents()
+
+  -- One-time cleanup of the retired ad hoc outputs (pre-release builds only).
+  -- The variables were registered with C4:AddVariable, which persists in the
+  -- project until explicitly deleted.
+  for _, name in ipairs({ "STRING", "NUMBER" }) do
+    if Variables[name] ~= nil then
+      C4:DeleteVariable(name)
+      Variables[name] = nil
+    end
+  end
+  for _, key in ipairs({ "StringOutput", "NumberOutput", "StringExpression", "NumberExpression" }) do
+    persist:set(key, nil)
+  end
 
   -- Fire OnPropertyChanged for all properties to set initial global state
   for p, _ in pairs(Properties) do
@@ -454,12 +414,6 @@ function OnDriverLateInit()
       log:error("Error in OnPropertyChanged for property '%s': %s", p, err or "unknown error")
     end
   end
-
-  -- Reflect the last computed outputs and rendered expressions in the properties
-  UpdateProperty("String Output", persist:get(PERSIST_STRING, "") or "")
-  UpdateProperty("String Expression", persist:get(PERSIST_STRING_EXPR, "") or "")
-  UpdateProperty("Equation Output", tostring(persist:get(PERSIST_NUMBER, "") or ""))
-  UpdateProperty("Equation Expression", persist:get(PERSIST_NUMBER_EXPR, "") or "")
 
   -- Restore variable watches and recompute auto expressions once at boot so
   -- outputs reflect changes missed while the driver was down.
@@ -573,32 +527,6 @@ function OPC.Update_Channel(propertyValue)
   syncPropertyToOtherInstances("Update Channel", propertyValue)
 end
 --#endif
-
---------------------------------------------------------------------------------
--- Token Builder (property helper)
---------------------------------------------------------------------------------
-
---- Parse the value of a VARIABLE_SELECTOR property, which Composer stores as
---- "deviceId,variableId", into its two numeric ids.
---- @param value any The raw property value.
---- @return integer|nil deviceId
---- @return integer|nil variableId
-local function parseVariableReference(value)
-  local deviceId, variableId = tostring(value or ""):match("(%d+)%s*,%s*(%d+)")
-  return tonumber(deviceId), tonumber(variableId)
-end
-
---- When a variable is selected in the Token Builder, build its PARAM{} token
---- into the Reference Token property for the installer to copy.
-function OPC.Reference_Variable(propertyValue)
-  log:trace("OPC.Reference_Variable('%s')", propertyValue)
-  local deviceId, variableId = parseVariableReference(propertyValue)
-  if deviceId and variableId then
-    UpdateProperty("Reference Token", string.format("PARAM{%d,%d}", deviceId, variableId))
-  else
-    UpdateProperty("Reference Token", "")
-  end
-end
 
 --------------------------------------------------------------------------------
 -- Web UI Request Handlers (UIR)
@@ -792,53 +720,6 @@ function EC.Calculate_Expression(params)
   recomputeExpression(name)
 end
 
---- Create String command handler.
---- Substitutes PARAM{} tokens in the template and publishes the result to the
---- STRING variable, the String Output property, and the String Created event.
---- @param params table Command parameters: String.
-function EC.Create_String(params)
-  log:trace("EC.Create_String(%s)", params)
-  local template = unescapeEntities(Select(params, "String") or "")
-  local result = substituteTokens(template)
-  local rendered = renderTemplate(template)
-
-  log:info("Create String: %s => '%s'", rendered, result)
-  persist:set(PERSIST_STRING, result)
-  persist:set(PERSIST_STRING_EXPR, rendered)
-  C4:SetVariable(VAR_STRING, result)
-  UpdateProperty("String Output", result)
-  UpdateProperty("String Expression", rendered)
-  C4:FireEvent(EVENT_STRING_CREATED)
-  notifyOwnVariableChanged(VAR_STRING)
-end
-
---- Calculate Equation command handler.
---- Substitutes PARAM{} tokens, evaluates the result as a numeric expression, and
---- publishes it to the NUMBER variable, the Equation Output property, and the
---- Equation Calculated event. Reference or evaluation errors leave the previous
---- NUMBER value untouched and surface ERROR IN EQUATION in the property.
---- @param params table Command parameters: Equation.
-function EC.Calculate_Equation(params)
-  log:trace("EC.Calculate_Equation(%s)", params)
-  local template = unescapeEntities(Select(params, "Equation") or "")
-  local eval = evaluateTemplate("equation", template)
-  UpdateProperty("Equation Expression", eval.rendered)
-
-  if eval.error then
-    log:warn("Calculate Equation: %s in %s", eval.error, eval.rendered)
-    UpdateProperty("Equation Output", ERROR_IN_EQUATION)
-    return
-  end
-
-  log:info("Calculate Equation: %s = %s", eval.rendered, eval.result)
-  persist:set(PERSIST_NUMBER, eval.result)
-  persist:set(PERSIST_NUMBER_EXPR, eval.rendered)
-  C4:SetVariable(VAR_NUMBER, eval.result)
-  UpdateProperty("Equation Output", tostring(eval.result))
-  C4:FireEvent(EVENT_EQUATION_CALCULATED)
-  notifyOwnVariableChanged(VAR_NUMBER)
-end
-
 --------------------------------------------------------------------------------
 -- GCPL Handlers (Dynamic List Population)
 --------------------------------------------------------------------------------
@@ -876,16 +757,7 @@ function EC.Reset_Driver(params)
   end
   values:reset()
   events:reset()
-  persist:reset({
-    PERSIST_STRING,
-    PERSIST_NUMBER,
-    PERSIST_STRING_EXPR,
-    PERSIST_NUMBER_EXPR,
-    PERSIST_EXPRESSIONS,
-    PERSIST_RESULTS,
-  })
-  C4:SetVariable(VAR_STRING, "")
-  C4:SetVariable(VAR_NUMBER, 0)
+  persist:reset({ PERSIST_EXPRESSIONS, PERSIST_RESULTS })
 
   local resetValues = GetPropertyResetValues({})
   for propName, defaultValue in pairs(resetValues) do

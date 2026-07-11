@@ -27,10 +27,11 @@
 
 Control4 programming offers only basic operations on variables: set a value,
 randomize, increment, decrement, or copy from another variable. The Variable
-Manipulator extends this by letting you build a string from one or more
+Manipulator extends this with named expressions: build a string from one or more
 variables, or evaluate a mathematical equation that references one or more
-variables, and publish the result to its own `STRING` and `NUMBER` variables for
-use elsewhere in programming.
+variables. Each expression publishes its own result variable and event for use
+elsewhere in programming, and can recalculate automatically when the variables
+it references change.
 
 # <span style="color:#109EFF">Index</span>
 
@@ -47,8 +48,6 @@ use elsewhere in programming.
   - [Driver Properties](#driver-properties)
     - [Cloud Settings](#cloud-settings)
     - [Driver Settings](#driver-settings)
-    - [Output](#output)
-    - [Token Builder](#token-builder)
   - [Driver Actions](#driver-actions)
 - [Programming](#programming)
   - [Referencing Variables](#referencing-variables)
@@ -73,18 +72,17 @@ use elsewhere in programming.
 # <span style="color:#109EFF">Features</span>
 
 - Named expressions managed from a dedicated Expressions tab in Composer, with a
-  searchable variable browser, insert at cursor, and a live result preview
-- Each named expression publishes its own `<Name> Result` variable and fires a
+  searchable variable browser, insert at cursor, syntax highlighting, and a live
+  result preview
+- Each expression publishes its own `<Name> Result` variable and fires a
   `<Name> Calculated` event, so multiple calculations never collide
 - Automatic recompute: the driver watches the variables an expression references
   and recalculates when they change, debounced so chatty sources (power meters)
   coalesce into one recalculation per second
-- Combine one or more variables into a single string
-- Evaluate mathematical equations that reference one or more variables
+- Equation mode evaluates math; String mode builds text from variables
 - Reference any variable in the project by device id and variable id or name
-- Token Builder generates `PARAM{}` tokens from a variable picker
 - Full Lua math library plus common helpers (`abs`, `min`, `max`, `round`, ...)
-- Ad hoc results published to `STRING` and `NUMBER` variables and driver events
+  and conditionals (`and`, `or`, comparisons)
 - Rendered expression shows each reference as `[Room > Device > Variable]`
 - Expressions and last results persist across driver restarts
 
@@ -212,47 +210,6 @@ Sets the logging level. Default is `3 - Info`.
 
 Sets the logging mode. Default is `Off`.
 
-### Output
-
-#### String Output (read-only)
-
-The most recent result of the Create String command. This mirrors the driver's
-`STRING` variable for at-a-glance viewing in Composer.
-
-#### String Expression (read-only)
-
-The most recent Create String template with each `PARAM{}` token rendered as
-`[Room > Device > Variable]`, so you can confirm at a glance which variables a
-template references.
-
-#### Equation Output (read-only)
-
-The most recent result of the Calculate Equation command. This mirrors the
-driver's `NUMBER` variable for at-a-glance viewing in Composer. Shows
-`ERROR IN EQUATION` when the last equation could not be evaluated.
-
-#### Equation Expression (read-only)
-
-The most recent Calculate Equation template with each `PARAM{}` token rendered
-as `[Room > Device > Variable]`. Because it is updated even when an equation
-fails, it is the quickest way to see which variable reference was wrong.
-
-### Token Builder
-
-A helper for generating `PARAM{}` tokens without looking up ids by hand.
-
-#### Reference Variable
-
-Select any variable in the project. The driver writes the matching token to
-Reference Token below.
-
-#### Reference Token
-
-The `PARAM{}` token for the selected variable, for example `PARAM{32,1040}`.
-Select the text to copy it into a Create String or Calculate Equation command.
-The field is editable so it can be selected and copied; any edit is overwritten
-the next time you pick a variable.
-
 ## Driver Actions
 
 <!-- #ifndef DRIVERCENTRAL -->
@@ -266,8 +223,8 @@ the current version.
 
 ### Reset Driver
 
-Clears the persisted outputs and resets the `STRING` and `NUMBER` variables to
-their defaults.
+Deletes every expression along with its output variable and event, and clears
+all persisted state.
 
 **Parameters:**
 
@@ -290,14 +247,10 @@ PARAM{DEVICE_ID,VARIABLE_ID}
 exactly, case-sensitive), for example `PARAM{96,1002}` or `PARAM{96,Humidity}`.
 Any variable type may be referenced, including strings, numbers, and booleans.
 
-The easiest way to get a token is the [Token Builder](#token-builder) in the
-driver properties: pick a variable and copy the generated token. You can also
-build one by hand using the device and variable ids shown in the "Variables"
-view in Composer Pro (`View` menu).
-
-If a referenced variable cannot be found, the token is replaced with
-`ERROR_VARIABLE_NOT_FOUND` in a string, and the equation is rejected with
-`ERROR IN EQUATION`.
+You rarely need to build a token by hand: click a variable in the Expressions
+tab browser and its token is inserted at the cursor. If a referenced variable
+cannot be found, the expression's row shows `Unresolved reference` and the
+previous result is kept.
 
 ## Commands
 
@@ -307,67 +260,49 @@ Recalculate a named expression now. The Expression dropdown lists every
 expression defined in the Expressions tab. Useful for manual-recompute
 expressions or to force a recalculation at a known point in programming.
 
-### Create String
-
-Build a single string from literal text and `PARAM{}` tokens. Each token is
-replaced with the referenced variable's current value. The result is published
-to the `STRING` variable.
-
-```
-Living room is PARAM{96,1001} degrees and PARAM{96,1002}% humidity
-```
-
-### Calculate Equation
-
-Substitute `PARAM{}` tokens and evaluate the result as a mathematical
-expression. The result is published to the `NUMBER` variable.
-
-```
-math.abs(PARAM{96,1002} - PARAM{97,1002})
-```
-
-Equations are evaluated in a sandbox that exposes only the math functions listed
-below, so an equation cannot read or change the rest of the driver.
+Expressions are evaluated in a sandbox that exposes only the math functions
+listed below, so an expression cannot read or change the rest of the driver.
 
 ## Output Variables and Events
 
-The driver exposes two read-only variables and two events:
-
-| Output              | Type     | Set by             |
-| ------------------- | -------- | ------------------ |
-| `STRING`            | Variable | Create String      |
-| `NUMBER`            | Variable | Calculate Equation |
-| String Created      | Event    | Create String      |
-| Equation Calculated | Event    | Calculate Equation |
-
-Commands run asynchronously, so the result is not ready on the next line of
-programming. Trigger follow-up programming from the driver's variable-changed
-events (`When STRING changes`, `When NUMBER changes`) or from the
-`String Created` / `Equation Calculated` events. The events fire every time a
-command completes, even when the computed value is unchanged, which makes them
-useful when a variable-changed event would not re-fire.
+Each expression owns a read-only `<Name> Result` variable and a
+`<Name> Calculated` event. Recalculation is asynchronous, so trigger follow-up
+programming from the expression's variable-changed event
+(`When <Name> Result changes`) or from the `<Name> Calculated` event. The event
+fires after every successful recalculation, even when the computed value is
+unchanged, which makes it useful when a variable-changed event would not
+re-fire.
 
 ## Math Functions
 
-Equations may use the full Lua `math` library (for example `math.floor`,
-`math.random`, `math.sin`). The following helpers are also available without the
-`math.` prefix:
+Equations may use the full Lua `math` and `string` libraries (for example
+`math.floor`, `math.random`, `string.format`). The following helpers are also
+available without a prefix:
 
-`abs`, `ceil`, `floor`, `sqrt`, `min`, `max`, `round`, `pi`, `huge`, `tonumber`
+`abs`, `ceil`, `floor`, `sqrt`, `min`, `max`, `round(x, digits)`, `c2f`, `f2c`,
+`pi`, `huge`, `tonumber`, `tostring`
 
 Operators follow Lua syntax: `+`, `-`, `*`, `/`, `%` (modulo), `^` (power), and
-parentheses for grouping.
+parentheses for grouping. Comparisons (`==`, `~=`, `<`, `<=`, `>`, `>=`)
+combined with `and`, `or`, and `not` allow conditionals:
+
+```
+PARAM{96,1002} > 50 and 1 or 0
+```
+
+The same reference is also available from the Syntax help link in the expression
+editor.
 
 ## Examples
 
 **Difference between two humidity sensors** (device 96 and 97, variable 1002):
 
-1. Add a "When the variable ... changes" event for each humidity variable.
-2. Run the Calculate Equation command with:
-   `math.abs(PARAM{96,1002} - PARAM{97,1002})`
-3. Add a "When NUMBER changes" event on the Variable Manipulator and read
-   `NUMBER` to drive your logic (for example, run a fan when the difference
-   exceeds a threshold).
+1. In the Expressions tab, add an expression named `Bathroom Humidity Diff` in
+   Equation mode with automatic recompute enabled:
+   `abs(PARAM{96,1002} - PARAM{97,1002})`
+2. The driver recalculates it whenever either humidity changes.
+3. Program off `When Bathroom Humidity Diff Result changes` (for example, run a
+   fan when the difference exceeds a threshold).
 
 **Average of three temperatures**:
 
@@ -375,7 +310,7 @@ parentheses for grouping.
 round((PARAM{96,1001} + PARAM{97,1001} + PARAM{98,1001}) / 3, 1)
 ```
 
-**Status string for a custom label**:
+**Status string for a custom label** (String mode):
 
 ```
 Pool PARAM{120,2001}F / Spa PARAM{120,2002}F

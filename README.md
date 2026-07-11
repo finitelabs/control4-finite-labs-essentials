@@ -113,9 +113,10 @@ synchronization.
 ## Variable Manipulator
 
 Extend Control4 programming with string building and math on variables. Define
-named expressions in a dedicated Composer tab with a variable browser and live
-preview, each publishing its own result variable and event, or run ad hoc string
-and equation commands from programming.
+named expressions in a dedicated Composer tab with a variable browser, syntax
+highlighting, and a live preview. Each expression publishes its own result
+variable and event, and can recalculate automatically when the variables it
+references change.
 
 **Key features:**
 
@@ -124,9 +125,9 @@ and equation commands from programming.
   `<Name> Calculated` events
 - Automatic recompute when referenced variables change, debounced for chatty
   sources
-- Combine one or more variables into a single string
-- Evaluate mathematical equations referencing one or more variables
+- Equation mode evaluates math; String mode builds text from variables
 - Full Lua math library plus common helpers (`abs`, `min`, `max`, `round`, ...)
+  and conditionals
 - Rendered expression shows each reference as `[Room > Device > Variable]`
 - Expressions and last results persist across driver restarts
 
