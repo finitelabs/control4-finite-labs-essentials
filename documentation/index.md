@@ -39,6 +39,7 @@ standalone and can be installed individually or together.
   - [Sensor Multiplexer](#sensor-multiplexer)
   - [Device Programmer](#device-programmer)
   - [Light Relay](#light-relay)
+  - [Variable Manipulator](#variable-manipulator)
 - [Installation](#installation)
   <!-- #ifdef DRIVERCENTRAL -->
   - [DriverCentral Cloud Setup](#drivercentral-cloud-setup)
@@ -133,6 +134,22 @@ synchronization.
 - Dynamic relay bindings created per selected light
 - Bidirectional state synchronization between light and relay
 - Bulk hide all converted lights from navigators
+
+## Variable Manipulator
+
+Extend Control4 programming with string building and math on variables. Build a
+string from one or more variables, or evaluate a mathematical equation that
+references one or more variables, and publish the result to the driver's `STRING`
+and `NUMBER` variables for use elsewhere in programming.
+
+**Key features:**
+
+- Combine one or more variables into a single string
+- Evaluate mathematical equations referencing one or more variables
+- Full Lua math library plus common helpers (`abs`, `min`, `max`, `round`, ...)
+- Results published to `STRING` and `NUMBER` variables and to driver events
+- Rendered expression shows each reference as `[Room > Device > Variable]`
+- Last results persist across driver restarts
 
 <div style="page-break-after: always"></div>
 
