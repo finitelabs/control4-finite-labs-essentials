@@ -20,4 +20,4 @@
 - Initial release of Light Relay
 - Initial release of Sensor Aggregator
 - Initial release of Sensor Multiplexer
-- Initial release of Variable Manipulator
+- Initial release of Variable Expressions

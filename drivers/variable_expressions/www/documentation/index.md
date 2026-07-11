@@ -13,7 +13,7 @@
 }
 </style>
 
-<img alt="Variable Manipulator" src="./images/header.png" width="500"/>
+<img alt="Variable Expressions" src="./images/header.png" width="500"/>
 
 ---
 
@@ -26,8 +26,8 @@
 <!-- #endif -->
 
 Control4 programming offers only basic operations on variables: set a value,
-randomize, increment, decrement, or copy from another variable. The Variable
-Manipulator extends this with named expressions: build a string from one or more
+randomize, increment, decrement, or copy from another variable. Variable
+Expressions extends this with named expressions: build a string from one or more
 variables, or evaluate a mathematical equation that references one or more
 variables. Each expression publishes its own result variable and event for use
 elsewhere in programming, and can recalculate automatically when the variables
@@ -112,16 +112,16 @@ for setting it up.
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
    [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/utility-suite).
-2. Extract and install the `variable_manipulator.c4z` driver.
-3. Use the "Search" tab to find "Variable Manipulator" and add it to your
+2. Extract and install the `variable_expressions.c4z` driver.
+3. Use the "Search" tab to find "Variable Expressions" and add it to your
    project.
 
 <!-- #else -->
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
    [Github](https://github.com/finitelabs/control4-finite-labs-essentials/releases/latest).
-2. Extract and install the `variable_manipulator.c4z` driver.
-3. Use the "Search" tab to find "Variable Manipulator" and add it to your
+2. Extract and install the `variable_expressions.c4z` driver.
+3. Use the "Search" tab to find "Variable Expressions" and add it to your
    project.
 
 <!-- #endif -->

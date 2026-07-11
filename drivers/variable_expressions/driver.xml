@@ -1,8 +1,8 @@
 <devicedata>
-  <name>Variable Manipulator</name>
+  <name>Variable Expressions</name>
   <version/>
   <manufacturer>Finite Labs</manufacturer>
-  <model>Variable Manipulator</model>
+  <model>Variable Expressions</model>
   <creator>Derek Miller</creator>
   <small image_source="c4z">icons/device_sm.png</small>
   <large image_source="c4z">icons/device_lg.png</large>

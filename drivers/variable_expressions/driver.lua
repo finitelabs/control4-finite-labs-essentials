@@ -1,11 +1,11 @@
---- Variable Manipulator Driver
+--- Variable Expressions Driver
 --#ifdef DRIVERCENTRAL
 DC_PID = nil
 DC_X = nil
-DC_FILENAME = "variable_manipulator.c4z"
+DC_FILENAME = "variable_expressions.c4z"
 --#else
 DRIVER_GITHUB_REPO = "finitelabs/control4-finite-labs-essentials"
-DRIVER_FILENAMES = { "variable_manipulator.c4z" }
+DRIVER_FILENAMES = { "variable_expressions.c4z" }
 --#endif
 require("lib.utils")
 require("drivers-common-public.global.handlers")

@@ -78,7 +78,7 @@ Pipeline: `fmt` -> `preprocess` -> `update-driver.xml` -> `docs` -> `package` ->
 | `sensor_multiplexer`   | Switches between named sensor input groups (e.g., Home/Away)                                            | bindings, values, persist, events, conditionals, logging, utils |
 | `device_programmer`    | Creates programmable virtual sensors and relays settable from Control4 programming                      | bindings, persist, logging, utils                               |
 | `light_relay`          | Exposes selected light devices as relay bindings with bidirectional sync                                | bindings, persist, logging, utils                               |
-| `variable_manipulator` | Named string/equation expressions over project variables, with auto recompute and a custom Composer tab | expressions, transform, values, events, persist, logging, utils |
+| `variable_expressions` | Named string/equation expressions over project variables, with auto recompute and a custom Composer tab | expressions, transform, values, events, persist, logging, utils |
 
 ## Shared Library Reference
 

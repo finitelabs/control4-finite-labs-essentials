@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Variable Manipulator</title>
+  <title>Variable Expressions</title>
   <style>
     :root {
       --bg: #f5f5f7;
@@ -289,7 +289,7 @@
 
 <div class="nav">
   <span class="nav-title">Expressions</span>
-  <span class="nav-meta" id="nav-meta">Variable Manipulator</span>
+  <span class="nav-meta" id="nav-meta">Variable Expressions</span>
 </div>
 
 <!-- ── List panel ─────────────────────────────────────────────── -->
@@ -943,7 +943,7 @@ function insertToken(deviceId, variableId) {
 // Boot
 // ============================================================
 (async function boot() {
-  document.getElementById('nav-meta').textContent = 'Variable Manipulator' + (gDriverId ? ' · device ' + gDriverId : '');
+  document.getElementById('nav-meta').textContent = 'Variable Expressions' + (gDriverId ? ' · device ' + gDriverId : '');
   document.getElementById('expr-name').addEventListener('input', updatePublishLine);
   if (!gApiHost) {
     // No controller API (opened outside Composer): show demo data so the

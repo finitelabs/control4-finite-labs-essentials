@@ -20,7 +20,7 @@ standalone and can be installed individually or together.
   - [Sensor Multiplexer](#sensor-multiplexer)
   - [Device Programmer](#device-programmer)
   - [Light Relay](#light-relay)
-  - [Variable Manipulator](#variable-manipulator)
+  - [Variable Expressions](#variable-expressions)
 - [Installation](#installation)
   - [Installing the Drivers](#installing-the-drivers)
 - [Support](#support)
@@ -110,7 +110,7 @@ synchronization.
 - Bidirectional state synchronization between light and relay
 - Bulk hide all converted lights from navigators
 
-## Variable Manipulator
+## Variable Expressions
 
 Extend Control4 programming with string building and math on variables. Define
 named expressions in a dedicated Composer tab with a variable browser, syntax
@@ -170,4 +170,4 @@ can file an issue on GitHub:
 - Initial release of Light Relay
 - Initial release of Sensor Aggregator
 - Initial release of Sensor Multiplexer
-- Initial release of Variable Manipulator
+- Initial release of Variable Expressions
