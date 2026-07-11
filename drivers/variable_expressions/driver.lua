@@ -379,6 +379,10 @@ function OnDriverInit()
   log:setLogLevel(Properties["Log Level"])
   log:setLogMode(Properties["Log Mode"])
   log:trace("OnDriverInit()")
+
+  -- Restore per-expression output variables here: programming attached to
+  -- variables added after OnDriverInit may not work after a Director restart.
+  values:restoreValues()
 end
 
 function OnDriverLateInit()
@@ -390,8 +394,7 @@ function OnDriverLateInit()
     return
   end
 
-  -- Restore dynamic values (per-expression outputs) and events
-  values:restoreValues()
+  -- Restore dynamic per-expression events
   events:restoreEvents()
 
   -- One-time cleanup of the retired ad hoc outputs (pre-release builds only).
