@@ -72,11 +72,13 @@ Pipeline: `fmt` -> `preprocess` -> `update-driver.xml` -> `docs` -> `package` ->
 
 ## Existing Drivers
 
-| Driver               | Purpose                                                                            | Key Shared Libs                                                 |
-| -------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `sensor_aggregator`  | Combines multiple sensor inputs into one output using aggregation funcs            | bindings, values, persist, logging, utils                       |
-| `sensor_multiplexer` | Switches between named sensor input groups (e.g., Home/Away)                       | bindings, values, persist, events, conditionals, logging, utils |
-| `device_programmer`  | Creates programmable virtual sensors and relays settable from Control4 programming | bindings, persist, logging, utils                               |
+| Driver                 | Purpose                                                                                                 | Key Shared Libs                                                 |
+| ---------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `sensor_aggregator`    | Combines multiple sensor inputs into one output using aggregation funcs                                 | bindings, values, persist, logging, utils                       |
+| `sensor_multiplexer`   | Switches between named sensor input groups (e.g., Home/Away)                                            | bindings, values, persist, events, conditionals, logging, utils |
+| `device_programmer`    | Creates programmable virtual sensors and relays settable from Control4 programming                      | bindings, persist, logging, utils                               |
+| `light_relay`          | Exposes selected light devices as relay bindings with bidirectional sync                                | bindings, persist, logging, utils                               |
+| `variable_manipulator` | Named string/equation expressions over project variables, with auto recompute and a custom Composer tab | expressions, transform, values, events, persist, logging, utils |
 
 ## Shared Library Reference
 
@@ -116,6 +118,23 @@ deletion, and restore-on-boot with cleanup of stale event IDs.
 Manages dynamic conditionals for Control4 programming. Supports creation,
 deletion, and test functions (`TC[]` table). Also provides global
 `GetConditionals()`.
+
+### `src/lib/transform.lua`
+
+Sandboxed Lua expression evaluator (loadstring + setfenv) with a compile cache.
+Optional `value` binding for single-value transforms; exposes `math`, `string`,
+bare math helpers (`abs`, `round`, ...), `c2f`/`f2c`, `map{}`, `device_name()`,
+and `room_name()`. Adapted from the control4-influxdb transform library; keep
+the two in sync when extending.
+
+### `src/lib/expressions.lua`
+
+Variable watch engine for expression auto-recompute, modeled on the
+control4-influxdb subscription engine. Ref-counts `RegisterVariableListener` per
+variable across expressions; changes arm a per-expression trailing-edge debounce
+timer that triggers the recompute callback. Includes `notifyVariableChanged` for
+own-variable writes (Director does not deliver watch events for a driver's own
+variables) and `handleDeviceRemoved` cleanup.
 
 ### `src/lib/logging.lua`
 
