@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Variable Manipulator</title>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --surface: #ffffff;
+      --surface-hover: #f0f0f2;
+      --border: #d1d5db;
+      --text: #1a1a1a;
+      --text-muted: #6b7280;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --danger: #dc2626;
+      --danger-hover: #b91c1c;
+      --success: #16a34a;
+      --warning: #d97706;
+      --radius: 6px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      box-shadow: var(--shadow);
+    }
+    .nav-title {
+      padding: 10px 2px;
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 13px;
+      border-bottom: 2px solid var(--accent);
+    }
+    .nav-meta { font-size: 11px; color: var(--text-muted); }
+
+    .panel { display: none; padding: 16px; max-width: 980px; }
+    .panel.active { display: block; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+    .card h3 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px; font-weight: 500; }
+    input[type="text"], textarea, select {
+      width: 100%;
+      padding: 6px 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 13px;
+      font-family: var(--font);
+    }
+    input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+    textarea { font-family: var(--mono); font-size: 12.5px; resize: vertical; min-height: 64px; line-height: 1.6; }
+    .input-error { border-color: var(--danger) !important; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 5px 12px; border: none; border-radius: var(--radius);
+      font-size: 12px; font-family: var(--font); cursor: pointer;
+      font-weight: 500; transition: background 0.15s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: var(--surface-hover); }
+    .btn-ghost { background: transparent; border: 1px solid transparent; color: var(--text-muted); padding: 3px 6px; font-size: 11px; cursor: pointer; }
+    .btn-ghost:hover { color: var(--text); }
+    .btn-sm { padding: 3px 8px; font-size: 11px; }
+    .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
+    th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; }
+    td { font-size: 12px; }
+    tbody tr:hover td { background: var(--surface-hover); }
+    tbody tr:last-child td { border-bottom: none; }
+
+    .chip {
+      display: inline-block; padding: 1px 7px; border-radius: 10px;
+      font-size: 10px; font-weight: 600;
+    }
+    .chip-num { background: #dbeafe; color: #1d4ed8; }
+    .chip-str { background: #d1fae5; color: #059669; }
+    .chip-auto { background: #ede9fe; color: #6d28d9; }
+    .chip-man { background: #f3f4f6; color: #6b7280; }
+    .chip-err { background: #fef3c7; color: #b45309; }
+
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; }
+    .status-ok { background: var(--success); }
+    .status-warn { background: var(--warning); }
+    .status-none { background: #d1d5db; }
+
+    .expr-rendered {
+      display: block; max-width: 300px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      font-family: var(--mono); font-size: 10.5px; color: var(--text-muted);
+    }
+    .res { font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+    .hint { font-size: 11.5px; color: var(--text-muted); margin-top: 8px; }
+    .hint code, .pub code { font-family: var(--mono); font-size: 10.5px; }
+    .empty { padding: 22px 8px; text-align: center; color: var(--text-muted); font-size: 12.5px; }
+
+    /* Editor layout */
+    .split { display: flex; gap: 12px; align-items: stretch; }
+    .browser { width: 300px; flex: none; display: flex; flex-direction: column; max-height: 560px; }
+    .editor-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+
+    .tree-wrap { overflow-y: auto; flex: 1; margin-top: 8px; }
+    .troom {
+      font-size: 9.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+      color: #9ca3af; padding: 8px 2px 3px;
+    }
+    .tdev {
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 4px; border-radius: 5px;
+      font-weight: 600; color: #374151; cursor: pointer; font-size: 12px;
+    }
+    .tdev:hover { background: var(--surface-hover); }
+    .tdev .chev { color: #9ca3af; font-size: 10px; width: 10px; }
+    .tvar {
+      display: flex; align-items: center; gap: 6px;
+      padding: 3px 6px 3px 22px; border-radius: 5px;
+      color: #374151; cursor: pointer;
+    }
+    .tvar:hover { background: #eef2ff; outline: 1px solid #c7d2fe; }
+    .tvar .vname { font-family: var(--mono); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tvar .vval {
+      margin-left: auto; font-family: var(--mono); font-size: 11px;
+      color: var(--text-muted); font-variant-numeric: tabular-nums;
+      max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none;
+    }
+    .tvar .ins {
+      display: none; flex: none;
+      font-size: 10px; font-weight: 600; color: #fff;
+      background: var(--accent); border-radius: 4px; padding: 1px 6px;
+    }
+    .tvar:hover .ins { display: inline-block; }
+    .tvar:hover .vval { display: none; }
+    .tfoot { padding-top: 8px; font-size: 10.5px; color: #9ca3af; }
+    .tloading { padding: 4px 22px; font-size: 11px; color: var(--text-muted); font-style: italic; }
+
+    .frow { display: flex; gap: 10px; margin-bottom: 10px; }
+    .frow .f { flex: 1; min-width: 0; }
+    .seg { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .seg button {
+      padding: 5px 12px; font-size: 12px; color: var(--text-muted);
+      background: var(--surface); border: none; cursor: pointer; font-family: var(--font);
+    }
+    .seg button.on { background: var(--accent); color: #fff; font-weight: 600; }
+
+    .prev { background: #f8fafc; border: 1px solid #e2e8f0; }
+    .prev .pl { font-size: 9.5px; font-weight: 700; letter-spacing: 0.6px; color: #94a3b8; text-transform: uppercase; margin-bottom: 2px; }
+    .prev .pv { font-family: var(--mono); font-size: 11px; color: #475569; margin-bottom: 8px; overflow-wrap: anywhere; }
+    .prev .pres { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--success); overflow-wrap: anywhere; }
+    .prev .perr { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--danger); overflow-wrap: anywhere; }
+    .pub { font-size: 11px; color: var(--text-muted); border-top: 1px dashed #e2e8f0; margin-top: 9px; padding-top: 8px; }
+
+    .footbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .autolabel { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: #374151; cursor: pointer; }
+    .autolabel input { width: auto; }
+    .save-error { color: var(--danger); font-size: 11.5px; margin-right: auto; }
+
+    .conn-warn {
+      background: #fef3c7; border: 1px solid #fcd34d; color: #92400e;
+      border-radius: var(--radius); padding: 8px 12px; margin-bottom: 12px; font-size: 12px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="nav">
+  <span class="nav-title">Expressions</span>
+  <span class="nav-meta" id="nav-meta">Variable Manipulator</span>
+</div>
+
+<!-- ── List panel ─────────────────────────────────────────────── -->
+<div class="panel active" id="panel-list">
+  <div class="conn-warn" id="conn-warn">Not connected to the controller API. Open this tab from Composer.</div>
+  <div class="card">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+      <h3 style="margin:0;">Expressions</h3>
+      <button class="btn btn-primary btn-sm" onclick="openEditor(null)">+ Add Expression</button>
+    </div>
+    <table id="expr-table">
+      <thead>
+        <tr>
+          <th style="width:190px;">Name</th>
+          <th style="width:60px;">Mode</th>
+          <th>Expression</th>
+          <th style="width:150px;">Last Result</th>
+          <th style="width:72px;">Recompute</th>
+          <th style="width:132px;"></th>
+        </tr>
+      </thead>
+      <tbody id="expr-rows"></tbody>
+    </table>
+    <div class="empty" id="expr-empty" style="display:none;">No expressions yet. Add Expression to create one.</div>
+    <p class="hint">Each expression publishes a variable named <code>&lt;Name&gt; Result</code> and fires the <code>&lt;Name&gt; Calculated</code> event after every run.</p>
+  </div>
+</div>
+
+<!-- ── Editor panel ───────────────────────────────────────────── -->
+<div class="panel" id="panel-editor">
+  <div class="split">
+
+    <div class="card browser">
+      <h3>Variables</h3>
+      <input type="text" id="var-search" placeholder="Search rooms, devices, variables" oninput="renderTree()"/>
+      <div class="tree-wrap" id="tree"></div>
+      <div class="tfoot" id="tree-foot"></div>
+    </div>
+
+    <div class="editor-col">
+      <div class="card">
+        <div class="frow">
+          <div class="f">
+            <label for="expr-name">Name</label>
+            <input type="text" id="expr-name" placeholder="e.g. Bathroom Humidity Diff" oninput="this.classList.remove('input-error')"/>
+          </div>
+          <div style="flex:none;">
+            <label>Mode</label>
+            <div class="seg">
+              <button type="button" id="mode-equation" class="on" onclick="setMode('equation')">Equation</button>
+              <button type="button" id="mode-string" onclick="setMode('string')">String</button>
+            </div>
+          </div>
+        </div>
+        <label for="expr-template">Expression</label>
+        <textarea id="expr-template" rows="3" spellcheck="false"
+          placeholder="abs(PARAM{96,1002} - PARAM{97,1002})"
+          oninput="onTemplateInput()"></textarea>
+      </div>
+
+      <div class="card prev" id="preview" style="display:none;">
+        <div class="pl">References</div>
+        <div class="pv" id="prev-rendered"></div>
+        <div id="prev-sub-wrap">
+          <div class="pl">With current values</div>
+          <div class="pv" id="prev-substituted"></div>
+        </div>
+        <div class="pl">Result</div>
+        <div class="pres" id="prev-result" style="display:none;"></div>
+        <div class="perr" id="prev-error" style="display:none;"></div>
+        <div class="pub" id="prev-pub"></div>
+      </div>
+
+      <div class="footbar">
+        <label class="autolabel"><input type="checkbox" id="expr-auto" checked/>
+          Recalculate when referenced variables change <span class="hint" id="watch-count" style="margin:0;"></span></label>
+        <span style="display:flex; gap:8px; align-items:center;">
+          <span class="save-error" id="save-error"></span>
+          <button class="btn btn-outline" onclick="closeEditor()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveExpression()">Save Expression</button>
+        </span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ============================================================
+// C4 REST API Client (same bridge as the InfluxDB driver tab)
+// ============================================================
+var gApiHost, gDriverId, gApiToken;
+
+(function() {
+  var p = {};
+  window.location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,k,v) { p[k]=decodeURIComponent(v); });
+  gApiHost = p.apihost; gDriverId = p.driverid; gApiToken = p.apitoken;
+})();
+
+function api(method, path, body) {
+  if (!gApiHost) return Promise.resolve(null);
+  var opts = {
+    method: method,
+    headers: { 'Authorization': 'Bearer ' + gApiToken, 'Content-Type': 'application/json' }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  return fetch('https://' + gApiHost + path, opts).then(function(r) { return r.json(); }).catch(function(e) {
+    console.error('API error:', method, path, e);
+    return null;
+  });
+}
+
+// Send a UIRequest command to the driver
+function sendCommand(cmd, params) {
+  return api('POST', '/api/v1/items/' + gDriverId + '/commands', {
+    command: cmd,
+    tParams: { DATA: btoa(JSON.stringify(params || {})) },
+    async: false
+  });
+}
+
+// ============================================================
+// Socket.io for real-time updates
+// ============================================================
+var gSocket = null;
+
+async function initSocket() {
+  if (!gApiHost) return;
+  try {
+    var jwt = 'JWT=' + gApiToken;
+    var res = await fetch('https://' + gApiHost + '/socket.io/socket.io.js?' + jwt, {
+      headers: { 'Authorization': 'Bearer ' + gApiToken }
+    });
+    eval.call(window, await res.text());
+
+    gSocket = window.io.connect('https://' + gApiHost, {
+      forceNew: true, query: jwt, transports: ['polling', 'websocket']
+    });
+
+    await new Promise(function(resolve) { gSocket.once('connect', resolve); });
+    var engineId = gSocket.io.engine.id;
+
+    var sub = await api('GET', '/api/v1/items/' + gDriverId + '/datatoui?SubscriptionClient=' + engineId + '&coerce=false');
+    if (sub && sub.subscriptionId) {
+      gSocket.on(String(sub.subscriptionId), handleSocketEvent);
+      gSocket.emit('startSubscription', String(sub.subscriptionId));
+    }
+  } catch (e) { console.error('Socket init error:', e); }
+}
+
+function handleSocketEvent(evt) {
+  var items = Array.isArray(evt) ? evt : [evt];
+  items.forEach(function(item) {
+    var dc = item.data ? item.data.devicecommand : null;
+    if (!dc || dc.command === 'LUA_OUTPUT') return;
+    var params = {};
+    if (dc.params && dc.params.param) {
+      var arr = Array.isArray(dc.params.param) ? dc.params.param : [dc.params.param];
+      arr.forEach(function(p) {
+        if (p && p.name) params[p.name] = (p.value && p.value.static !== undefined) ? p.value.static : (p.value || '');
+      });
+    }
+    handleDriverData(dc.command, params);
+  });
+}
+
+function handleDriverData(cmd, params) {
+  try {
+    if (cmd === 'CONFIG_DATA') onConfig(JSON.parse(params.expressions || '[]'));
+    else if (cmd === 'EXPRESSION_RESULT') onExpressionResult(params);
+    else if (cmd === 'EVAL_RESULT') onEvalResult(params);
+    else if (cmd === 'DEVICES_DATA') onDevices(JSON.parse(params.devices || '[]'));
+    else if (cmd === 'DEVICE_VARIABLES_DATA') onDeviceVariables(params.deviceId, JSON.parse(params.variables || '[]'));
+    else if (cmd === 'SAVE_RESULT') onSaveResult(params);
+  } catch (e) { console.error('handleDriverData error:', cmd, e); }
+}
+
+// ============================================================
+// Helpers
+// ============================================================
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function debounce(fn, ms) {
+  var t = null;
+  return function() {
+    var args = arguments, self = this;
+    clearTimeout(t);
+    t = setTimeout(function() { fn.apply(self, args); }, ms);
+  };
+}
+function agoLabel(ts) {
+  if (!ts) return '';
+  var s = Math.max(0, Math.floor(Date.now()/1000 - Number(ts)));
+  if (s < 5) return 'just now';
+  if (s < 60) return s + 's ago';
+  if (s < 3600) return Math.floor(s/60) + 'm ago';
+  return Math.floor(s/3600) + 'h ago';
+}
+
+// ============================================================
+// State
+// ============================================================
+var gExpressions = [];           // [{name, mode, template, auto, watched, result, error, rendered, ts}]
+var gDevices = [];               // [{id, name, roomName}]
+var gVarsByDevice = {};          // id -> [{id, name, type, value}]
+var gExpanded = {};              // id -> true
+var gEditor = { open: false, originalName: '', mode: 'equation' };
+var gEvalSeq = 0;
+
+// ============================================================
+// List view
+// ============================================================
+function onConfig(expressions) {
+  gExpressions = expressions || [];
+  renderList();
+}
+
+function renderList() {
+  var tb = document.getElementById('expr-rows');
+  var empty = document.getElementById('expr-empty');
+  if (!gExpressions.length) {
+    tb.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  var html = '';
+  gExpressions.forEach(function(x) {
+    var dot = x.error ? 'status-warn' : (x.result != null && x.result !== '' ? 'status-ok' : 'status-none');
+    var modeChip = x.mode === 'string' ? '<span class="chip chip-str">STRING</span>' : '<span class="chip chip-num">NUMBER</span>';
+    var resCell;
+    if (x.error) resCell = '<span class="chip chip-err" title="' + esc(x.error) + '">' + esc(shortError(x.error)) + '</span>';
+    else if (x.result != null && x.result !== '') resCell = '<span class="res" title="' + esc(agoLabel(x.ts)) + '">' + esc(x.result) + '</span>';
+    else resCell = '<span class="res" style="color:var(--text-muted);">-</span>';
+    var autoChip = x.auto ? '<span class="chip chip-auto">Auto</span>' : '<span class="chip chip-man">Manual</span>';
+    html += '<tr data-name="' + esc(x.name) + '">'
+      + '<td><span class="status-dot ' + dot + '"></span><b>' + esc(x.name) + '</b></td>'
+      + '<td>' + modeChip + '</td>'
+      + '<td><span class="expr-rendered" title="' + esc(x.rendered || x.template) + '">' + esc(x.rendered || x.template) + '</span></td>'
+      + '<td class="cell-result">' + resCell + '</td>'
+      + '<td>' + autoChip + '</td>'
+      + '<td style="text-align:right; white-space:nowrap;">'
+      + '<button class="btn btn-outline btn-sm" onclick="runExpression(\'' + escAttr(x.name) + '\')">&#9654; Run</button> '
+      + '<button class="btn btn-ghost" onclick="editExpression(\'' + escAttr(x.name) + '\')">Edit</button>'
+      + '<button class="btn btn-ghost" title="Delete" onclick="deleteExpression(\'' + escAttr(x.name) + '\')">&#10005;</button>'
+      + '</td></tr>';
+  });
+  tb.innerHTML = html;
+}
+
+function shortError(err) {
+  err = String(err || '');
+  if (err.indexOf('unresolved') !== -1) return 'Unresolved reference';
+  if (err.indexOf('device removed') !== -1) return 'Device removed';
+  return 'Error';
+}
+
+function escAttr(s) { return esc(s).replace(/\\/g, '\\\\'); }
+
+function onExpressionResult(p) {
+  var found = false;
+  gExpressions.forEach(function(x) {
+    if (x.name === p.name) {
+      x.result = p.result; x.error = p.error || null; x.rendered = p.rendered || x.rendered; x.ts = p.ts;
+      found = true;
+    }
+  });
+  if (found) renderList();
+  else sendCommand('_GET_CONFIG');
+}
+
+function runExpression(name) { sendCommand('_RUN_EXPRESSION', { name: name }); }
+
+function deleteExpression(name) {
+  if (!window.confirm('Delete expression "' + name + '"? Its output variable and event are removed.')) return;
+  sendCommand('_DELETE_EXPRESSION', { name: name });
+}
+
+function editExpression(name) {
+  var x = null;
+  gExpressions.forEach(function(e) { if (e.name === name) x = e; });
+  openEditor(x);
+}
+
+// ============================================================
+// Editor view
+// ============================================================
+function openEditor(expr) {
+  gEditor.open = true;
+  gEditor.originalName = expr ? expr.name : '';
+  document.getElementById('expr-name').value = expr ? expr.name : '';
+  document.getElementById('expr-template').value = expr ? expr.template : '';
+  document.getElementById('expr-auto').checked = expr ? !!expr.auto : true;
+  document.getElementById('save-error').textContent = '';
+  setMode(expr && expr.mode === 'string' ? 'string' : 'equation', true);
+  document.getElementById('panel-list').classList.remove('active');
+  document.getElementById('panel-editor').classList.add('active');
+  if (!gDevices.length) sendCommand('_GET_DEVICES');
+  onTemplateInput();
+  document.getElementById('expr-name').focus();
+}
+
+function closeEditor() {
+  gEditor.open = false;
+  document.getElementById('panel-editor').classList.remove('active');
+  document.getElementById('panel-list').classList.add('active');
+}
+
+function setMode(mode, skipPreview) {
+  gEditor.mode = mode;
+  document.getElementById('mode-equation').className = mode === 'equation' ? 'on' : '';
+  document.getElementById('mode-string').className = mode === 'string' ? 'on' : '';
+  if (!skipPreview) onTemplateInput();
+}
+
+function onTemplateInput() {
+  updateWatchCount();
+  requestPreviewDebounced();
+}
+
+function updateWatchCount() {
+  var tpl = document.getElementById('expr-template').value || '';
+  var m = tpl.match(/PARAM\s*\{[^}]*\}/g);
+  var n = m ? m.length : 0;
+  document.getElementById('watch-count').textContent = n ? '(watching ' + n + ' reference' + (n === 1 ? '' : 's') + ')' : '';
+}
+
+var requestPreviewDebounced = debounce(function() {
+  var tpl = document.getElementById('expr-template').value || '';
+  var prev = document.getElementById('preview');
+  if (!tpl.trim()) { prev.style.display = 'none'; return; }
+  gEvalSeq++;
+  sendCommand('_EVAL_EXPRESSION', { id: String(gEvalSeq), mode: gEditor.mode, template: tpl });
+}, 350);
+
+function onEvalResult(p) {
+  if (String(p.id) !== String(gEvalSeq)) return; // stale preview
+  var prev = document.getElementById('preview');
+  prev.style.display = 'block';
+  document.getElementById('prev-rendered').textContent = p.rendered || '';
+  var subWrap = document.getElementById('prev-sub-wrap');
+  if (gEditor.mode === 'equation') {
+    subWrap.style.display = 'block';
+    document.getElementById('prev-substituted').textContent = p.substituted || '';
+  } else {
+    subWrap.style.display = 'none';
+  }
+  var res = document.getElementById('prev-result');
+  var err = document.getElementById('prev-error');
+  var tplBox = document.getElementById('expr-template');
+  if (p.error) {
+    res.style.display = 'none';
+    err.style.display = 'block';
+    err.textContent = p.error;
+    tplBox.classList.add('input-error');
+  } else {
+    err.style.display = 'none';
+    res.style.display = 'block';
+    res.textContent = p.result;
+    tplBox.classList.remove('input-error');
+  }
+  updatePublishLine();
+}
+
+function updatePublishLine() {
+  var name = document.getElementById('expr-name').value.trim() || 'Expression';
+  document.getElementById('prev-pub').innerHTML =
+    'Publishes <code>' + esc(name) + ' Result</code> (' + (gEditor.mode === 'string' ? 'STRING' : 'NUMBER')
+    + ' variable) &middot; <code>' + esc(name) + ' Calculated</code> (event)';
+}
+
+function saveExpression() {
+  var nameInput = document.getElementById('expr-name');
+  var name = nameInput.value.trim();
+  var template = document.getElementById('expr-template').value.trim();
+  var errEl = document.getElementById('save-error');
+  errEl.textContent = '';
+  if (!name) { nameInput.classList.add('input-error'); errEl.textContent = 'Name is required.'; return; }
+  if (!template) { errEl.textContent = 'Expression is required.'; return; }
+  var isRename = gEditor.originalName && gEditor.originalName !== name;
+  var clash = gExpressions.some(function(x) { return x.name === name && gEditor.originalName !== name; });
+  if (clash && (isRename || !gEditor.originalName)) {
+    if (!window.confirm('An expression named "' + name + '" already exists. Overwrite it?')) return;
+  }
+  sendCommand('_SAVE_EXPRESSION', {
+    name: name,
+    originalName: gEditor.originalName,
+    mode: gEditor.mode,
+    template: template,
+    auto: document.getElementById('expr-auto').checked
+  });
+  closeEditor();
+}
+
+function onSaveResult(p) {
+  if (p && p.ok === false) {
+    // Reopen the editor state message on validation failure
+    document.getElementById('panel-list').classList.remove('active');
+    document.getElementById('panel-editor').classList.add('active');
+    document.getElementById('save-error').textContent = p.error || 'Save failed';
+  }
+}
+
+// ============================================================
+// Variable browser
+// ============================================================
+function onDevices(devices) {
+  gDevices = devices || [];
+  renderTree();
+}
+
+function onDeviceVariables(deviceId, variables) {
+  gVarsByDevice[String(deviceId)] = variables || [];
+  renderTree();
+}
+
+function toggleDevice(id) {
+  var key = String(id);
+  if (gExpanded[key]) {
+    delete gExpanded[key];
+  } else {
+    gExpanded[key] = true;
+    if (!gVarsByDevice[key]) sendCommand('_GET_DEVICE_VARIABLES', { deviceId: id });
+  }
+  renderTree();
+}
+
+function renderTree() {
+  var q = (document.getElementById('var-search').value || '').toLowerCase();
+  var tree = document.getElementById('tree');
+  var foot = document.getElementById('tree-foot');
+  var html = '';
+  var shown = 0;
+  var lastRoom = null;
+
+  gDevices.forEach(function(d) {
+    var room = d.roomName || 'No Room';
+    var matchDevice = !q || (d.name || '').toLowerCase().indexOf(q) !== -1 || room.toLowerCase().indexOf(q) !== -1;
+    var vars = gVarsByDevice[String(d.id)];
+    var matchingVars = null;
+    if (q && !matchDevice && vars) {
+      matchingVars = vars.filter(function(v) { return (v.name || '').toLowerCase().indexOf(q) !== -1; });
+      if (!matchingVars.length) return;
+    } else if (!matchDevice && q) {
+      return; // not loaded and no device match
+    }
+
+    shown++;
+    if (room !== lastRoom) {
+      html += '<div class="troom">' + esc(room) + '</div>';
+      lastRoom = room;
+    }
+    var expanded = !!gExpanded[String(d.id)] || (q && matchingVars);
+    html += '<div class="tdev" onclick="toggleDevice(' + d.id + ')"><span class="chev">' + (expanded ? '&#9662;' : '&#9656;') + '</span>' + esc(d.name) + '</div>';
+    if (expanded) {
+      if (!vars) {
+        html += '<div class="tloading">loading variables...</div>';
+      } else {
+        // Variable-name matches narrow the list; a room/device match shows all
+        var list = matchingVars || vars;
+        if (!list.length) html += '<div class="tloading">no variables</div>';
+        list.forEach(function(v) {
+          html += '<div class="tvar" onclick="insertToken(' + d.id + ',' + v.id + ')" title="' + esc(d.name) + ' &gt; ' + esc(v.name) + '">'
+            + '<span class="vname">' + esc(v.name) + '</span>'
+            + '<span class="vval">' + esc(v.value == null ? '' : v.value) + '</span>'
+            + '<span class="ins">Insert</span>'
+            + '</div>';
+        });
+      }
+    }
+  });
+
+  tree.innerHTML = html || '<div class="tloading">' + (gDevices.length ? 'no matches' : 'loading devices...') + '</div>';
+  foot.textContent = gDevices.length ? (shown + ' of ' + gDevices.length + ' devices') : '';
+}
+
+function insertToken(deviceId, variableId) {
+  var token = 'PARAM{' + deviceId + ',' + variableId + '}';
+  var box = document.getElementById('expr-template');
+  var start = box.selectionStart != null ? box.selectionStart : box.value.length;
+  var end = box.selectionEnd != null ? box.selectionEnd : box.value.length;
+  box.value = box.value.slice(0, start) + token + box.value.slice(end);
+  var caret = start + token.length;
+  box.focus();
+  box.setSelectionRange(caret, caret);
+  onTemplateInput();
+}
+
+// ============================================================
+// Boot
+// ============================================================
+(async function boot() {
+  document.getElementById('nav-meta').textContent = 'Variable Manipulator' + (gDriverId ? ' · device ' + gDriverId : '');
+  document.getElementById('expr-name').addEventListener('input', updatePublishLine);
+  if (!gApiHost) {
+    document.getElementById('conn-warn').style.display = 'block';
+    return;
+  }
+  await initSocket();
+  sendCommand('_GET_CONFIG');
+  sendCommand('_GET_DEVICES');
+  // Keep relative timestamps fresh
+  setInterval(function() { if (!gEditor.open) renderList(); }, 30000);
+})();
+</script>
+</body>
+</html>

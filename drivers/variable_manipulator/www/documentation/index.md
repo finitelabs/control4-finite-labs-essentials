@@ -43,6 +43,7 @@ use elsewhere in programming.
   - [DriverCentral Cloud Setup](#drivercentral-cloud-setup)
   <!-- #endif -->
   - [Adding the Driver](#adding-the-driver)
+  - [Expressions Tab](#expressions-tab)
   - [Driver Properties](#driver-properties)
     - [Cloud Settings](#cloud-settings)
     - [Driver Settings](#driver-settings)
@@ -71,14 +72,21 @@ use elsewhere in programming.
 
 # <span style="color:#109EFF">Features</span>
 
+- Named expressions managed from a dedicated Expressions tab in Composer, with a
+  searchable variable browser, insert at cursor, and a live result preview
+- Each named expression publishes its own `<Name> Result` variable and fires a
+  `<Name> Calculated` event, so multiple calculations never collide
+- Automatic recompute: the driver watches the variables an expression references
+  and recalculates when they change, debounced so chatty sources (power meters)
+  coalesce into one recalculation per second
 - Combine one or more variables into a single string
 - Evaluate mathematical equations that reference one or more variables
 - Reference any variable in the project by device id and variable id or name
 - Token Builder generates `PARAM{}` tokens from a variable picker
 - Full Lua math library plus common helpers (`abs`, `min`, `max`, `round`, ...)
-- Results published to `STRING` and `NUMBER` variables and to driver events
+- Ad hoc results published to `STRING` and `NUMBER` variables and driver events
 - Rendered expression shows each reference as `[Room > Device > Variable]`
-- Last results persist across driver restarts
+- Expressions and last results persist across driver restarts
 
 <div style="page-break-after: always"></div>
 
@@ -119,6 +127,45 @@ for setting it up.
    project.
 
 <!-- #endif -->
+
+## Expressions Tab
+
+The Expressions tab in Composer (select the driver, then the Expressions tab) is
+the primary way to create and manage standing calculations.
+
+### Expression list
+
+Every named expression appears as a row with its mode, a rendered view of what
+it references, the last result, and whether it recalculates automatically.
+Results update live as the driver recalculates. A row showing
+`Unresolved reference` points at a reference that no longer exists, for example
+a device that was removed.
+
+### Editor
+
+- **Variables browser**: search across rooms, devices, and variable names. Click
+  a device to load its variables with their current values. Click a variable to
+  insert its `PARAM{}` token at the cursor.
+- **Mode**: `Equation` evaluates the substituted template as math and publishes
+  a NUMBER. `String` publishes the substituted text as a STRING.
+- **Live preview**: as you type, the driver renders the references, substitutes
+  current values, and evaluates the result in its sandbox. Errors show inline
+  before anything is saved.
+- **Recalculate when referenced variables change**: when enabled, the driver
+  watches every variable the expression references and recalculates on change.
+  Changes are debounced (1 second) so rapidly updating sources coalesce into a
+  single recalculation. When disabled, the expression only recalculates from the
+  Calculate Expression programming command or the Run button.
+
+### Outputs
+
+Saving an expression named `Bathroom Humidity Diff` creates:
+
+- A read-only variable `Bathroom Humidity Diff Result`
+- An event `Bathroom Humidity Diff Calculated` that fires after every successful
+  recalculation
+
+Renaming an expression renames its outputs; deleting it removes them.
 
 ## Driver Properties
 
@@ -253,6 +300,12 @@ If a referenced variable cannot be found, the token is replaced with
 `ERROR IN EQUATION`.
 
 ## Commands
+
+### Calculate Expression
+
+Recalculate a named expression now. The Expression dropdown lists every
+expression defined in the Expressions tab. Useful for manual-recompute
+expressions or to force a recalculation at a known point in programming.
 
 ### Create String
 

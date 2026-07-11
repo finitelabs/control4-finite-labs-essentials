@@ -161,6 +161,9 @@
         <description>The PARAM{} token for the variable selected above. Select the text to copy it into a Create String or Calculate Equation command. Editing here has no effect; it is rewritten on the next selection.</description>
       </property>
     </properties>
+    <tabs>
+      <tab name="Expressions" file="html/index.html"/>
+    </tabs>
     <actions>
       <!-- #ifndef DRIVERCENTRAL -->
       <action>
@@ -184,6 +187,16 @@
       </action>
     </actions>
     <commands>
+      <command>
+        <name>Calculate Expression</name>
+        <description>Calculate expression PARAM1</description>
+        <params>
+          <param>
+            <name>Expression</name>
+            <type>DYNAMIC_LIST</type>
+          </param>
+        </params>
+      </command>
       <command>
         <name>Create String</name>
         <description>Create string PARAM1</description>
