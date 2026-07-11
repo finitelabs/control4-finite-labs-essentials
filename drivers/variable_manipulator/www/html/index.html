@@ -56,8 +56,17 @@
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 
-    .panel { display: none; padding: 16px; max-width: 980px; }
+    .panel { display: none; padding: 16px; }
     .panel.active { display: block; }
+
+    /* Composer's webview shows classic always-on scrollbars; keep them slim */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: #c7ccd4; border-radius: 5px;
+      border: 2px solid transparent; background-clip: content-box;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: #a9b0ba; background-clip: content-box; border: 2px solid transparent; }
 
     .card {
       background: var(--surface);
@@ -88,8 +97,42 @@
       font-family: var(--font);
     }
     input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
-    textarea { font-family: var(--mono); font-size: 12.5px; resize: vertical; min-height: 64px; line-height: 1.6; }
     .input-error { border-color: var(--danger) !important; }
+
+    /* Highlighted expression editor: a transparent textarea stacked over a
+       <pre> that renders the same text colorized. Both layers share identical
+       font metrics so the caret and selection stay aligned. */
+    .edwrap { position: relative; }
+    .edwrap textarea, .edwrap pre {
+      font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
+      padding: 9px 10px; margin: 0;
+      white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word;
+      min-height: 64px; box-sizing: border-box; width: 100%;
+      border-radius: var(--radius); tab-size: 2;
+    }
+    .edwrap pre {
+      position: absolute; inset: 0;
+      border: 1px solid transparent;
+      background: var(--surface);
+      overflow: hidden;
+      pointer-events: none;
+      color: var(--text);
+    }
+    .edwrap textarea {
+      position: relative; z-index: 1; display: block;
+      background: transparent;
+      color: transparent;
+      caret-color: var(--text);
+      border: 1px solid var(--border);
+      resize: none; overflow: hidden;
+    }
+    .edwrap textarea::placeholder { color: #9ca3af; }
+    .edwrap textarea::selection { background: rgba(37,99,235,0.22); }
+    .hl-tok { background: #dbeafe; border-radius: 4px; box-shadow: 0 0 0 1.5px #dbeafe; color: #1d4ed8; }
+    .hl-fn { color: #6d28d9; }
+    .hl-num { color: #0f766e; }
+    .hl-str { color: #059669; }
+    .hl-op { color: #6b7280; }
 
     .btn {
       display: inline-flex; align-items: center; gap: 4px;
@@ -106,7 +149,10 @@
     .btn-sm { padding: 3px 8px; font-size: 11px; }
     .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-    .table-wrap { overflow-x: auto; }
+    /* Scroll the table inside its card only on genuinely narrow panes;
+       1px rounding overflow must not summon a scrollbar on wide ones. */
+    .table-wrap { overflow-x: hidden; }
+    @media (max-width: 560px) { .table-wrap { overflow-x: auto; } }
     table { width: 100%; min-width: 480px; border-collapse: collapse; table-layout: fixed; }
     th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
     th {
@@ -172,20 +218,21 @@
     }
     .tvar:hover { background: #eef2ff; outline: 1px solid #c7d2fe; }
     .tvar .vname { flex: 1; min-width: 0; font-family: var(--mono); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tvar.used .vname::after { content: " \2713"; color: var(--success); }
     .tvar .vval {
       margin-left: auto; font-family: var(--mono); font-size: 11px;
       color: var(--text-muted); font-variant-numeric: tabular-nums;
       max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none;
     }
     .tvar .ins {
-      display: none; flex: none;
+      visibility: hidden; flex: none;
       font-size: 10px; font-weight: 600; color: #fff;
       background: var(--accent); border-radius: 4px; padding: 1px 6px;
     }
-    .tvar:hover .ins { display: inline-block; }
-    .tvar:hover .vval { display: none; }
+    .tvar:hover .ins { visibility: visible; }
     .tfoot { padding-top: 8px; font-size: 10.5px; color: #9ca3af; }
     .tloading { padding: 4px 22px; font-size: 11px; color: var(--text-muted); font-style: italic; }
+    mark.hlq { background: #fde68a; color: inherit; border-radius: 2px; padding: 0; }
 
     .frow { display: flex; gap: 10px; margin-bottom: 10px; }
     .frow .f { flex: 1; min-width: 0; }
@@ -202,6 +249,29 @@
     .prev .pres { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--success); overflow-wrap: anywhere; }
     .prev .perr { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--danger); overflow-wrap: anywhere; }
     .pub { font-size: 11px; color: var(--text-muted); border-top: 1px dashed #e2e8f0; margin-top: 9px; padding-top: 8px; }
+
+    /* Syntax help */
+    .label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .help-toggle {
+      background: none; border: none; padding: 0; cursor: pointer;
+      font-family: var(--font); font-size: 11px; font-weight: 500; color: var(--accent);
+    }
+    .help-toggle:hover { text-decoration: underline; }
+    .help {
+      display: none;
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius);
+      padding: 10px 12px; margin-top: 8px;
+      columns: 2; column-gap: 24px;
+    }
+    .help.open { display: block; }
+    @media (max-width: 740px) { .help { columns: 1; } }
+    .help section { break-inside: avoid; margin-bottom: 10px; }
+    .help h4 {
+      font-size: 9.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+      color: #94a3b8; margin: 0 0 3px;
+    }
+    .help p { font-size: 11.5px; color: #475569; margin: 0 0 4px; }
+    .help code { font-family: var(--mono); font-size: 10.5px; color: #1e293b; background: #eef2f7; border-radius: 3px; padding: 0 3px; }
 
     .footbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
     .autolabel { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: #374151; cursor: pointer; }
@@ -235,7 +305,7 @@
         <thead>
           <tr>
             <th style="width:22%;">Name</th>
-            <th class="col-mode" style="width:62px;">Mode</th>
+            <th class="col-mode" style="width:76px;">Mode</th>
             <th>Expression</th>
             <th style="width:16%;">Last Result</th>
             <th class="col-recompute" style="width:88px;">Recompute</th>
@@ -276,10 +346,46 @@
             </div>
           </div>
         </div>
-        <label for="expr-template">Expression</label>
-        <textarea id="expr-template" rows="3" spellcheck="false"
-          placeholder="abs(PARAM{96,1002} - PARAM{97,1002})"
-          oninput="onTemplateInput()"></textarea>
+        <div class="label-row">
+          <label for="expr-template">Expression</label>
+          <button type="button" class="help-toggle" id="help-toggle" onclick="toggleHelp()">Syntax help</button>
+        </div>
+        <div class="edwrap">
+          <pre id="expr-hl" aria-hidden="true"></pre>
+          <textarea id="expr-template" rows="3" spellcheck="false"
+            placeholder="abs(PARAM{96,1002} - PARAM{97,1002})"
+            oninput="onTemplateInput()"></textarea>
+        </div>
+        <div class="help" id="help-panel">
+          <section>
+            <h4>Variable tokens</h4>
+            <p><code>PARAM{deviceId,variableId}</code> reads a variable's current value. Click a
+            variable in the browser to insert its token at the cursor. The variable can also be
+            referenced by name: <code>PARAM{96,HUMIDITY}</code> (exact match, case sensitive).</p>
+          </section>
+          <section>
+            <h4>Equation mode</h4>
+            <p>The substituted text is evaluated as math and must produce a number.</p>
+            <p>Operators: <code>+ - * / % ^ ( )</code></p>
+            <p>Comparisons: <code>== ~= &lt; &lt;= &gt; &gt;=</code> with <code>and</code>,
+            <code>or</code>, <code>not</code> for conditionals:
+            <code>PARAM{96,1002} &gt; 50 and 1 or 0</code></p>
+          </section>
+          <section>
+            <h4>Functions</h4>
+            <p><code>abs</code> <code>ceil</code> <code>floor</code> <code>sqrt</code>
+            <code>min</code> <code>max</code> <code>round(x, digits)</code>
+            <code>c2f</code> <code>f2c</code> <code>tonumber</code> <code>pi</code>
+            <code>huge</code></p>
+            <p>The full <code>math.*</code> and <code>string.*</code> libraries are available,
+            for example <code>math.random(1, 10)</code>.</p>
+          </section>
+          <section>
+            <h4>String mode</h4>
+            <p>Literal text with tokens substituted, no evaluation:
+            <code>Espresso: PARAM{2795,1017} W</code></p>
+          </section>
+        </div>
       </div>
 
       <div class="card prev" id="preview" style="display:none;">
@@ -301,6 +407,7 @@
         <span style="display:flex; gap:8px; align-items:center;">
           <span class="save-error" id="save-error"></span>
           <button class="btn btn-outline" onclick="closeEditor()">Cancel</button>
+          <button class="btn btn-outline" title="Evaluate now without saving" onclick="requestPreviewNow()">Run Once</button>
           <button class="btn btn-primary" onclick="saveExpression()">Save Expression</button>
         </span>
       </div>
@@ -430,7 +537,10 @@ function agoLabel(ts) {
 var gExpressions = [];           // [{name, mode, template, auto, watched, result, error, rendered, ts}]
 var gDevices = [];               // [{id, name, roomName}]
 var gVarsByDevice = {};          // id -> [{id, name, type, value}]
-var gExpanded = {};              // id -> true
+var gExpanded = {};              // id -> true (manual expansion outside search)
+var gSearchCollapsed = {};       // id -> true (collapse override while searching)
+var gRequestedVars = {};         // id -> true (variable fetch already in flight)
+var gLastQ = '';                 // current search term
 var gEditor = { open: false, originalName: '', mode: 'equation' };
 var gEvalSeq = 0;
 
@@ -523,6 +633,7 @@ function openEditor(expr) {
   document.getElementById('panel-list').classList.remove('active');
   document.getElementById('panel-editor').classList.add('active');
   if (!gDevices.length) sendCommand('_GET_DEVICES');
+  renderPreviewPlaceholder();
   onTemplateInput();
   document.getElementById('expr-name').focus();
 }
@@ -540,8 +651,58 @@ function setMode(mode, skipPreview) {
   if (!skipPreview) onTemplateInput();
 }
 
+// ── Expression highlighting ─────────────────────────────────
+// Minimal escape for innerHTML text content (quotes stay literal so entity
+// text never collides with the tokenizer).
+function escMin(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+var HL_EQUATION_RE = new RegExp(
+  '(PARAM\\s*\\{[^}]*\\})'                                        // 1 token
+  + '|("[^"\\n]*"|\'[^\'\\n]*\')'                                 // 2 string
+  + '|((?:math|string)\\.\\w+'                                    // 3 function
+  + '|\\b(?:abs|ceil|floor|sqrt|min|max|round|tonumber|tostring|type|pi|huge|map|c2f|f2c|value)\\b)'
+  + '|(\\d+(?:\\.\\d+)?)'                                         // 4 number
+  + '|([+\\-*/%^(),])',                                           // 5 operator
+  'g');
+var HL_STRING_RE = /(PARAM\s*\{[^}]*\})/g; // string templates: only tokens
+
+function hlRender(text, mode) {
+  var out = escMin(text).replace(mode === 'string' ? HL_STRING_RE : HL_EQUATION_RE,
+    function(m, tok, str, fn, num, op) {
+      if (tok) return '<span class="hl-tok">' + tok + '</span>';
+      if (str) return '<span class="hl-str">' + str + '</span>';
+      if (fn) return '<span class="hl-fn">' + fn + '</span>';
+      if (num) return '<span class="hl-num">' + num + '</span>';
+      if (op) return '<span class="hl-op">' + op + '</span>';
+      return m;
+    });
+  // A trailing newline needs a filler line so the overlay height matches
+  if (out.slice(-1) === '\n' || out === '') out += '​';
+  return out;
+}
+
+function syncHighlight() {
+  var box = document.getElementById('expr-template');
+  var hl = document.getElementById('expr-hl');
+  hl.innerHTML = hlRender(box.value, gEditor.mode);
+  // Auto-grow so the overlay and textarea never scroll independently
+  box.style.height = 'auto';
+  box.style.height = Math.max(64, box.scrollHeight) + 'px';
+}
+
+function toggleHelp() {
+  var panel = document.getElementById('help-panel');
+  var open = !panel.classList.contains('open');
+  panel.classList.toggle('open', open);
+  document.getElementById('help-toggle').textContent = open ? 'Hide syntax help' : 'Syntax help';
+}
+
 function onTemplateInput() {
+  syncHighlight();
   updateWatchCount();
+  renderTree(); // keep the used checkmarks in sync with the template
   requestPreviewDebounced();
 }
 
@@ -552,13 +713,23 @@ function updateWatchCount() {
   document.getElementById('watch-count').textContent = n ? '(watching ' + n + ' reference' + (n === 1 ? '' : 's') + ')' : '';
 }
 
-var requestPreviewDebounced = debounce(function() {
+function requestPreviewNow() {
   var tpl = document.getElementById('expr-template').value || '';
-  var prev = document.getElementById('preview');
-  if (!tpl.trim()) { prev.style.display = 'none'; return; }
+  if (!tpl.trim()) { renderPreviewPlaceholder(); return; }
   gEvalSeq++;
   sendCommand('_EVAL_EXPRESSION', { id: String(gEvalSeq), mode: gEditor.mode, template: tpl });
-}, 350);
+}
+var requestPreviewDebounced = debounce(requestPreviewNow, 350);
+
+function renderPreviewPlaceholder() {
+  var prev = document.getElementById('preview');
+  prev.style.display = 'block';
+  document.getElementById('prev-rendered').textContent = 'Preview appears as you type.';
+  document.getElementById('prev-sub-wrap').style.display = 'none';
+  document.getElementById('prev-result').style.display = 'none';
+  document.getElementById('prev-error').style.display = 'none';
+  updatePublishLine();
+}
 
 function onEvalResult(p) {
   if (String(p.id) !== String(gEvalSeq)) return; // stale preview
@@ -643,52 +814,107 @@ function onDeviceVariables(deviceId, variables) {
 
 function toggleDevice(id) {
   var key = String(id);
-  if (gExpanded[key]) {
+  if (gLastQ) {
+    // While searching, matched devices are auto-expanded; the click overrides
+    // that for the current search only.
+    if (gSearchCollapsed[key]) delete gSearchCollapsed[key];
+    else gSearchCollapsed[key] = true;
+  } else if (gExpanded[key]) {
     delete gExpanded[key];
   } else {
     gExpanded[key] = true;
-    if (!gVarsByDevice[key]) sendCommand('_GET_DEVICE_VARIABLES', { deviceId: id });
   }
+  if (!gVarsByDevice[key]) fetchVars(id);
   renderTree();
 }
 
+function fetchVars(id) {
+  var key = String(id);
+  if (gRequestedVars[key]) return;
+  gRequestedVars[key] = true;
+  sendCommand('_GET_DEVICE_VARIABLES', { deviceId: Number(id) });
+}
+
+function usedTokenSet() {
+  // Set of "deviceId:variableRef" pairs referenced by the current template,
+  // matching either numeric ids or variable names.
+  var set = {};
+  var tpl = document.getElementById('expr-template').value || '';
+  var re = /PARAM\s*\{\s*(\d+)\s*,\s*([^}]*?)\s*\}/g;
+  var m;
+  while ((m = re.exec(tpl)) !== null) set[m[1] + ':' + m[2]] = true;
+  return set;
+}
+
+// Escape for HTML, then wrap case-insensitive matches of the current search
+// term in a highlight mark.
+function hi(s) {
+  var t = esc(s);
+  if (!gLastQ) return t;
+  var eq = esc(gLastQ).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return t.replace(new RegExp('(' + eq + ')', 'ig'), '<mark class="hlq">$1</mark>');
+}
+
+// Auto-expanding every match is only useful while the result set is readable;
+// past this many devices, matches stay collapsed until refined.
+var AUTO_EXPAND_LIMIT = 25;
+// New variable fetches triggered per render pass.
+var FETCH_LIMIT = 15;
+
 function renderTree() {
   var q = (document.getElementById('var-search').value || '').toLowerCase();
+  if (q !== gLastQ) { gSearchCollapsed = {}; gLastQ = q; }
   var tree = document.getElementById('tree');
   var foot = document.getElementById('tree-foot');
-  var html = '';
-  var shown = 0;
-  var lastRoom = null;
+  var used = usedTokenSet();
 
+  // Pass 1: which devices are visible under the current search
+  var visible = [];
   gDevices.forEach(function(d) {
     var room = d.roomName || 'No Room';
     var matchDevice = !q || (d.name || '').toLowerCase().indexOf(q) !== -1 || room.toLowerCase().indexOf(q) !== -1;
     var vars = gVarsByDevice[String(d.id)];
     var matchingVars = null;
-    if (q && !matchDevice && vars) {
+    if (q && !matchDevice) {
+      if (!vars) return; // variable-name search only sees loaded devices
       matchingVars = vars.filter(function(v) { return (v.name || '').toLowerCase().indexOf(q) !== -1; });
       if (!matchingVars.length) return;
-    } else if (!matchDevice && q) {
-      return; // not loaded and no device match
     }
+    visible.push({ d: d, room: room, matchingVars: matchingVars });
+  });
 
-    shown++;
-    if (room !== lastRoom) {
-      html += '<div class="troom">' + esc(room) + '</div>';
-      lastRoom = room;
+  var autoExpand = q && visible.length <= AUTO_EXPAND_LIMIT;
+  var fetches = 0;
+  var html = '';
+  var lastRoom = null;
+
+  visible.forEach(function(item) {
+    var d = item.d;
+    var key = String(d.id);
+    var vars = gVarsByDevice[key];
+    if (item.room !== lastRoom) {
+      html += '<div class="troom">' + hi(item.room) + '</div>';
+      lastRoom = item.room;
     }
-    var expanded = !!gExpanded[String(d.id)] || (q && matchingVars);
-    html += '<div class="tdev" onclick="toggleDevice(' + d.id + ')"><span class="chev">' + (expanded ? '&#9662;' : '&#9656;') + '</span>' + esc(d.name) + '</div>';
+    var expanded = q
+      ? (autoExpand || !!item.matchingVars) && !gSearchCollapsed[key]
+      : !!gExpanded[key];
+    if (expanded && !vars && fetches < FETCH_LIMIT) {
+      fetchVars(d.id);
+      fetches++;
+    }
+    html += '<div class="tdev" onclick="toggleDevice(' + d.id + ')"><span class="chev">' + (expanded ? '&#9662;' : '&#9656;') + '</span>' + hi(d.name) + '</div>';
     if (expanded) {
       if (!vars) {
         html += '<div class="tloading">loading variables...</div>';
       } else {
         // Variable-name matches narrow the list; a room/device match shows all
-        var list = matchingVars || vars;
+        var list = item.matchingVars || vars;
         if (!list.length) html += '<div class="tloading">no variables</div>';
         list.forEach(function(v) {
-          html += '<div class="tvar" onclick="insertToken(' + d.id + ',' + v.id + ')" title="' + esc(d.name) + ' &gt; ' + esc(v.name) + '">'
-            + '<span class="vname">' + esc(v.name) + '</span>'
+          var isUsed = used[d.id + ':' + v.id] || used[d.id + ':' + v.name];
+          html += '<div class="tvar' + (isUsed ? ' used' : '') + '" onclick="insertToken(' + d.id + ',' + v.id + ')" title="' + esc(d.name) + ' &gt; ' + esc(v.name) + '">'
+            + '<span class="vname">' + hi(v.name) + '</span>'
             + '<span class="vval">' + esc(v.value == null ? '' : v.value) + '</span>'
             + '<span class="ins">Insert</span>'
             + '</div>';
@@ -698,7 +924,7 @@ function renderTree() {
   });
 
   tree.innerHTML = html || '<div class="tloading">' + (gDevices.length ? 'no matches' : 'loading devices...') + '</div>';
-  foot.textContent = gDevices.length ? (shown + ' of ' + gDevices.length + ' devices') : '';
+  foot.textContent = gDevices.length ? (visible.length + ' of ' + gDevices.length + ' devices') : '';
 }
 
 function insertToken(deviceId, variableId) {
@@ -743,6 +969,14 @@ function insertToken(deviceId, variableId) {
     onDeviceVariables(2306, [
       { id: 1002, name: 'HUMIDITY', type: 'NUMBER', value: '61.8' },
       { id: 1001, name: 'TEMPERATURE', type: 'NUMBER', value: '74.2' }
+    ]);
+    onDeviceVariables(2311, [
+      { id: 1002, name: 'HUMIDITY', type: 'NUMBER', value: '54.2' },
+      { id: 1003, name: 'BATTERY_LEVEL', type: 'NUMBER', value: '88' }
+    ]);
+    onDeviceVariables(2795, [
+      { id: 1014, name: 'Voltage', type: 'NUMBER', value: '122' },
+      { id: 1017, name: 'Output 5 Power', type: 'NUMBER', value: '1342.6' }
     ]);
     return;
   }
