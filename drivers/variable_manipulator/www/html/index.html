@@ -50,7 +50,11 @@
       font-size: 13px;
       border-bottom: 2px solid var(--accent);
     }
-    .nav-meta { font-size: 11px; color: var(--text-muted); }
+    .nav-meta {
+      font-size: 11px; color: var(--text-muted);
+      margin-left: 12px; min-width: 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
 
     .panel { display: none; padding: 16px; max-width: 980px; }
     .panel.active { display: block; }
@@ -102,16 +106,26 @@
     .btn-sm { padding: 3px 8px; font-size: 11px; }
     .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-    table { width: 100%; border-collapse: collapse; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; min-width: 480px; border-collapse: collapse; table-layout: fixed; }
     th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
-    th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; }
+    th {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-muted); font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
     td { font-size: 12px; }
+    .trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     tbody tr:hover td { background: var(--surface-hover); }
     tbody tr:last-child td { border-bottom: none; }
+    @media (max-width: 840px) { .col-mode { display: none; } }
+    @media (max-width: 720px) { .col-recompute { display: none; } }
 
     .chip {
       display: inline-block; padding: 1px 7px; border-radius: 10px;
       font-size: 10px; font-weight: 600;
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap; vertical-align: bottom;
     }
     .chip-num { background: #dbeafe; color: #1d4ed8; }
     .chip-str { background: #d1fae5; color: #059669; }
@@ -124,20 +138,20 @@
     .status-warn { background: var(--warning); }
     .status-none { background: #d1d5db; }
 
-    .expr-rendered {
-      display: block; max-width: 300px;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      font-family: var(--mono); font-size: 10.5px; color: var(--text-muted);
-    }
+    .expr-rendered { font-family: var(--mono); font-size: 10.5px; color: var(--text-muted); }
     .res { font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; }
     .hint { font-size: 11.5px; color: var(--text-muted); margin-top: 8px; }
     .hint code, .pub code { font-family: var(--mono); font-size: 10.5px; }
     .empty { padding: 22px 8px; text-align: center; color: var(--text-muted); font-size: 12.5px; }
 
-    /* Editor layout */
-    .split { display: flex; gap: 12px; align-items: stretch; }
-    .browser { width: 300px; flex: none; display: flex; flex-direction: column; max-height: 560px; }
-    .editor-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+    /* Editor layout: browser pane keeps a narrow band on wide panes and wraps
+       to a full-width row on narrow ones. */
+    .split { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+    .browser { flex: 1 1 260px; max-width: 340px; display: flex; flex-direction: column; max-height: 560px; }
+    .editor-col { flex: 999 1 400px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+    @media (max-width: 740px) {
+      .browser { max-width: none; max-height: 320px; }
+    }
 
     .tree-wrap { overflow-y: auto; flex: 1; margin-top: 8px; }
     .troom {
@@ -157,7 +171,7 @@
       color: #374151; cursor: pointer;
     }
     .tvar:hover { background: #eef2ff; outline: 1px solid #c7d2fe; }
-    .tvar .vname { font-family: var(--mono); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tvar .vname { flex: 1; min-width: 0; font-family: var(--mono); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .tvar .vval {
       margin-left: auto; font-family: var(--mono); font-size: 11px;
       color: var(--text-muted); font-variant-numeric: tabular-nums;
@@ -216,19 +230,21 @@
       <h3 style="margin:0;">Expressions</h3>
       <button class="btn btn-primary btn-sm" onclick="openEditor(null)">+ Add Expression</button>
     </div>
-    <table id="expr-table">
-      <thead>
-        <tr>
-          <th style="width:190px;">Name</th>
-          <th style="width:60px;">Mode</th>
-          <th>Expression</th>
-          <th style="width:150px;">Last Result</th>
-          <th style="width:72px;">Recompute</th>
-          <th style="width:132px;"></th>
-        </tr>
-      </thead>
-      <tbody id="expr-rows"></tbody>
-    </table>
+    <div class="table-wrap">
+      <table id="expr-table">
+        <thead>
+          <tr>
+            <th style="width:22%;">Name</th>
+            <th class="col-mode" style="width:62px;">Mode</th>
+            <th>Expression</th>
+            <th style="width:16%;">Last Result</th>
+            <th class="col-recompute" style="width:88px;">Recompute</th>
+            <th style="width:118px;"></th>
+          </tr>
+        </thead>
+        <tbody id="expr-rows"></tbody>
+      </table>
+    </div>
     <div class="empty" id="expr-empty" style="display:none;">No expressions yet. Add Expression to create one.</div>
     <p class="hint">Each expression publishes a variable named <code>&lt;Name&gt; Result</code> and fires the <code>&lt;Name&gt; Calculated</code> event after every run.</p>
   </div>
@@ -445,13 +461,13 @@ function renderList() {
     else resCell = '<span class="res" style="color:var(--text-muted);">-</span>';
     var autoChip = x.auto ? '<span class="chip chip-auto">Auto</span>' : '<span class="chip chip-man">Manual</span>';
     html += '<tr data-name="' + esc(x.name) + '">'
-      + '<td><span class="status-dot ' + dot + '"></span><b>' + esc(x.name) + '</b></td>'
-      + '<td>' + modeChip + '</td>'
-      + '<td><span class="expr-rendered" title="' + esc(x.rendered || x.template) + '">' + esc(x.rendered || x.template) + '</span></td>'
-      + '<td class="cell-result">' + resCell + '</td>'
-      + '<td>' + autoChip + '</td>'
+      + '<td class="trunc" title="' + esc(x.name) + '"><span class="status-dot ' + dot + '"></span><b>' + esc(x.name) + '</b></td>'
+      + '<td class="col-mode">' + modeChip + '</td>'
+      + '<td class="trunc"><span class="expr-rendered" title="' + esc(x.rendered || x.template) + '">' + esc(x.rendered || x.template) + '</span></td>'
+      + '<td class="cell-result trunc">' + resCell + '</td>'
+      + '<td class="col-recompute">' + autoChip + '</td>'
       + '<td style="text-align:right; white-space:nowrap;">'
-      + '<button class="btn btn-outline btn-sm" onclick="runExpression(\'' + escAttr(x.name) + '\')">&#9654; Run</button> '
+      + '<button class="btn btn-outline btn-sm" title="Recalculate now" onclick="runExpression(\'' + escAttr(x.name) + '\')">&#9654; Run</button> '
       + '<button class="btn btn-ghost" onclick="editExpression(\'' + escAttr(x.name) + '\')">Edit</button>'
       + '<button class="btn btn-ghost" title="Delete" onclick="deleteExpression(\'' + escAttr(x.name) + '\')">&#10005;</button>'
       + '</td></tr>';
@@ -704,7 +720,30 @@ function insertToken(deviceId, variableId) {
   document.getElementById('nav-meta').textContent = 'Variable Manipulator' + (gDriverId ? ' · device ' + gDriverId : '');
   document.getElementById('expr-name').addEventListener('input', updatePublishLine);
   if (!gApiHost) {
+    // No controller API (opened outside Composer): show demo data so the
+    // layout can be previewed.
     document.getElementById('conn-warn').style.display = 'block';
+    var now = Math.floor(Date.now() / 1000);
+    onConfig([
+      { name: 'Bathroom Humidity Diff', mode: 'equation', auto: true, ts: now,
+        template: 'abs(PARAM{2306,1002} - PARAM{2311,1002})', result: '7.6',
+        rendered: 'abs([Master Bathroom > Bath Humidity Sensor > HUMIDITY] - [Upstairs Hallway > Hall Humidity Sensor > HUMIDITY])' },
+      { name: 'Espresso Status', mode: 'string', auto: true, ts: now,
+        template: 'Espresso machine: PARAM{2795,1017} W', result: 'Espresso machine: 1343 W',
+        rendered: 'Espresso machine: [Coffee Bar > Kasa HS300 Power Strip > Output 5 Power] W' },
+      { name: 'Christmas Lights Hours', mode: 'equation', auto: false, ts: now,
+        template: 'PARAM{2675,1003} / 24', error: 'unresolved variable reference',
+        rendered: '[Device 2675 > TOTAL_ON_HOURS] / 24' }
+    ]);
+    onDevices([
+      { id: 2306, name: 'Bath Humidity Sensor', roomName: 'Master Bathroom' },
+      { id: 2311, name: 'Hall Humidity Sensor', roomName: 'Upstairs Hallway' },
+      { id: 2795, name: 'Kasa HS300 Power Strip', roomName: 'Coffee Bar' }
+    ]);
+    onDeviceVariables(2306, [
+      { id: 1002, name: 'HUMIDITY', type: 'NUMBER', value: '61.8' },
+      { id: 1001, name: 'TEMPERATURE', type: 'NUMBER', value: '74.2' }
+    ]);
     return;
   }
   await initSocket();
