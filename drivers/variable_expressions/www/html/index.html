@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Variable Expressions</title>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --surface: #ffffff;
+      --surface-hover: #f0f0f2;
+      --border: #d1d5db;
+      --text: #1a1a1a;
+      --text-muted: #6b7280;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --danger: #dc2626;
+      --danger-hover: #b91c1c;
+      --success: #16a34a;
+      --warning: #d97706;
+      --radius: 6px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      box-shadow: var(--shadow);
+    }
+    .nav-title {
+      padding: 10px 2px;
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 13px;
+      border-bottom: 2px solid var(--accent);
+    }
+    .nav-meta {
+      font-size: 11px; color: var(--text-muted);
+      margin-left: 12px; min-width: 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .panel { display: none; padding: 16px; }
+    .panel.active { display: block; }
+
+    /* Composer's webview shows classic always-on scrollbars; keep them slim */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: #c7ccd4; border-radius: 5px;
+      border: 2px solid transparent; background-clip: content-box;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: #a9b0ba; background-clip: content-box; border: 2px solid transparent; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+    .card h3 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px; font-weight: 500; }
+    input[type="text"], textarea, select {
+      width: 100%;
+      padding: 6px 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 13px;
+      font-family: var(--font);
+    }
+    input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+    .input-error { border-color: var(--danger) !important; }
+
+    /* Highlighted expression editor: a transparent textarea stacked over a
+       <pre> that renders the same text colorized. Both layers share identical
+       font metrics so the caret and selection stay aligned. */
+    .edwrap { position: relative; }
+    .edwrap textarea, .edwrap pre {
+      font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
+      padding: 9px 10px; margin: 0;
+      white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word;
+      min-height: 64px; box-sizing: border-box; width: 100%;
+      border-radius: var(--radius); tab-size: 2;
+    }
+    .edwrap pre {
+      position: absolute; inset: 0;
+      border: 1px solid transparent;
+      background: var(--surface);
+      overflow: hidden;
+      pointer-events: none;
+      color: var(--text);
+    }
+    .edwrap textarea {
+      position: relative; z-index: 1; display: block;
+      background: transparent;
+      color: transparent;
+      caret-color: var(--text);
+      border: 1px solid var(--border);
+      resize: none; overflow: hidden;
+    }
+    .edwrap textarea::placeholder { color: #9ca3af; }
+    .edwrap textarea::selection { background: rgba(37,99,235,0.22); }
+    .hl-tok { background: #dbeafe; border-radius: 4px; box-shadow: 0 0 0 1.5px #dbeafe; color: #1d4ed8; }
+    .hl-fn { color: #6d28d9; }
+    .hl-num { color: #0f766e; }
+    .hl-str { color: #059669; }
+    .hl-op { color: #6b7280; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 5px 12px; border: none; border-radius: var(--radius);
+      font-size: 12px; font-family: var(--font); cursor: pointer;
+      font-weight: 500; transition: background 0.15s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: var(--surface-hover); }
+    .btn-ghost { background: transparent; border: 1px solid transparent; color: var(--text-muted); padding: 3px 6px; font-size: 11px; cursor: pointer; }
+    .btn-ghost:hover { color: var(--text); }
+    .btn-sm { padding: 3px 8px; font-size: 11px; }
+    .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+    /* Scroll the table inside its card only on genuinely narrow panes;
+       1px rounding overflow must not summon a scrollbar on wide ones. */
+    .table-wrap { overflow-x: hidden; }
+    @media (max-width: 560px) { .table-wrap { overflow-x: auto; } }
+    table { width: 100%; min-width: 480px; border-collapse: collapse; table-layout: fixed; }
+    th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
+    th {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-muted); font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    td { font-size: 12px; }
+    .trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    tbody tr:hover td { background: var(--surface-hover); }
+    tbody tr:last-child td { border-bottom: none; }
+    @media (max-width: 840px) { .col-mode { display: none; } }
+    @media (max-width: 720px) { .col-recompute { display: none; } }
+
+    .chip {
+      display: inline-block; padding: 1px 7px; border-radius: 10px;
+      font-size: 10px; font-weight: 600;
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap; vertical-align: bottom;
+    }
+    .chip-num { background: #dbeafe; color: #1d4ed8; }
+    .chip-str { background: #d1fae5; color: #059669; }
+    .chip-auto { background: #ede9fe; color: #6d28d9; }
+    .chip-man { background: #f3f4f6; color: #6b7280; }
+    .chip-err { background: #fef3c7; color: #b45309; }
+
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; }
+    .status-ok { background: var(--success); }
+    .status-warn { background: var(--warning); }
+    .status-none { background: #d1d5db; }
+
+    .expr-rendered { font-family: var(--mono); font-size: 10.5px; color: var(--text-muted); }
+    .res { font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+    .hint { font-size: 11.5px; color: var(--text-muted); margin-top: 8px; }
+    .hint code, .pub code { font-family: var(--mono); font-size: 10.5px; }
+    .empty { padding: 22px 8px; text-align: center; color: var(--text-muted); font-size: 12.5px; }
+
+    /* Editor layout: browser pane keeps a narrow band on wide panes and wraps
+       to a full-width row on narrow ones. */
+    .split { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+    .browser { flex: 1 1 260px; max-width: 340px; display: flex; flex-direction: column; max-height: 560px; }
+    .editor-col { flex: 999 1 400px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+    @media (max-width: 740px) {
+      .browser { max-width: none; max-height: 320px; }
+    }
+
+    .tree-wrap { overflow-y: auto; flex: 1; margin-top: 8px; }
+    .troom {
+      font-size: 9.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+      color: #9ca3af; padding: 8px 2px 3px;
+    }
+    .tdev {
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 4px; border-radius: 5px;
+      font-weight: 600; color: #374151; cursor: pointer; font-size: 12px;
+    }
+    .tdev:hover { background: var(--surface-hover); }
+    .tdev .chev { color: #9ca3af; font-size: 10px; width: 10px; }
+    .tvar {
+      display: flex; align-items: center; gap: 6px;
+      padding: 3px 6px 3px 22px; border-radius: 5px;
+      color: #374151; cursor: pointer;
+    }
+    .tvar:hover { background: #eef2ff; outline: 1px solid #c7d2fe; }
+    .tvar .vname { flex: 1; min-width: 0; font-family: var(--mono); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tvar.used .vname::after { content: " \2713"; color: var(--success); }
+    .tvar .vval {
+      margin-left: auto; font-family: var(--mono); font-size: 11px;
+      color: var(--text-muted); font-variant-numeric: tabular-nums;
+      max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none;
+    }
+    .tvar .ins {
+      visibility: hidden; flex: none;
+      font-size: 10px; font-weight: 600; color: #fff;
+      background: var(--accent); border-radius: 4px; padding: 1px 6px;
+    }
+    .tvar:hover .ins { visibility: visible; }
+    .tfoot { padding-top: 8px; font-size: 10.5px; color: #9ca3af; }
+    .tloading { padding: 4px 22px; font-size: 11px; color: var(--text-muted); font-style: italic; }
+    mark.hlq { background: #fde68a; color: inherit; border-radius: 2px; padding: 0; }
+
+    .frow { display: flex; gap: 10px; margin-bottom: 10px; }
+    .frow .f { flex: 1; min-width: 0; }
+    .seg { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .seg button {
+      padding: 5px 12px; font-size: 12px; color: var(--text-muted);
+      background: var(--surface); border: none; cursor: pointer; font-family: var(--font);
+    }
+    .seg button.on { background: var(--accent); color: #fff; font-weight: 600; }
+
+    .prev { background: #f8fafc; border: 1px solid #e2e8f0; }
+    .prev .pl { font-size: 9.5px; font-weight: 700; letter-spacing: 0.6px; color: #94a3b8; text-transform: uppercase; margin-bottom: 2px; }
+    .prev .pv { font-family: var(--mono); font-size: 11px; color: #475569; margin-bottom: 8px; overflow-wrap: anywhere; }
+    .prev .pres { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--success); overflow-wrap: anywhere; }
+    .prev .perr { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--danger); overflow-wrap: anywhere; }
+    .pub { font-size: 11px; color: var(--text-muted); border-top: 1px dashed #e2e8f0; margin-top: 9px; padding-top: 8px; }
+
+    /* Syntax help */
+    .label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .help-toggle {
+      background: none; border: none; padding: 0; cursor: pointer;
+      font-family: var(--font); font-size: 11px; font-weight: 500; color: var(--accent);
+    }
+    .help-toggle:hover { text-decoration: underline; }
+    .help {
+      display: none;
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius);
+      padding: 10px 12px; margin-top: 8px;
+      columns: 2; column-gap: 24px;
+    }
+    .help.open { display: block; }
+    @media (max-width: 740px) { .help { columns: 1; } }
+    .help section { break-inside: avoid; margin-bottom: 10px; }
+    .help h4 {
+      font-size: 9.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+      color: #94a3b8; margin: 0 0 3px;
+    }
+    .help p { font-size: 11.5px; color: #475569; margin: 0 0 4px; }
+    .help code { font-family: var(--mono); font-size: 10.5px; color: #1e293b; background: #eef2f7; border-radius: 3px; padding: 0 3px; }
+
+    .footbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .autolabel { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: #374151; cursor: pointer; }
+    .autolabel input { width: auto; }
+    .save-error { color: var(--danger); font-size: 11.5px; margin-right: auto; }
+
+    .conn-warn {
+      background: #fef3c7; border: 1px solid #fcd34d; color: #92400e;
+      border-radius: var(--radius); padding: 8px 12px; margin-bottom: 12px; font-size: 12px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="nav">
+  <span class="nav-title">Expressions</span>
+  <span class="nav-meta" id="nav-meta">Variable Expressions</span>
+</div>
+
+<!-- ── List panel ─────────────────────────────────────────────── -->
+<div class="panel active" id="panel-list">
+  <div class="conn-warn" id="conn-warn">Not connected to the controller API. Open this tab from Composer.</div>
+  <div class="card">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+      <h3 style="margin:0;">Expressions</h3>
+      <button class="btn btn-primary btn-sm" onclick="openEditor(null)">+ Add Expression</button>
+    </div>
+    <div class="table-wrap">
+      <table id="expr-table">
+        <thead>
+          <tr>
+            <th style="width:22%;">Name</th>
+            <th class="col-mode" style="width:76px;">Mode</th>
+            <th>Expression</th>
+            <th style="width:16%;">Last Result</th>
+            <th class="col-recompute" style="width:88px;">Recompute</th>
+            <th style="width:118px;"></th>
+          </tr>
+        </thead>
+        <tbody id="expr-rows"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="expr-empty" style="display:none;">No expressions yet. Add Expression to create one.</div>
+    <p class="hint">Each expression publishes a variable named <code>&lt;Name&gt; Result</code> and fires the <code>&lt;Name&gt; Calculated</code> event after every run.</p>
+  </div>
+</div>
+
+<!-- ── Editor panel ───────────────────────────────────────────── -->
+<div class="panel" id="panel-editor">
+  <div class="split">
+
+    <div class="card browser">
+      <h3>Variables</h3>
+      <input type="text" id="var-search" placeholder="Search rooms, devices, variables" oninput="renderTree()"/>
+      <div class="tree-wrap" id="tree"></div>
+      <div class="tfoot" id="tree-foot"></div>
+    </div>
+
+    <div class="editor-col">
+      <div class="card">
+        <div class="frow">
+          <div class="f">
+            <label for="expr-name">Name</label>
+            <input type="text" id="expr-name" placeholder="e.g. Bathroom Humidity Diff" oninput="this.classList.remove('input-error')"/>
+          </div>
+          <div style="flex:none;">
+            <label>Mode</label>
+            <div class="seg">
+              <button type="button" id="mode-equation" class="on" onclick="setMode('equation')">Equation</button>
+              <button type="button" id="mode-string" onclick="setMode('string')">String</button>
+            </div>
+          </div>
+        </div>
+        <div class="label-row">
+          <label for="expr-template">Expression</label>
+          <button type="button" class="help-toggle" id="help-toggle" onclick="toggleHelp()">Syntax help</button>
+        </div>
+        <div class="edwrap">
+          <pre id="expr-hl" aria-hidden="true"></pre>
+          <textarea id="expr-template" rows="3" spellcheck="false"
+            placeholder="abs(PARAM{96,1002} - PARAM{97,1002})"
+            oninput="onTemplateInput()"></textarea>
+        </div>
+        <div class="help" id="help-panel">
+          <section>
+            <h4>Variable tokens</h4>
+            <p><code>PARAM{deviceId,variableId}</code> reads a variable's current value. Click a
+            variable in the browser to insert its token at the cursor. The variable can also be
+            referenced by name: <code>PARAM{96,HUMIDITY}</code> (exact match, case sensitive).</p>
+          </section>
+          <section>
+            <h4>Equation mode</h4>
+            <p>The substituted text is evaluated as math and must produce a number.</p>
+            <p>Operators: <code>+ - * / % ^ ( )</code></p>
+            <p>Comparisons: <code>== ~= &lt; &lt;= &gt; &gt;=</code> with <code>and</code>,
+            <code>or</code>, <code>not</code> for conditionals:
+            <code>PARAM{96,1002} &gt; 50 and 1 or 0</code></p>
+          </section>
+          <section>
+            <h4>Functions</h4>
+            <p><code>abs</code> <code>ceil</code> <code>floor</code> <code>sqrt</code>
+            <code>min</code> <code>max</code> <code>round(x, digits)</code>
+            <code>c2f</code> <code>f2c</code> <code>tonumber</code> <code>pi</code>
+            <code>huge</code></p>
+            <p>The full <code>math.*</code> and <code>string.*</code> libraries are available,
+            for example <code>math.random(1, 10)</code>.</p>
+          </section>
+          <section>
+            <h4>String mode</h4>
+            <p>Literal text with tokens substituted, no evaluation:
+            <code>Espresso: PARAM{2795,1017} W</code></p>
+          </section>
+        </div>
+      </div>
+
+      <div class="card prev" id="preview" style="display:none;">
+        <div class="pl">References</div>
+        <div class="pv" id="prev-rendered"></div>
+        <div id="prev-sub-wrap">
+          <div class="pl">With current values</div>
+          <div class="pv" id="prev-substituted"></div>
+        </div>
+        <div class="pl">Result</div>
+        <div class="pres" id="prev-result" style="display:none;"></div>
+        <div class="perr" id="prev-error" style="display:none;"></div>
+        <div class="pub" id="prev-pub"></div>
+      </div>
+
+      <div class="footbar">
+        <label class="autolabel"><input type="checkbox" id="expr-auto" checked/>
+          Recalculate when referenced variables change <span class="hint" id="watch-count" style="margin:0;"></span></label>
+        <span style="display:flex; gap:8px; align-items:center;">
+          <span class="save-error" id="save-error"></span>
+          <button class="btn btn-outline" onclick="closeEditor()">Cancel</button>
+          <button class="btn btn-outline" title="Evaluate now without saving" onclick="requestPreviewNow()">Run Once</button>
+          <button class="btn btn-primary" onclick="saveExpression()">Save Expression</button>
+        </span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ============================================================
+// C4 REST API Client (same bridge as the InfluxDB driver tab)
+// ============================================================
+var gApiHost, gDriverId, gApiToken;
+
+(function() {
+  var p = {};
+  window.location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,k,v) { p[k]=decodeURIComponent(v); });
+  gApiHost = p.apihost; gDriverId = p.driverid; gApiToken = p.apitoken;
+})();
+
+function api(method, path, body) {
+  if (!gApiHost) return Promise.resolve(null);
+  var opts = {
+    method: method,
+    headers: { 'Authorization': 'Bearer ' + gApiToken, 'Content-Type': 'application/json' }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  return fetch('https://' + gApiHost + path, opts).then(function(r) { return r.json(); }).catch(function(e) {
+    console.error('API error:', method, path, e);
+    return null;
+  });
+}
+
+// Send a UIRequest command to the driver
+function sendCommand(cmd, params) {
+  return api('POST', '/api/v1/items/' + gDriverId + '/commands', {
+    command: cmd,
+    tParams: { DATA: btoa(JSON.stringify(params || {})) },
+    async: false
+  });
+}
+
+// ============================================================
+// Socket.io for real-time updates
+// ============================================================
+var gSocket = null;
+
+async function initSocket() {
+  if (!gApiHost) return;
+  try {
+    var jwt = 'JWT=' + gApiToken;
+    var res = await fetch('https://' + gApiHost + '/socket.io/socket.io.js?' + jwt, {
+      headers: { 'Authorization': 'Bearer ' + gApiToken }
+    });
+    eval.call(window, await res.text());
+
+    gSocket = window.io.connect('https://' + gApiHost, {
+      forceNew: true, query: jwt, transports: ['polling', 'websocket']
+    });
+
+    await new Promise(function(resolve) { gSocket.once('connect', resolve); });
+    var engineId = gSocket.io.engine.id;
+
+    var sub = await api('GET', '/api/v1/items/' + gDriverId + '/datatoui?SubscriptionClient=' + engineId + '&coerce=false');
+    if (sub && sub.subscriptionId) {
+      gSocket.on(String(sub.subscriptionId), handleSocketEvent);
+      gSocket.emit('startSubscription', String(sub.subscriptionId));
+    }
+  } catch (e) { console.error('Socket init error:', e); }
+}
+
+function handleSocketEvent(evt) {
+  var items = Array.isArray(evt) ? evt : [evt];
+  items.forEach(function(item) {
+    var dc = item.data ? item.data.devicecommand : null;
+    if (!dc || dc.command === 'LUA_OUTPUT') return;
+    var params = {};
+    if (dc.params && dc.params.param) {
+      var arr = Array.isArray(dc.params.param) ? dc.params.param : [dc.params.param];
+      arr.forEach(function(p) {
+        if (p && p.name) params[p.name] = (p.value && p.value.static !== undefined) ? p.value.static : (p.value || '');
+      });
+    }
+    handleDriverData(dc.command, params);
+  });
+}
+
+function handleDriverData(cmd, params) {
+  try {
+    if (cmd === 'CONFIG_DATA') onConfig(JSON.parse(params.expressions || '[]'));
+    else if (cmd === 'EXPRESSION_RESULT') onExpressionResult(params);
+    else if (cmd === 'EVAL_RESULT') onEvalResult(params);
+    else if (cmd === 'DEVICES_DATA') onDevices(JSON.parse(params.devices || '[]'));
+    else if (cmd === 'DEVICE_VARIABLES_DATA') onDeviceVariables(params.deviceId, JSON.parse(params.variables || '[]'));
+    else if (cmd === 'SAVE_RESULT') onSaveResult(params);
+  } catch (e) { console.error('handleDriverData error:', cmd, e); }
+}
+
+// ============================================================
+// Helpers
+// ============================================================
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function debounce(fn, ms) {
+  var t = null;
+  return function() {
+    var args = arguments, self = this;
+    clearTimeout(t);
+    t = setTimeout(function() { fn.apply(self, args); }, ms);
+  };
+}
+function agoLabel(ts) {
+  if (!ts) return '';
+  var s = Math.max(0, Math.floor(Date.now()/1000 - Number(ts)));
+  if (s < 5) return 'just now';
+  if (s < 60) return s + 's ago';
+  if (s < 3600) return Math.floor(s/60) + 'm ago';
+  return Math.floor(s/3600) + 'h ago';
+}
+
+// ============================================================
+// State
+// ============================================================
+var gExpressions = [];           // [{name, mode, template, auto, watched, result, error, rendered, ts}]
+var gDevices = [];               // [{id, name, roomName}]
+var gVarsByDevice = {};          // id -> [{id, name, type, value}]
+var gExpanded = {};              // id -> true (manual expansion outside search)
+var gSearchCollapsed = {};       // id -> true (collapse override while searching)
+var gRequestedVars = {};         // id -> true (variable fetch already in flight)
+var gLastQ = '';                 // current search term
+var gEditor = { open: false, originalName: '', mode: 'equation' };
+var gEvalSeq = 0;
+
+// ============================================================
+// List view
+// ============================================================
+function onConfig(expressions) {
+  gExpressions = expressions || [];
+  renderList();
+}
+
+function renderList() {
+  var tb = document.getElementById('expr-rows');
+  var empty = document.getElementById('expr-empty');
+  if (!gExpressions.length) {
+    tb.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  var html = '';
+  gExpressions.forEach(function(x) {
+    var dot = x.error ? 'status-warn' : (x.result != null && x.result !== '' ? 'status-ok' : 'status-none');
+    var modeChip = x.mode === 'string' ? '<span class="chip chip-str">STRING</span>' : '<span class="chip chip-num">NUMBER</span>';
+    var resCell;
+    if (x.error) resCell = '<span class="chip chip-err" title="' + esc(x.error) + '">' + esc(shortError(x.error)) + '</span>';
+    else if (x.result != null && x.result !== '') resCell = '<span class="res" title="' + esc(agoLabel(x.ts)) + '">' + esc(x.result) + '</span>';
+    else resCell = '<span class="res" style="color:var(--text-muted);">-</span>';
+    var autoChip = x.auto ? '<span class="chip chip-auto">Auto</span>' : '<span class="chip chip-man">Manual</span>';
+    html += '<tr data-name="' + esc(x.name) + '">'
+      + '<td class="trunc" title="' + esc(x.name) + '"><span class="status-dot ' + dot + '"></span><b>' + esc(x.name) + '</b></td>'
+      + '<td class="col-mode">' + modeChip + '</td>'
+      + '<td class="trunc"><span class="expr-rendered" title="' + esc(x.rendered || x.template) + '">' + esc(x.rendered || x.template) + '</span></td>'
+      + '<td class="cell-result trunc">' + resCell + '</td>'
+      + '<td class="col-recompute">' + autoChip + '</td>'
+      + '<td style="text-align:right; white-space:nowrap;">'
+      + '<button class="btn btn-outline btn-sm" title="Recalculate now" onclick="runExpression(\'' + escAttr(x.name) + '\')">&#9654; Run</button> '
+      + '<button class="btn btn-ghost" onclick="editExpression(\'' + escAttr(x.name) + '\')">Edit</button>'
+      + '<button class="btn btn-ghost" title="Delete" onclick="deleteExpression(\'' + escAttr(x.name) + '\')">&#10005;</button>'
+      + '</td></tr>';
+  });
+  tb.innerHTML = html;
+}
+
+function shortError(err) {
+  err = String(err || '');
+  if (err.indexOf('unresolved') !== -1) return 'Unresolved reference';
+  if (err.indexOf('device removed') !== -1) return 'Device removed';
+  return 'Error';
+}
+
+function escAttr(s) { return esc(s).replace(/\\/g, '\\\\'); }
+
+function onExpressionResult(p) {
+  var found = false;
+  gExpressions.forEach(function(x) {
+    if (x.name === p.name) {
+      x.result = p.result; x.error = p.error || null; x.rendered = p.rendered || x.rendered; x.ts = p.ts;
+      found = true;
+    }
+  });
+  if (found) renderList();
+  else sendCommand('_GET_CONFIG');
+}
+
+function runExpression(name) { sendCommand('_RUN_EXPRESSION', { name: name }); }
+
+function deleteExpression(name) {
+  if (!window.confirm('Delete expression "' + name + '"? Its output variable and event are removed.')) return;
+  sendCommand('_DELETE_EXPRESSION', { name: name });
+}
+
+function editExpression(name) {
+  var x = null;
+  gExpressions.forEach(function(e) { if (e.name === name) x = e; });
+  openEditor(x);
+}
+
+// ============================================================
+// Editor view
+// ============================================================
+function openEditor(expr) {
+  gEditor.open = true;
+  gEditor.originalName = expr ? expr.name : '';
+  document.getElementById('expr-name').value = expr ? expr.name : '';
+  document.getElementById('expr-template').value = expr ? expr.template : '';
+  document.getElementById('expr-auto').checked = expr ? !!expr.auto : true;
+  document.getElementById('save-error').textContent = '';
+  setMode(expr && expr.mode === 'string' ? 'string' : 'equation', true);
+  document.getElementById('panel-list').classList.remove('active');
+  document.getElementById('panel-editor').classList.add('active');
+  if (!gDevices.length) sendCommand('_GET_DEVICES');
+  renderPreviewPlaceholder();
+  onTemplateInput();
+  document.getElementById('expr-name').focus();
+}
+
+function closeEditor() {
+  gEditor.open = false;
+  document.getElementById('panel-editor').classList.remove('active');
+  document.getElementById('panel-list').classList.add('active');
+}
+
+function setMode(mode, skipPreview) {
+  gEditor.mode = mode;
+  document.getElementById('mode-equation').className = mode === 'equation' ? 'on' : '';
+  document.getElementById('mode-string').className = mode === 'string' ? 'on' : '';
+  if (!skipPreview) onTemplateInput();
+}
+
+// ── Expression highlighting ─────────────────────────────────
+// Minimal escape for innerHTML text content (quotes stay literal so entity
+// text never collides with the tokenizer).
+function escMin(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+var HL_EQUATION_RE = new RegExp(
+  '(PARAM\\s*\\{[^}]*\\})'                                        // 1 token
+  + '|("[^"\\n]*"|\'[^\'\\n]*\')'                                 // 2 string
+  + '|((?:math|string)\\.\\w+'                                    // 3 function
+  + '|\\b(?:abs|ceil|floor|sqrt|min|max|round|tonumber|tostring|type|pi|huge|map|c2f|f2c|value)\\b)'
+  + '|(\\d+(?:\\.\\d+)?)'                                         // 4 number
+  + '|([+\\-*/%^(),])',                                           // 5 operator
+  'g');
+var HL_STRING_RE = /(PARAM\s*\{[^}]*\})/g; // string templates: only tokens
+
+function hlRender(text, mode) {
+  var out = escMin(text).replace(mode === 'string' ? HL_STRING_RE : HL_EQUATION_RE,
+    function(m, tok, str, fn, num, op) {
+      if (tok) return '<span class="hl-tok">' + tok + '</span>';
+      if (str) return '<span class="hl-str">' + str + '</span>';
+      if (fn) return '<span class="hl-fn">' + fn + '</span>';
+      if (num) return '<span class="hl-num">' + num + '</span>';
+      if (op) return '<span class="hl-op">' + op + '</span>';
+      return m;
+    });
+  // A trailing newline needs a filler line so the overlay height matches
+  if (out.slice(-1) === '\n' || out === '') out += '​';
+  return out;
+}
+
+function syncHighlight() {
+  var box = document.getElementById('expr-template');
+  var hl = document.getElementById('expr-hl');
+  hl.innerHTML = hlRender(box.value, gEditor.mode);
+  // Auto-grow so the overlay and textarea never scroll independently
+  box.style.height = 'auto';
+  box.style.height = Math.max(64, box.scrollHeight) + 'px';
+}
+
+function toggleHelp() {
+  var panel = document.getElementById('help-panel');
+  var open = !panel.classList.contains('open');
+  panel.classList.toggle('open', open);
+  document.getElementById('help-toggle').textContent = open ? 'Hide syntax help' : 'Syntax help';
+}
+
+function onTemplateInput() {
+  syncHighlight();
+  updateWatchCount();
+  renderTree(); // keep the used checkmarks in sync with the template
+  requestPreviewDebounced();
+}
+
+function updateWatchCount() {
+  var tpl = document.getElementById('expr-template').value || '';
+  var m = tpl.match(/PARAM\s*\{[^}]*\}/g);
+  var n = m ? m.length : 0;
+  document.getElementById('watch-count').textContent = n ? '(watching ' + n + ' reference' + (n === 1 ? '' : 's') + ')' : '';
+}
+
+function requestPreviewNow() {
+  var tpl = document.getElementById('expr-template').value || '';
+  if (!tpl.trim()) { renderPreviewPlaceholder(); return; }
+  gEvalSeq++;
+  sendCommand('_EVAL_EXPRESSION', { id: String(gEvalSeq), mode: gEditor.mode, template: tpl });
+}
+var requestPreviewDebounced = debounce(requestPreviewNow, 350);
+
+function renderPreviewPlaceholder() {
+  var prev = document.getElementById('preview');
+  prev.style.display = 'block';
+  document.getElementById('prev-rendered').textContent = 'Preview appears as you type.';
+  document.getElementById('prev-sub-wrap').style.display = 'none';
+  document.getElementById('prev-result').style.display = 'none';
+  document.getElementById('prev-error').style.display = 'none';
+  updatePublishLine();
+}
+
+function onEvalResult(p) {
+  if (String(p.id) !== String(gEvalSeq)) return; // stale preview
+  var prev = document.getElementById('preview');
+  prev.style.display = 'block';
+  document.getElementById('prev-rendered').textContent = p.rendered || '';
+  var subWrap = document.getElementById('prev-sub-wrap');
+  if (gEditor.mode === 'equation') {
+    subWrap.style.display = 'block';
+    document.getElementById('prev-substituted').textContent = p.substituted || '';
+  } else {
+    subWrap.style.display = 'none';
+  }
+  var res = document.getElementById('prev-result');
+  var err = document.getElementById('prev-error');
+  var tplBox = document.getElementById('expr-template');
+  if (p.error) {
+    res.style.display = 'none';
+    err.style.display = 'block';
+    err.textContent = p.error;
+    tplBox.classList.add('input-error');
+  } else {
+    err.style.display = 'none';
+    res.style.display = 'block';
+    res.textContent = p.result;
+    tplBox.classList.remove('input-error');
+  }
+  updatePublishLine();
+}
+
+function updatePublishLine() {
+  var name = document.getElementById('expr-name').value.trim() || 'Expression';
+  document.getElementById('prev-pub').innerHTML =
+    'Publishes <code>' + esc(name) + ' Result</code> (' + (gEditor.mode === 'string' ? 'STRING' : 'NUMBER')
+    + ' variable) &middot; <code>' + esc(name) + ' Calculated</code> (event)';
+}
+
+function saveExpression() {
+  var nameInput = document.getElementById('expr-name');
+  var name = nameInput.value.trim();
+  var template = document.getElementById('expr-template').value.trim();
+  var errEl = document.getElementById('save-error');
+  errEl.textContent = '';
+  if (!name) { nameInput.classList.add('input-error'); errEl.textContent = 'Name is required.'; return; }
+  if (!template) { errEl.textContent = 'Expression is required.'; return; }
+  var isRename = gEditor.originalName && gEditor.originalName !== name;
+  var clash = gExpressions.some(function(x) { return x.name === name && gEditor.originalName !== name; });
+  if (clash && (isRename || !gEditor.originalName)) {
+    if (!window.confirm('An expression named "' + name + '" already exists. Overwrite it?')) return;
+  }
+  sendCommand('_SAVE_EXPRESSION', {
+    name: name,
+    originalName: gEditor.originalName,
+    mode: gEditor.mode,
+    template: template,
+    auto: document.getElementById('expr-auto').checked
+  });
+  closeEditor();
+}
+
+function onSaveResult(p) {
+  if (p && p.ok === false) {
+    // Reopen the editor state message on validation failure
+    document.getElementById('panel-list').classList.remove('active');
+    document.getElementById('panel-editor').classList.add('active');
+    document.getElementById('save-error').textContent = p.error || 'Save failed';
+  }
+}
+
+// ============================================================
+// Variable browser
+// ============================================================
+function onDevices(devices) {
+  gDevices = devices || [];
+  renderTree();
+}
+
+function onDeviceVariables(deviceId, variables) {
+  gVarsByDevice[String(deviceId)] = variables || [];
+  renderTree();
+}
+
+function toggleDevice(id) {
+  var key = String(id);
+  if (gLastQ) {
+    // While searching, matched devices are auto-expanded; the click overrides
+    // that for the current search only.
+    if (gSearchCollapsed[key]) delete gSearchCollapsed[key];
+    else gSearchCollapsed[key] = true;
+  } else if (gExpanded[key]) {
+    delete gExpanded[key];
+  } else {
+    gExpanded[key] = true;
+  }
+  if (!gVarsByDevice[key]) fetchVars(id);
+  renderTree();
+}
+
+function fetchVars(id) {
+  var key = String(id);
+  if (gRequestedVars[key]) return;
+  gRequestedVars[key] = true;
+  sendCommand('_GET_DEVICE_VARIABLES', { deviceId: Number(id) });
+}
+
+function usedTokenSet() {
+  // Set of "deviceId:variableRef" pairs referenced by the current template,
+  // matching either numeric ids or variable names.
+  var set = {};
+  var tpl = document.getElementById('expr-template').value || '';
+  var re = /PARAM\s*\{\s*(\d+)\s*,\s*([^}]*?)\s*\}/g;
+  var m;
+  while ((m = re.exec(tpl)) !== null) set[m[1] + ':' + m[2]] = true;
+  return set;
+}
+
+// Escape for HTML, then wrap case-insensitive matches of the current search
+// term in a highlight mark.
+function hi(s) {
+  var t = esc(s);
+  if (!gLastQ) return t;
+  var eq = esc(gLastQ).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return t.replace(new RegExp('(' + eq + ')', 'ig'), '<mark class="hlq">$1</mark>');
+}
+
+// Auto-expanding every match is only useful while the result set is readable;
+// past this many devices, matches stay collapsed until refined.
+var AUTO_EXPAND_LIMIT = 25;
+// New variable fetches triggered per render pass.
+var FETCH_LIMIT = 15;
+
+function renderTree() {
+  var q = (document.getElementById('var-search').value || '').toLowerCase();
+  if (q !== gLastQ) { gSearchCollapsed = {}; gLastQ = q; }
+  var tree = document.getElementById('tree');
+  var foot = document.getElementById('tree-foot');
+  var used = usedTokenSet();
+
+  // Pass 1: which devices are visible under the current search
+  var visible = [];
+  gDevices.forEach(function(d) {
+    var room = d.roomName || 'No Room';
+    var matchDevice = !q || (d.name || '').toLowerCase().indexOf(q) !== -1 || room.toLowerCase().indexOf(q) !== -1;
+    var vars = gVarsByDevice[String(d.id)];
+    var matchingVars = null;
+    if (q && !matchDevice) {
+      if (!vars) return; // variable-name search only sees loaded devices
+      matchingVars = vars.filter(function(v) { return (v.name || '').toLowerCase().indexOf(q) !== -1; });
+      if (!matchingVars.length) return;
+    }
+    visible.push({ d: d, room: room, matchingVars: matchingVars });
+  });
+
+  var autoExpand = q && visible.length <= AUTO_EXPAND_LIMIT;
+  var fetches = 0;
+  var html = '';
+  var lastRoom = null;
+
+  visible.forEach(function(item) {
+    var d = item.d;
+    var key = String(d.id);
+    var vars = gVarsByDevice[key];
+    if (item.room !== lastRoom) {
+      html += '<div class="troom">' + hi(item.room) + '</div>';
+      lastRoom = item.room;
+    }
+    var expanded = q
+      ? (autoExpand || !!item.matchingVars) && !gSearchCollapsed[key]
+      : !!gExpanded[key];
+    if (expanded && !vars && fetches < FETCH_LIMIT) {
+      fetchVars(d.id);
+      fetches++;
+    }
+    html += '<div class="tdev" onclick="toggleDevice(' + d.id + ')"><span class="chev">' + (expanded ? '&#9662;' : '&#9656;') + '</span>' + hi(d.name) + '</div>';
+    if (expanded) {
+      if (!vars) {
+        html += '<div class="tloading">loading variables...</div>';
+      } else {
+        // Variable-name matches narrow the list; a room/device match shows all
+        var list = item.matchingVars || vars;
+        if (!list.length) html += '<div class="tloading">no variables</div>';
+        list.forEach(function(v) {
+          var isUsed = used[d.id + ':' + v.id] || used[d.id + ':' + v.name];
+          html += '<div class="tvar' + (isUsed ? ' used' : '') + '" onclick="insertToken(' + d.id + ',' + v.id + ')" title="' + esc(d.name) + ' &gt; ' + esc(v.name) + '">'
+            + '<span class="vname">' + hi(v.name) + '</span>'
+            + '<span class="vval">' + esc(v.value == null ? '' : v.value) + '</span>'
+            + '<span class="ins">Insert</span>'
+            + '</div>';
+        });
+      }
+    }
+  });
+
+  tree.innerHTML = html || '<div class="tloading">' + (gDevices.length ? 'no matches' : 'loading devices...') + '</div>';
+  foot.textContent = gDevices.length ? (visible.length + ' of ' + gDevices.length + ' devices') : '';
+}
+
+function insertToken(deviceId, variableId) {
+  var token = 'PARAM{' + deviceId + ',' + variableId + '}';
+  var box = document.getElementById('expr-template');
+  var start = box.selectionStart != null ? box.selectionStart : box.value.length;
+  var end = box.selectionEnd != null ? box.selectionEnd : box.value.length;
+  box.value = box.value.slice(0, start) + token + box.value.slice(end);
+  var caret = start + token.length;
+  box.focus();
+  box.setSelectionRange(caret, caret);
+  onTemplateInput();
+}
+
+// ============================================================
+// Boot
+// ============================================================
+(async function boot() {
+  document.getElementById('nav-meta').textContent = 'Variable Expressions' + (gDriverId ? ' · device ' + gDriverId : '');
+  document.getElementById('expr-name').addEventListener('input', updatePublishLine);
+  if (!gApiHost) {
+    // No controller API (opened outside Composer): show demo data so the
+    // layout can be previewed.
+    document.getElementById('conn-warn').style.display = 'block';
+    var now = Math.floor(Date.now() / 1000);
+    onConfig([
+      { name: 'Bathroom Humidity Diff', mode: 'equation', auto: true, ts: now,
+        template: 'abs(PARAM{2306,1002} - PARAM{2311,1002})', result: '7.6',
+        rendered: 'abs([Master Bathroom > Bath Humidity Sensor > HUMIDITY] - [Upstairs Hallway > Hall Humidity Sensor > HUMIDITY])' },
+      { name: 'Espresso Status', mode: 'string', auto: true, ts: now,
+        template: 'Espresso machine: PARAM{2795,1017} W', result: 'Espresso machine: 1343 W',
+        rendered: 'Espresso machine: [Coffee Bar > Kasa HS300 Power Strip > Output 5 Power] W' },
+      { name: 'Christmas Lights Hours', mode: 'equation', auto: false, ts: now,
+        template: 'PARAM{2675,1003} / 24', error: 'unresolved variable reference',
+        rendered: '[Device 2675 > TOTAL_ON_HOURS] / 24' }
+    ]);
+    onDevices([
+      { id: 2306, name: 'Bath Humidity Sensor', roomName: 'Master Bathroom' },
+      { id: 2311, name: 'Hall Humidity Sensor', roomName: 'Upstairs Hallway' },
+      { id: 2795, name: 'Kasa HS300 Power Strip', roomName: 'Coffee Bar' }
+    ]);
+    onDeviceVariables(2306, [
+      { id: 1002, name: 'HUMIDITY', type: 'NUMBER', value: '61.8' },
+      { id: 1001, name: 'TEMPERATURE', type: 'NUMBER', value: '74.2' }
+    ]);
+    onDeviceVariables(2311, [
+      { id: 1002, name: 'HUMIDITY', type: 'NUMBER', value: '54.2' },
+      { id: 1003, name: 'BATTERY_LEVEL', type: 'NUMBER', value: '88' }
+    ]);
+    onDeviceVariables(2795, [
+      { id: 1014, name: 'Voltage', type: 'NUMBER', value: '122' },
+      { id: 1017, name: 'Output 5 Power', type: 'NUMBER', value: '1342.6' }
+    ]);
+    return;
+  }
+  await initSocket();
+  sendCommand('_GET_CONFIG');
+  sendCommand('_GET_DEVICES');
+  // Keep relative timestamps fresh
+  setInterval(function() { if (!gEditor.open) renderList(); }, 30000);
+})();
+</script>
+</body>
+</html>

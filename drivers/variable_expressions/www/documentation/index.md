@@ -1,0 +1,364 @@
+[copyright]: # "Copyright 2026 Finite Labs, LLC. All rights reserved."
+
+<style>
+@media print {
+   .noprint {
+      visibility: hidden;
+      display: none;
+   }
+   * {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+</style>
+
+<img alt="Variable Expressions" src="./images/header.png" width="500"/>
+
+---
+
+# <span style="color:#109EFF">Overview</span>
+
+<!-- #ifndef DRIVERCENTRAL -->
+
+> DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
+
+<!-- #endif -->
+
+Control4 programming offers only basic operations on variables: set a value,
+randomize, increment, decrement, or copy from another variable. Variable
+Expressions extends this with named expressions: build a string from one or more
+variables, or evaluate a mathematical equation that references one or more
+variables. Each expression publishes its own result variable and event for use
+elsewhere in programming, and can recalculate automatically when the variables
+it references change.
+
+# <span style="color:#109EFF">Index</span>
+
+<div style="font-size: small">
+
+- [System Requirements](#system-requirements)
+- [Features](#features)
+- [Installer Setup](#installer-setup)
+  <!-- #ifdef DRIVERCENTRAL -->
+  - [DriverCentral Cloud Setup](#drivercentral-cloud-setup)
+  <!-- #endif -->
+  - [Adding the Driver](#adding-the-driver)
+  - [Expressions Tab](#expressions-tab)
+  - [Driver Properties](#driver-properties)
+    - [Cloud Settings](#cloud-settings)
+    - [Driver Settings](#driver-settings)
+  - [Driver Actions](#driver-actions)
+- [Programming](#programming)
+  - [Referencing Variables](#referencing-variables)
+  - [Commands](#commands)
+  - [Output Variables and Events](#output-variables-and-events)
+  - [Math Functions](#math-functions)
+  - [Examples](#examples)
+  <!-- #ifdef DRIVERCENTRAL -->
+- [Developer Information](#developer-information)
+<!-- #endif -->
+- [Support](#support)
+- [Changelog](#changelog)
+
+</div>
+
+<div style="page-break-after: always"></div>
+
+# <span style="color:#109EFF">System Requirements</span>
+
+- Control4 OS 3.3+
+
+# <span style="color:#109EFF">Features</span>
+
+- Named expressions managed from a dedicated Expressions tab in Composer, with a
+  searchable variable browser, insert at cursor, syntax highlighting, and a live
+  result preview
+- Each expression publishes its own `<Name> Result` variable and fires a
+  `<Name> Calculated` event, so multiple calculations never collide
+- Automatic recompute: the driver watches the variables an expression references
+  and recalculates when they change, debounced so chatty sources (power meters)
+  coalesce into one recalculation per second
+- Equation mode evaluates math; String mode builds text from variables
+- Reference any variable in the project by device id and variable id or name
+- Full Lua math library plus common helpers (`abs`, `min`, `max`, `round`, ...)
+  and conditionals (`and`, `or`, comparisons)
+- Rendered expression shows each reference as `[Room > Device > Variable]`
+- Expressions and last results persist across driver restarts
+
+<div style="page-break-after: always"></div>
+
+# <span style="color:#109EFF">Installer Setup</span>
+
+<!-- #ifdef DRIVERCENTRAL -->
+
+## DriverCentral Cloud Setup
+
+> If you already have the
+> [DriverCentral Cloud driver](https://drivercentral.io/platforms/control4-drivers/utility/drivercentral-cloud-driver/)
+> installed in your project you can continue to
+> [Adding the Driver](#adding-the-driver).
+
+This driver relies on the DriverCentral Cloud driver to manage licensing and
+automatic updates. If you are new to using DriverCentral you can refer to their
+[Cloud Driver](https://help.drivercentral.io/407519-Cloud-Driver) documentation
+for setting it up.
+
+<!-- #endif -->
+
+## Adding the Driver
+
+<!-- #ifdef DRIVERCENTRAL -->
+
+1. Download the latest `control4-finite-labs-essentials.zip` from
+   [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/utility-suite).
+2. Extract and install the `variable_expressions.c4z` driver.
+3. Use the "Search" tab to find "Variable Expressions" and add it to your
+   project.
+
+<!-- #else -->
+
+1. Download the latest `control4-finite-labs-essentials.zip` from
+   [Github](https://github.com/finitelabs/control4-finite-labs-essentials/releases/latest).
+2. Extract and install the `variable_expressions.c4z` driver.
+3. Use the "Search" tab to find "Variable Expressions" and add it to your
+   project.
+
+<!-- #endif -->
+
+## Expressions Tab
+
+The Expressions tab in Composer (select the driver, then the Expressions tab) is
+the primary way to create and manage standing calculations.
+
+### Expression list
+
+Every named expression appears as a row with its mode, a rendered view of what
+it references, the last result, and whether it recalculates automatically.
+Results update live as the driver recalculates. A row showing
+`Unresolved reference` points at a reference that no longer exists, for example
+a device that was removed.
+
+### Editor
+
+- **Variables browser**: search across rooms, devices, and variable names. Click
+  a device to load its variables with their current values. Click a variable to
+  insert its `PARAM{}` token at the cursor.
+- **Mode**: `Equation` evaluates the substituted template as math and publishes
+  a NUMBER. `String` publishes the substituted text as a STRING.
+- **Live preview**: as you type, the driver renders the references, substitutes
+  current values, and evaluates the result in its sandbox. Errors show inline
+  before anything is saved.
+- **Recalculate when referenced variables change**: when enabled, the driver
+  watches every variable the expression references and recalculates on change.
+  Changes are debounced (1 second) so rapidly updating sources coalesce into a
+  single recalculation. When disabled, the expression only recalculates from the
+  Calculate Expression programming command or the Run button.
+
+### Outputs
+
+Saving an expression named `Bathroom Humidity Diff` creates:
+
+- A read-only variable `Bathroom Humidity Diff Result`
+- An event `Bathroom Humidity Diff Calculated` that fires after every successful
+  recalculation
+
+Renaming an expression renames its outputs; deleting it removes them.
+
+## Driver Properties
+
+### Cloud Settings
+
+<!-- #ifdef DRIVERCENTRAL -->
+
+#### Cloud Status (read-only)
+
+Displays the DriverCentral cloud license status.
+
+#### Automatic Updates [ Off | **_On_** ]
+
+Enables or disables automatic driver updates via DriverCentral.
+
+<!-- #else -->
+
+#### Automatic Updates [ Off | **_On_** ]
+
+Enables or disables automatic driver updates from GitHub releases.
+
+#### Update Channel [ **_Production_** | Prerelease ]
+
+Sets the update channel for which releases are considered during automatic
+updates from GitHub releases.
+
+<!-- #endif -->
+
+### Driver Settings
+
+#### Driver Status (read-only)
+
+Displays the current status of the driver.
+
+#### Driver Version (read-only)
+
+Displays the current version of the driver.
+
+#### Log Level [ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug | 5 - Trace | 6 - Ultra ]
+
+Sets the logging level. Default is `3 - Info`.
+
+#### Log Mode [ **_Off_** | Print | Log | Print and Log ]
+
+Sets the logging mode. Default is `Off`.
+
+## Driver Actions
+
+<!-- #ifndef DRIVERCENTRAL -->
+
+### Update Drivers
+
+Triggers the driver to update from the latest release on GitHub, regardless of
+the current version.
+
+<!-- #endif -->
+
+### Reset Driver
+
+Deletes every expression along with its output variable and event, and clears
+all persisted state.
+
+**Parameters:**
+
+- **Are You Sure?** [ **_No_** | Yes ] - Confirmation to reset the driver.
+
+<div style="page-break-after: always"></div>
+
+# <span style="color:#109EFF">Programming</span>
+
+## Referencing Variables
+
+Reference a variable anywhere in a string or equation with a `PARAM{}` token:
+
+```
+PARAM{DEVICE_ID,VARIABLE_ID}
+```
+
+`DEVICE_ID` is the numeric id of the device that owns the variable.
+`VARIABLE_ID` is either the numeric id of the variable or its name (matched
+exactly, case-sensitive), for example `PARAM{96,1002}` or `PARAM{96,Humidity}`.
+Any variable type may be referenced, including strings, numbers, and booleans.
+
+You rarely need to build a token by hand: click a variable in the Expressions
+tab browser and its token is inserted at the cursor. If a referenced variable
+cannot be found, the expression's row shows `Unresolved reference` and the
+previous result is kept.
+
+## Commands
+
+### Calculate Expression
+
+Recalculate a named expression now. The Expression dropdown lists every
+expression defined in the Expressions tab. Useful for manual-recompute
+expressions or to force a recalculation at a known point in programming.
+
+Expressions are evaluated in a sandbox that exposes only the math functions
+listed below, so an expression cannot read or change the rest of the driver.
+
+## Output Variables and Events
+
+Each expression owns a read-only `<Name> Result` variable and a
+`<Name> Calculated` event. Recalculation is asynchronous, so trigger follow-up
+programming from the expression's variable-changed event
+(`When <Name> Result changes`) or from the `<Name> Calculated` event. The event
+fires after every successful recalculation, even when the computed value is
+unchanged, which makes it useful when a variable-changed event would not
+re-fire.
+
+## Math Functions
+
+Equations may use the full Lua `math` and `string` libraries (for example
+`math.floor`, `math.random`, `string.format`). The following helpers are also
+available without a prefix:
+
+`abs`, `ceil`, `floor`, `sqrt`, `min`, `max`, `round(x, digits)`, `c2f`, `f2c`,
+`pi`, `huge`, `tonumber`, `tostring`
+
+Operators follow Lua syntax: `+`, `-`, `*`, `/`, `%` (modulo), `^` (power), and
+parentheses for grouping. Comparisons (`==`, `~=`, `<`, `<=`, `>`, `>=`)
+combined with `and`, `or`, and `not` allow conditionals:
+
+```
+PARAM{96,1002} > 50 and 1 or 0
+```
+
+The same reference is also available from the Syntax help link in the expression
+editor.
+
+## Examples
+
+**Difference between two humidity sensors** (device 96 and 97, variable 1002):
+
+1. In the Expressions tab, add an expression named `Bathroom Humidity Diff` in
+   Equation mode with automatic recompute enabled:
+   `abs(PARAM{96,1002} - PARAM{97,1002})`
+2. The driver recalculates it whenever either humidity changes.
+3. Program off `When Bathroom Humidity Diff Result changes` (for example, run a
+   fan when the difference exceeds a threshold).
+
+**Average of three temperatures**:
+
+```
+round((PARAM{96,1001} + PARAM{97,1001} + PARAM{98,1001}) / 3, 1)
+```
+
+**Status string for a custom label** (String mode):
+
+```
+Pool PARAM{120,2001}F / Spa PARAM{120,2002}F
+```
+
+<!-- #ifdef DRIVERCENTRAL -->
+
+<div style="page-break-after: always"></div>
+
+# <span style="color:#109EFF">Developer Information</span>
+
+<p align="center">
+<img alt="Finite Labs" src="./images/finite-labs-logo.png" width="400"/>
+</p>
+
+Copyright &copy; 2026 Finite Labs LLC
+
+All information contained herein is, and remains the property of Finite Labs LLC
+and its suppliers, if any. The intellectual and technical concepts contained
+herein are proprietary to Finite Labs LLC and its suppliers and may be covered
+by U.S. and Foreign Patents, patents in process, and are protected by trade
+secret or copyright law. Dissemination of this information or reproduction of
+this material is strictly forbidden unless prior written permission is obtained
+from Finite Labs LLC. For the latest information, please visit
+https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
+
+<!-- #endif -->
+
+# <span style="color:#109EFF">Support</span>
+
+<!-- #ifdef DRIVERCENTRAL -->
+
+If you have any questions or issues integrating these drivers with Control4, you
+can contact us at
+[driver-support@finitelabs.com](mailto:driver-support@finitelabs.com) or
+call/text us at [+1 (949) 371-5805](tel:+19493715805).
+
+<!-- #else -->
+
+If you have any questions or issues integrating these drivers with Control4, you
+can file an issue on GitHub:
+
+https://github.com/finitelabs/control4-finite-labs-essentials/issues/new
+
+<a href="https://www.buymeacoffee.com/derek.miller" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
+<!-- #endif -->
+
+<div style="page-break-after: always"></div>
+
+<!-- #embed-changelog -->

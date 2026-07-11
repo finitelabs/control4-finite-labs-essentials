@@ -39,6 +39,7 @@ standalone and can be installed individually or together.
   - [Sensor Multiplexer](#sensor-multiplexer)
   - [Device Programmer](#device-programmer)
   - [Light Relay](#light-relay)
+  - [Variable Expressions](#variable-expressions)
 - [Installation](#installation)
   <!-- #ifdef DRIVERCENTRAL -->
   - [DriverCentral Cloud Setup](#drivercentral-cloud-setup)
@@ -133,6 +134,27 @@ synchronization.
 - Dynamic relay bindings created per selected light
 - Bidirectional state synchronization between light and relay
 - Bulk hide all converted lights from navigators
+
+## Variable Expressions
+
+Extend Control4 programming with string building and math on variables. Define
+named expressions in a dedicated Composer tab with a variable browser, syntax
+highlighting, and a live preview. Each expression publishes its own result
+variable and event, and can recalculate automatically when the variables it
+references change.
+
+**Key features:**
+
+- Expressions tab with a searchable variable browser and live result preview
+- Named expressions with per-expression `<Name> Result` variables and
+  `<Name> Calculated` events
+- Automatic recompute when referenced variables change, debounced for chatty
+  sources
+- Equation mode evaluates math; String mode builds text from variables
+- Full Lua math library plus common helpers (`abs`, `min`, `max`, `round`, ...)
+  and conditionals
+- Rendered expression shows each reference as `[Room > Device > Variable]`
+- Expressions and last results persist across driver restarts
 
 <div style="page-break-after: always"></div>
 
