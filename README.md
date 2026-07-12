@@ -142,14 +142,14 @@ tab, then fire them from programming with a single Send Request command.
 
 - Requests tab with a searchable variable browser and per-request send history
 - HTTP and HTTPS with any method, custom headers, bodies, and basic auth
-- Raw TCP and UDP payloads as text (with escapes) or hex bytes; TCP can wait
-  for the device's response
+- Raw TCP and UDP payloads as text (with escapes) or hex bytes; TCP can wait for
+  the device's response
 - Wake-on-LAN magic packets by MAC address
 - Insert live Control4 variable values anywhere with `PARAM{}` tokens
 - Per-request `<Name> Sent` / `<Name> Failed` events and a `<Name> Response`
   variable holding the last response
-- Inbound webhooks fire `<Name> Received` events with the payload published to
-  a `<Name> Payload` variable, guarded by an optional key
+- Inbound webhooks fire `<Name> Received` events with the payload published to a
+  `<Name> Payload` variable, guarded by an optional key
 - Requests, webhooks, and last results persist across driver restarts
 
 <div style="page-break-after: always"></div>
@@ -182,6 +182,16 @@ can file an issue on GitHub:
 <div style="page-break-after: always"></div>
 
 # <span style="color:#109EFF">Changelog</span>
+
+## Unreleased
+
+### Added
+
+- Initial release of Network Requests: named HTTP, TCP, UDP, and Wake-on-LAN
+  requests defined in a Requests tab and fired from programming by name, with
+  `PARAM{}` variable templating, per-request Sent/Failed events, and response
+  capture. Inbound webhooks fire per-webhook Received events with the payload
+  published to a variable, guarded by an optional key.
 
 ## v20260711 - 2026-07-11
 
