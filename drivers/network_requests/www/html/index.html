@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Network Requests</title>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --surface: #ffffff;
+      --surface-hover: #f0f0f2;
+      --border: #d1d5db;
+      --text: #1a1a1a;
+      --text-muted: #6b7280;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --danger: #dc2626;
+      --danger-hover: #b91c1c;
+      --success: #16a34a;
+      --warning: #d97706;
+      --radius: 6px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      box-shadow: var(--shadow);
+    }
+    .nav-title {
+      padding: 10px 2px;
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 13px;
+      border-bottom: 2px solid var(--accent);
+    }
+    .nav-meta {
+      font-size: 11px; color: var(--text-muted);
+      margin-left: 12px; min-width: 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .panel { display: none; padding: 16px; }
+    .panel.active { display: block; }
+
+    /* Composer's webview shows classic always-on scrollbars; keep them slim */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: #c7ccd4; border-radius: 5px;
+      border: 2px solid transparent; background-clip: content-box;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: #a9b0ba; background-clip: content-box; border: 2px solid transparent; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+    .card h3 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px; font-weight: 500; }
+    input[type="text"], input[type="number"], textarea, select {
+      width: 100%;
+      padding: 6px 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 13px;
+      font-family: var(--font);
+    }
+    input.mono, textarea.mono { font-family: var(--mono); font-size: 12.5px; }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+    .input-error { border-color: var(--danger) !important; }
+
+    /* Highlighted payload editor: a transparent textarea stacked over a <pre>
+       that renders the same text colorized. Both layers share identical font
+       metrics so the caret and selection stay aligned. */
+    .edwrap { position: relative; }
+    .edwrap textarea, .edwrap pre {
+      font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
+      padding: 9px 10px; margin: 0;
+      white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word;
+      min-height: 64px; box-sizing: border-box; width: 100%;
+      border-radius: var(--radius); tab-size: 2;
+    }
+    .edwrap pre {
+      position: absolute; inset: 0;
+      border: 1px solid transparent;
+      background: var(--surface);
+      overflow: hidden;
+      pointer-events: none;
+      color: var(--text);
+    }
+    .edwrap textarea {
+      position: relative; z-index: 1; display: block;
+      background: transparent;
+      color: transparent;
+      caret-color: var(--text);
+      border: 1px solid var(--border);
+      resize: none; overflow: hidden;
+    }
+    .edwrap textarea::placeholder { color: #9ca3af; }
+    .edwrap textarea::selection { background: rgba(37,99,235,0.22); }
+    .hl-tok { background: #dbeafe; border-radius: 4px; box-shadow: 0 0 0 1.5px #dbeafe; color: #1d4ed8; }
+    .hl-esc { color: #b45309; font-weight: 600; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 5px 12px; border: none; border-radius: var(--radius);
+      font-size: 12px; font-family: var(--font); cursor: pointer;
+      font-weight: 500; transition: background 0.15s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: var(--surface-hover); }
+    .btn-ghost { background: transparent; border: 1px solid transparent; color: var(--text-muted); padding: 3px 6px; font-size: 11px; cursor: pointer; }
+    .btn-ghost:hover { color: var(--text); }
+    .btn-sm { padding: 3px 8px; font-size: 11px; }
+    .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+    /* Scroll the table inside its card only on genuinely narrow panes;
+       1px rounding overflow must not summon a scrollbar on wide ones. */
+    .table-wrap { overflow-x: hidden; }
+    @media (max-width: 560px) { .table-wrap { overflow-x: auto; } }
+    table { width: 100%; min-width: 480px; border-collapse: collapse; table-layout: fixed; }
+    th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
+    th {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-muted); font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    td { font-size: 12px; }
+    .trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    tbody tr:hover td { background: var(--surface-hover); }
+    tbody tr:last-child td { border-bottom: none; }
+    @media (max-width: 840px) { .col-type { display: none; } }
+
+    .chip {
+      display: inline-block; padding: 1px 7px; border-radius: 10px;
+      font-size: 10px; font-weight: 600;
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap; vertical-align: bottom;
+    }
+    .chip-http { background: #dbeafe; color: #1d4ed8; }
+    .chip-tcp { background: #d1fae5; color: #059669; }
+    .chip-udp { background: #fef9c3; color: #a16207; }
+    .chip-wol { background: #ede9fe; color: #6d28d9; }
+    .chip-err { background: #fef3c7; color: #b45309; }
+
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; }
+    .status-ok { background: var(--success); }
+    .status-warn { background: var(--warning); }
+    .status-none { background: #d1d5db; }
+
+    .req-target { font-family: var(--mono); font-size: 10.5px; color: var(--text-muted); }
+    .res { font-family: var(--mono); font-size: 11.5px; }
+    .hint { font-size: 11.5px; color: var(--text-muted); margin-top: 8px; }
+    .hint code, .pub code { font-family: var(--mono); font-size: 10.5px; }
+    .empty { padding: 22px 8px; text-align: center; color: var(--text-muted); font-size: 12.5px; }
+
+    /* Editor layout: browser pane keeps a narrow band on wide panes and wraps
+       to a full-width row on narrow ones. */
+    .split { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+    .browser { flex: 1 1 260px; max-width: 340px; display: flex; flex-direction: column; max-height: 560px; }
+    .editor-col { flex: 999 1 400px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+    @media (max-width: 740px) {
+      .browser { max-width: none; max-height: 320px; }
+    }
+
+    .tree-wrap { overflow-y: auto; flex: 1; margin-top: 8px; }
+    .troom {
+      font-size: 9.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+      color: #9ca3af; padding: 8px 2px 3px;
+    }
+    .tdev {
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 4px; border-radius: 5px;
+      font-weight: 600; color: #374151; cursor: pointer; font-size: 12px;
+    }
+    .tdev:hover { background: var(--surface-hover); }
+    .tdev .chev { color: #9ca3af; font-size: 10px; width: 10px; }
+    .tvar {
+      display: flex; align-items: center; gap: 6px;
+      padding: 3px 6px 3px 22px; border-radius: 5px;
+      color: #374151; cursor: pointer;
+    }
+    .tvar:hover { background: #eef2ff; outline: 1px solid #c7d2fe; }
+    .tvar .vname { flex: 1; min-width: 0; font-family: var(--mono); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tvar.used .vname::after { content: " \2713"; color: var(--success); }
+    .tvar .vval {
+      margin-left: auto; font-family: var(--mono); font-size: 11px;
+      color: var(--text-muted); font-variant-numeric: tabular-nums;
+      max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none;
+    }
+    .tvar .ins {
+      visibility: hidden; flex: none;
+      font-size: 10px; font-weight: 600; color: #fff;
+      background: var(--accent); border-radius: 4px; padding: 1px 6px;
+    }
+    .tvar:hover .ins { visibility: visible; }
+    .tfoot { padding-top: 8px; font-size: 10.5px; color: #9ca3af; }
+    .tloading { padding: 4px 22px; font-size: 11px; color: var(--text-muted); font-style: italic; }
+    mark.hlq { background: #fde68a; color: inherit; border-radius: 2px; padding: 0; }
+
+    .frow { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+    .frow .f { flex: 1; min-width: 140px; }
+    .frow .f-narrow { flex: 0 1 120px; min-width: 90px; }
+    .seg { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .seg button {
+      padding: 5px 12px; font-size: 12px; color: var(--text-muted);
+      background: var(--surface); border: none; cursor: pointer; font-family: var(--font);
+    }
+    .seg button.on { background: var(--accent); color: #fff; font-weight: 600; }
+
+    .hgrid { display: grid; grid-template-columns: 1fr 2fr 26px; gap: 6px; margin-bottom: 6px; align-items: center; }
+    .hgrid .hdel { text-align: center; cursor: pointer; color: var(--text-muted); font-weight: 600; }
+    .hgrid .hdel:hover { color: var(--danger); }
+
+    .respbox {
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius);
+      font-family: var(--mono); font-size: 11px; color: #475569;
+      padding: 8px 10px; margin-top: 8px;
+      max-height: 180px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere;
+    }
+    .pub { font-size: 11px; color: var(--text-muted); border-top: 1px dashed #e2e8f0; margin-top: 9px; padding-top: 8px; }
+
+    /* Syntax help */
+    .label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .help-toggle {
+      background: none; border: none; padding: 0; cursor: pointer;
+      font-family: var(--font); font-size: 11px; font-weight: 500; color: var(--accent);
+    }
+    .help-toggle:hover { text-decoration: underline; }
+    .help {
+      display: none;
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius);
+      padding: 10px 12px; margin-top: 8px;
+      columns: 2; column-gap: 24px;
+    }
+    .help.open { display: block; }
+    @media (max-width: 740px) { .help { columns: 1; } }
+    .help section { break-inside: avoid; margin-bottom: 10px; }
+    .help h4 {
+      font-size: 9.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+      color: #94a3b8; margin: 0 0 3px;
+    }
+    .help p { font-size: 11.5px; color: #475569; margin: 0 0 4px; }
+    .help code { font-family: var(--mono); font-size: 10.5px; color: #1e293b; background: #eef2f7; border-radius: 3px; padding: 0 3px; }
+
+    .footbar { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+    .save-error { color: var(--danger); font-size: 11.5px; margin-right: auto; }
+    .checklabel { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: #374151; cursor: pointer; }
+    .checklabel input { width: auto; }
+
+    .conn-warn {
+      background: #fef3c7; border: 1px solid #fcd34d; color: #92400e;
+      border-radius: var(--radius); padding: 8px 12px; margin-bottom: 12px; font-size: 12px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="nav">
+  <span class="nav-title">Requests</span>
+  <span class="nav-meta" id="nav-meta">Network Requests</span>
+</div>
+
+<!-- ── List panel ─────────────────────────────────────────────── -->
+<div class="panel active" id="panel-list">
+  <div class="conn-warn" id="conn-warn">Not connected to the controller API. Open this tab from Composer.</div>
+  <div class="card">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+      <h3 style="margin:0;">Requests</h3>
+      <button class="btn btn-primary btn-sm" onclick="openEditor(null)">+ Add Request</button>
+    </div>
+    <div class="table-wrap">
+      <table id="req-table">
+        <thead>
+          <tr>
+            <th style="width:22%;">Name</th>
+            <th class="col-type" style="width:64px;">Type</th>
+            <th>Target</th>
+            <th style="width:24%;">Last Result</th>
+            <th style="width:118px;"></th>
+          </tr>
+        </thead>
+        <tbody id="req-rows"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="req-empty" style="display:none;">No requests yet. Add Request to create one.</div>
+    <p class="hint">Fire a request from programming with the <code>Send Request</code> command. Each request fires
+    <code>&lt;Name&gt; Sent</code> / <code>&lt;Name&gt; Failed</code> events; HTTP and TCP requests that wait for a
+    response also publish a <code>&lt;Name&gt; Response</code> variable.</p>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+      <h3 style="margin:0;">Webhooks</h3>
+      <button class="btn btn-primary btn-sm" onclick="showWebhookForm()">+ Add Webhook</button>
+    </div>
+    <div class="table-wrap">
+      <table id="hook-table">
+        <thead>
+          <tr>
+            <th style="width:22%;">Name</th>
+            <th>URL</th>
+            <th style="width:24%;">Last Received</th>
+            <th style="width:96px;"></th>
+          </tr>
+        </thead>
+        <tbody id="hook-rows"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="hook-empty" style="display:none;">No webhooks yet. Add Webhook to create one.</div>
+    <div class="frow" id="hook-form" style="margin-top:10px; align-items:flex-end; display:none;">
+      <div class="f">
+        <label for="hook-name">Name</label>
+        <input type="text" id="hook-name" placeholder="e.g. Doorbell Motion"/>
+      </div>
+      <div class="f">
+        <label for="hook-key">Key (optional, callers must pass ?key=...)</label>
+        <input type="text" id="hook-key" class="mono" spellcheck="false" placeholder="secret"/>
+      </div>
+      <div style="flex:none; display:flex; gap:8px;">
+        <button class="btn btn-outline btn-sm" onclick="hideWebhookForm()">Cancel</button>
+        <button class="btn btn-primary btn-sm" onclick="addWebhook()">Save Webhook</button>
+      </div>
+    </div>
+    <p class="hint" id="hook-hint">External systems call the webhook's URL (GET or POST) to fire its
+    <code>&lt;Name&gt; Received</code> event. The request body (or query string) is published to the
+    <code>&lt;Name&gt; Payload</code> variable before the event fires. The listen port is set by the
+    <code>Webhook Port</code> driver property.</p>
+  </div>
+</div>
+
+<!-- ── Editor panel ───────────────────────────────────────────── -->
+<div class="panel" id="panel-editor">
+  <div class="split">
+
+    <div class="card browser">
+      <h3>Variables</h3>
+      <input type="text" id="var-search" placeholder="Search rooms, devices, variables" oninput="renderTree()"/>
+      <div class="tree-wrap" id="tree"></div>
+      <div class="tfoot" id="tree-foot"></div>
+    </div>
+
+    <div class="editor-col">
+      <div class="card">
+        <div class="frow">
+          <div class="f">
+            <label for="req-name">Name <span id="req-name-lock" style="display:none; font-weight:400;">(fixed - to rename, create a new request and delete this one)</span></label>
+            <input type="text" id="req-name" placeholder="e.g. Rack LCDs On" oninput="this.classList.remove('input-error'); updatePublishLine();"/>
+          </div>
+          <div style="flex:none;">
+            <label>Type</label>
+            <div class="seg">
+              <button type="button" id="type-http" class="on" onclick="setType('http')">HTTP</button>
+              <button type="button" id="type-tcp" onclick="setType('tcp')">TCP</button>
+              <button type="button" id="type-udp" onclick="setType('udp')">UDP</button>
+              <button type="button" id="type-wol" onclick="setType('wol')">WOL</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- HTTP fields -->
+        <div id="fields-http">
+          <div class="frow">
+            <div class="f-narrow">
+              <label for="req-method">Method</label>
+              <select id="req-method">
+                <option>GET</option><option>POST</option><option>PUT</option>
+                <option>PATCH</option><option>DELETE</option><option>HEAD</option>
+              </select>
+            </div>
+            <div class="f">
+              <label for="req-url">URL</label>
+              <input type="text" id="req-url" class="mono" data-tok="1" spellcheck="false"
+                placeholder="http://user:pass@192.168.1.10:8080/api/v1/thing"/>
+            </div>
+          </div>
+          <label>Headers</label>
+          <div id="req-headers"></div>
+          <button type="button" class="btn btn-ghost" onclick="addHeaderRow('','')">+ Add header</button>
+          <div style="margin-top:8px;">
+            <label class="checklabel"><input type="checkbox" id="req-tls"/>
+              Validate TLS certificate (off accepts self-signed certs, common on LAN devices)</label>
+          </div>
+          <div style="margin-top:10px;">
+            <label for="req-body">Body</label>
+            <div class="edwrap">
+              <pre id="hl-body" aria-hidden="true"></pre>
+              <textarea id="req-body" data-tok="1" rows="3" spellcheck="false"
+                placeholder='{"value": PARAM{100001,2301}}'
+                oninput="syncHl('req-body','hl-body')"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- TCP/UDP fields -->
+        <div id="fields-tcpudp" style="display:none;">
+          <div class="frow">
+            <div class="f">
+              <label for="req-host">Host</label>
+              <input type="text" id="req-host" class="mono" spellcheck="false" placeholder="192.168.1.20"/>
+            </div>
+            <div class="f-narrow">
+              <label for="req-port">Port</label>
+              <input type="number" id="req-port" min="1" max="65535" placeholder="23"/>
+            </div>
+            <div style="flex:none;">
+              <label>Payload</label>
+              <div class="seg">
+                <button type="button" id="enc-text" class="on" onclick="setEncoding('text')">Text</button>
+                <button type="button" id="enc-hex" onclick="setEncoding('hex')">Hex</button>
+              </div>
+            </div>
+          </div>
+          <div class="edwrap">
+            <pre id="hl-payload" aria-hidden="true"></pre>
+            <textarea id="req-payload" data-tok="1" rows="3" spellcheck="false"
+              placeholder="PWR ON\r\n"
+              oninput="syncHl('req-payload','hl-payload')"></textarea>
+          </div>
+          <div class="frow" id="tcp-wait-row" style="margin-top:10px; align-items:center;">
+            <label class="checklabel"><input type="checkbox" id="req-wait"/>
+              Wait for a response</label>
+            <div class="f-narrow" id="tcp-timeout-wrap">
+              <label for="req-timeout">Timeout (s)</label>
+              <input type="number" id="req-timeout" min="1" max="60" value="5"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- WOL fields -->
+        <div id="fields-wol" style="display:none;">
+          <div class="frow">
+            <div class="f">
+              <label for="req-mac">MAC address</label>
+              <input type="text" id="req-mac" class="mono" spellcheck="false" placeholder="AA:BB:CC:DD:EE:FF"/>
+            </div>
+          </div>
+          <p class="hint" style="margin-top:0;">Sends a Wake-on-LAN magic packet as a UDP broadcast.</p>
+        </div>
+
+        <div class="label-row" style="margin-top:8px;">
+          <span></span>
+          <button type="button" class="help-toggle" id="help-toggle" onclick="toggleHelp()">Syntax help</button>
+        </div>
+        <div class="help" id="help-panel">
+          <section>
+            <h4>Variable tokens</h4>
+            <p><code>PARAM{deviceId,variableId}</code> is replaced with the variable's current
+            value each time the request is sent. Click a variable in the browser to insert its
+            token into the focused field. Variables can also be referenced by name:
+            <code>PARAM{96,HUMIDITY}</code> (exact match, case sensitive). Tokens work in the URL,
+            body, header values, and Text payloads.</p>
+          </section>
+          <section>
+            <h4>Text payloads (TCP / UDP)</h4>
+            <p>Sent as typed, after decoding the escapes <code>\r</code> <code>\n</code>
+            <code>\t</code> <code>\0</code> <code>\\</code> and <code>\xNN</code> (two hex
+            digits). For example, the payload <code>PWR ON\r\n</code> sends
+            <code>PWR&nbsp;ON</code> followed by a carriage return and a line feed.</p>
+          </section>
+          <section>
+            <h4>Hex payloads (TCP / UDP)</h4>
+            <p>To send raw bytes instead of text, switch the <b>Text | Hex</b> toggle above the
+            payload field to Hex, then write the whole payload as hex digits. Whitespace, commas,
+            and <code>0x</code> prefixes are ignored, so <code>02 41 54 0d</code>,
+            <code>0x02,0x41,0x54,0x0d</code>, and <code>0241540d</code> all send the same 4
+            bytes. Variable tokens are not substituted in Hex payloads.</p>
+          </section>
+          <section>
+            <h4>HTTP</h4>
+            <p>HTTPS is supported; TLS certificates are only checked when
+            <b>Validate TLS certificate</b> is on, so self-signed LAN devices work by default.
+            Basic auth goes in the URL: <code>http://user:pass@host/path</code>. The last response
+            body is published to the <code>&lt;Name&gt; Response</code> variable.</p>
+          </section>
+        </div>
+      </div>
+
+      <div class="card" id="last-result-card" style="display:none;">
+        <h3>Last Result</h3>
+        <div id="last-result-line" class="res"></div>
+        <div class="respbox" id="last-result-body" style="display:none;"></div>
+      </div>
+
+      <div class="footbar">
+        <span class="save-error" id="save-error"></span>
+        <button class="btn btn-outline" onclick="closeEditor()">Cancel</button>
+        <button class="btn btn-outline" id="btn-send-now" title="Save and send now" onclick="saveRequest(true)">Save &amp; Send</button>
+        <button class="btn btn-primary" onclick="saveRequest(false)">Save Request</button>
+      </div>
+      <div class="pub" id="pub-line" style="margin-top:-4px;"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ============================================================
+// C4 REST API Client (same bridge as the InfluxDB driver tab)
+// ============================================================
+var gApiHost, gDriverId, gApiToken;
+
+(function() {
+  var p = {};
+  window.location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,k,v) { p[k]=decodeURIComponent(v); });
+  gApiHost = p.apihost; gDriverId = p.driverid; gApiToken = p.apitoken;
+})();
+
+function api(method, path, body) {
+  if (!gApiHost) return Promise.resolve(null);
+  var opts = {
+    method: method,
+    headers: { 'Authorization': 'Bearer ' + gApiToken, 'Content-Type': 'application/json' }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  return fetch('https://' + gApiHost + path, opts).then(function(r) { return r.json(); }).catch(function(e) {
+    console.error('API error:', method, path, e);
+    return null;
+  });
+}
+
+// Send a UIRequest command to the driver
+function sendCommand(cmd, params) {
+  return api('POST', '/api/v1/items/' + gDriverId + '/commands', {
+    command: cmd,
+    tParams: { DATA: btoa(JSON.stringify(params || {})) },
+    async: false
+  });
+}
+
+// ============================================================
+// Socket.io for real-time updates
+// ============================================================
+var gSocket = null;
+
+async function initSocket() {
+  if (!gApiHost) return;
+  try {
+    var jwt = 'JWT=' + gApiToken;
+    var res = await fetch('https://' + gApiHost + '/socket.io/socket.io.js?' + jwt, {
+      headers: { 'Authorization': 'Bearer ' + gApiToken }
+    });
+    eval.call(window, await res.text());
+
+    gSocket = window.io.connect('https://' + gApiHost, {
+      forceNew: true, query: jwt, transports: ['polling', 'websocket']
+    });
+
+    await new Promise(function(resolve) { gSocket.once('connect', resolve); });
+    var engineId = gSocket.io.engine.id;
+
+    var sub = await api('GET', '/api/v1/items/' + gDriverId + '/datatoui?SubscriptionClient=' + engineId + '&coerce=false');
+    if (sub && sub.subscriptionId) {
+      gSocket.on(String(sub.subscriptionId), handleSocketEvent);
+      gSocket.emit('startSubscription', String(sub.subscriptionId));
+    }
+  } catch (e) { console.error('Socket init error:', e); }
+}
+
+function handleSocketEvent(evt) {
+  var items = Array.isArray(evt) ? evt : [evt];
+  items.forEach(function(item) {
+    var dc = item.data ? item.data.devicecommand : null;
+    if (!dc || dc.command === 'LUA_OUTPUT') return;
+    var params = {};
+    if (dc.params && dc.params.param) {
+      var arr = Array.isArray(dc.params.param) ? dc.params.param : [dc.params.param];
+      arr.forEach(function(p) {
+        if (p && p.name) params[p.name] = (p.value && p.value.static !== undefined) ? p.value.static : (p.value || '');
+      });
+    }
+    handleDriverData(dc.command, params);
+  });
+}
+
+function handleDriverData(cmd, params) {
+  try {
+    if (cmd === 'CONFIG_DATA') {
+      onConfig(JSON.parse(params.requests || '[]'));
+      onWebhooks(JSON.parse(params.webhooks || '[]'), params.webhookBase || '');
+    }
+    else if (cmd === 'REQUEST_RESULT') onRequestResult(params);
+    else if (cmd === 'WEBHOOK_RESULT') onWebhookResult(params);
+    else if (cmd === 'DEVICES_DATA') onDevices(JSON.parse(params.devices || '[]'));
+    else if (cmd === 'DEVICE_VARIABLES_DATA') onDeviceVariables(params.deviceId, JSON.parse(params.variables || '[]'));
+    else if (cmd === 'SAVE_RESULT') onSaveResult(params);
+  } catch (e) { console.error('handleDriverData error:', cmd, e); }
+}
+
+// ============================================================
+// Helpers
+// ============================================================
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function agoLabel(ts) {
+  if (!ts) return '';
+  var s = Math.max(0, Math.floor(Date.now()/1000 - Number(ts)));
+  if (s < 5) return 'just now';
+  if (s < 60) return s + 's ago';
+  if (s < 3600) return Math.floor(s/60) + 'm ago';
+  return Math.floor(s/3600) + 'h ago';
+}
+function escAttr(s) { return esc(s).replace(/\\/g, '\\\\'); }
+
+// ============================================================
+// State
+// ============================================================
+var gRequests = [];              // [{name, type, method, url, body, headers, host, port, payload, encoding, waitResponse, timeout, mac, status, detail, code, response, ts}]
+var gDevices = [];               // [{id, name, roomName}]
+var gVarsByDevice = {};          // id -> [{id, name, type, value}]
+var gExpanded = {};              // id -> true (manual expansion outside search)
+var gSearchCollapsed = {};       // id -> true (collapse override while searching)
+var gRequestedVars = {};         // id -> true (variable fetch already in flight)
+var gLastQ = '';                 // current search term
+var gEditor = { open: false, originalName: '', type: 'http', encoding: 'text' };
+var gTokTarget = null;           // last focused token-capable field
+var gSendAfterSave = false;      // Save & Send flow
+
+// ============================================================
+// List view
+// ============================================================
+function onConfig(requests) {
+  gRequests = requests || [];
+  renderList();
+  if (gSendAfterSave) {
+    gSendAfterSave = false;
+    if (gPendingSendName) { runRequest(gPendingSendName); gPendingSendName = null; }
+  }
+}
+var gPendingSendName = null;
+
+function targetLabel(x) {
+  if (x.type === 'http') return (x.method || 'GET') + ' ' + (x.url || '');
+  if (x.type === 'tcp' || x.type === 'udp') return (x.host || '') + ':' + (x.port || '');
+  if (x.type === 'wol') return x.mac || '';
+  return '';
+}
+
+function renderList() {
+  var tb = document.getElementById('req-rows');
+  var empty = document.getElementById('req-empty');
+  if (!gRequests.length) {
+    tb.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  var html = '';
+  gRequests.forEach(function(x) {
+    var dot = x.status === 'error' ? 'status-warn' : (x.status === 'ok' ? 'status-ok' : 'status-none');
+    var typeChip = '<span class="chip chip-' + esc(x.type) + '">' + esc((x.type || '').toUpperCase()) + '</span>';
+    var resCell;
+    if (x.status === 'error') resCell = '<span class="chip chip-err" title="' + esc(x.detail) + '">' + esc(x.detail || 'Error') + '</span>';
+    else if (x.status === 'ok') resCell = '<span class="res" title="' + esc((x.response || '') + '\n' + agoLabel(x.ts)) + '">' + esc(x.detail || 'sent') + '</span>';
+    else resCell = '<span class="res" style="color:var(--text-muted);">-</span>';
+    html += '<tr data-name="' + esc(x.name) + '">'
+      + '<td class="trunc" title="' + esc(x.name) + '"><span class="status-dot ' + dot + '"></span><b>' + esc(x.name) + '</b></td>'
+      + '<td class="col-type">' + typeChip + '</td>'
+      + '<td class="trunc"><span class="req-target" title="' + esc(targetLabel(x)) + '">' + esc(targetLabel(x)) + '</span></td>'
+      + '<td class="cell-result trunc">' + resCell + '</td>'
+      + '<td style="text-align:right; white-space:nowrap;">'
+      + '<button class="btn btn-outline btn-sm" title="Send now" onclick="runRequest(\'' + escAttr(x.name) + '\')">&#9654; Send</button> '
+      + '<button class="btn btn-ghost" onclick="editRequest(\'' + escAttr(x.name) + '\')">Edit</button>'
+      + '<button class="btn btn-ghost" title="Delete" onclick="deleteRequest(\'' + escAttr(x.name) + '\')">&#10005;</button>'
+      + '</td></tr>';
+  });
+  tb.innerHTML = html;
+}
+
+function onRequestResult(p) {
+  var found = false;
+  gRequests.forEach(function(x) {
+    if (x.name === p.name) {
+      x.status = p.status; x.detail = p.detail; x.code = p.code; x.response = p.response; x.ts = p.ts;
+      found = true;
+    }
+  });
+  if (found) renderList();
+  else sendCommand('_GET_CONFIG');
+  if (gEditor.open && gEditor.originalName === p.name) renderLastResult(p);
+}
+
+function runRequest(name) { sendCommand('_RUN_REQUEST', { name: name }); }
+
+function deleteRequest(name) {
+  if (!window.confirm('Delete request "' + name + '"? Its events and response variable are removed.')) return;
+  sendCommand('_DELETE_REQUEST', { name: name });
+}
+
+// ============================================================
+// Webhooks
+// ============================================================
+var gWebhooks = [];              // [{name, key, from, payload, ts}]
+var gWebhookBase = '';           // http://controller:port/
+
+function webhookUrl(x) {
+  if (!gWebhookBase) return '(webhooks disabled)';
+  var url = gWebhookBase + encodeURIComponent(x.name);
+  if (x.key) url += '?key=' + encodeURIComponent(x.key);
+  return url;
+}
+
+function onWebhooks(webhooks, base) {
+  gWebhooks = webhooks || [];
+  gWebhookBase = base || '';
+  renderWebhooks();
+}
+
+function renderWebhooks() {
+  var tb = document.getElementById('hook-rows');
+  var empty = document.getElementById('hook-empty');
+  if (!gWebhooks.length) {
+    tb.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  var html = '';
+  gWebhooks.forEach(function(x) {
+    var url = webhookUrl(x);
+    var last;
+    if (x.ts) last = '<span class="res" title="' + esc(x.payload || '') + '">' + esc(agoLabel(x.ts)) + (x.from ? ' from ' + esc(x.from) : '') + '</span>';
+    else last = '<span class="res" style="color:var(--text-muted);">never</span>';
+    html += '<tr>'
+      + '<td class="trunc" title="' + esc(x.name) + '"><span class="status-dot ' + (x.ts ? 'status-ok' : 'status-none') + '"></span><b>' + esc(x.name) + '</b></td>'
+      + '<td class="trunc"><span class="req-target" title="' + esc(url) + '">' + esc(url) + '</span></td>'
+      + '<td class="trunc">' + last + '</td>'
+      + '<td style="text-align:right; white-space:nowrap;">'
+      + '<button class="btn btn-ghost" title="Copy URL" onclick="copyWebhookUrl(\'' + escAttr(x.name) + '\')">Copy</button>'
+      + '<button class="btn btn-ghost" title="Delete" onclick="deleteWebhook(\'' + escAttr(x.name) + '\')">&#10005;</button>'
+      + '</td></tr>';
+  });
+  tb.innerHTML = html;
+}
+
+function copyWebhookUrl(name) {
+  var x = null;
+  gWebhooks.forEach(function(w) { if (w.name === name) x = w; });
+  if (!x) return;
+  var url = webhookUrl(x);
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url);
+  else window.prompt('Webhook URL', url);
+}
+
+function showWebhookForm() {
+  document.getElementById('hook-form').style.display = 'flex';
+  document.getElementById('hook-name').focus();
+}
+
+function hideWebhookForm() {
+  var nameEl = document.getElementById('hook-name');
+  nameEl.classList.remove('input-error');
+  nameEl.value = '';
+  document.getElementById('hook-key').value = '';
+  document.getElementById('hook-form').style.display = 'none';
+}
+
+function addWebhook() {
+  var nameEl = document.getElementById('hook-name');
+  var keyEl = document.getElementById('hook-key');
+  var name = nameEl.value.trim();
+  if (!name) { nameEl.classList.add('input-error'); return; }
+  nameEl.classList.remove('input-error');
+  sendCommand('_SAVE_WEBHOOK', { name: name, key: keyEl.value.trim() });
+  hideWebhookForm();
+}
+
+function deleteWebhook(name) {
+  if (!window.confirm('Delete webhook "' + name + '"? Its event and payload variable are removed.')) return;
+  sendCommand('_DELETE_WEBHOOK', { name: name });
+}
+
+function onWebhookResult(p) {
+  var found = false;
+  gWebhooks.forEach(function(x) {
+    if (x.name === p.name) { x.from = p.from; x.payload = p.payload; x.ts = p.ts; found = true; }
+  });
+  if (found) renderWebhooks();
+  else sendCommand('_GET_CONFIG');
+}
+
+function editRequest(name) {
+  var x = null;
+  gRequests.forEach(function(e) { if (e.name === name) x = e; });
+  openEditor(x);
+}
+
+// ============================================================
+// Editor view
+// ============================================================
+function openEditor(req) {
+  gEditor.open = true;
+  gEditor.originalName = req ? req.name : '';
+  var nameEl = document.getElementById('req-name');
+  nameEl.value = req ? req.name : '';
+  nameEl.readOnly = !!req;
+  nameEl.style.opacity = req ? '0.6' : '';
+  document.getElementById('req-name-lock').style.display = req ? 'inline' : 'none';
+  document.getElementById('req-method').value = req && req.method ? req.method : 'GET';
+  document.getElementById('req-url').value = req ? (req.url || '') : '';
+  document.getElementById('req-body').value = req ? (req.body || '') : '';
+  document.getElementById('req-tls').checked = req ? !!req.tlsVerify : false;
+  document.getElementById('req-host').value = req ? (req.host || '') : '';
+  document.getElementById('req-port').value = req && req.port ? req.port : '';
+  document.getElementById('req-payload').value = req ? (req.payload || '') : '';
+  document.getElementById('req-wait').checked = req ? !!req.waitResponse : false;
+  document.getElementById('req-timeout').value = req && req.timeout ? req.timeout : 5;
+  document.getElementById('req-mac').value = req ? (req.mac || '') : '';
+  document.getElementById('save-error').textContent = '';
+  renderHeaderRows(req && req.headers ? req.headers : []);
+  setEncoding(req && req.encoding === 'hex' ? 'hex' : 'text', true);
+  setType(req ? req.type : 'http');
+  if (req && req.status) renderLastResult(req); else hideLastResult();
+  document.getElementById('panel-list').classList.remove('active');
+  document.getElementById('panel-editor').classList.add('active');
+  if (!gDevices.length) sendCommand('_GET_DEVICES');
+  syncHl('req-body','hl-body');
+  syncHl('req-payload','hl-payload');
+  updatePublishLine();
+  document.getElementById('req-name').focus();
+}
+
+function closeEditor() {
+  gEditor.open = false;
+  document.getElementById('panel-editor').classList.remove('active');
+  document.getElementById('panel-list').classList.add('active');
+}
+
+function setType(type) {
+  gEditor.type = type;
+  ['http','tcp','udp','wol'].forEach(function(t) {
+    document.getElementById('type-' + t).className = t === type ? 'on' : '';
+  });
+  document.getElementById('fields-http').style.display = type === 'http' ? 'block' : 'none';
+  document.getElementById('fields-tcpudp').style.display = (type === 'tcp' || type === 'udp') ? 'block' : 'none';
+  document.getElementById('fields-wol').style.display = type === 'wol' ? 'block' : 'none';
+  document.getElementById('tcp-wait-row').style.display = type === 'tcp' ? 'flex' : 'none';
+  updatePublishLine();
+}
+
+function setEncoding(enc, skipSync) {
+  gEditor.encoding = enc;
+  document.getElementById('enc-text').className = enc === 'text' ? 'on' : '';
+  document.getElementById('enc-hex').className = enc === 'hex' ? 'on' : '';
+  if (!skipSync) syncHl('req-payload','hl-payload');
+}
+
+// ── Header rows ─────────────────────────────────────────────
+function renderHeaderRows(headers) {
+  document.getElementById('req-headers').innerHTML = '';
+  (headers || []).forEach(function(h) { addHeaderRow(h.name || '', h.value || ''); });
+}
+
+function addHeaderRow(name, value) {
+  var wrap = document.getElementById('req-headers');
+  var row = document.createElement('div');
+  row.className = 'hgrid';
+  row.innerHTML = '<input type="text" class="mono h-name" spellcheck="false" placeholder="Content-Type" value="' + esc(name) + '"/>'
+    + '<input type="text" class="mono h-value" data-tok="1" spellcheck="false" placeholder="application/json" value="' + esc(value) + '"/>'
+    + '<span class="hdel" title="Remove header">&#10005;</span>';
+  row.querySelector('.hdel').addEventListener('click', function() { row.remove(); });
+  wrap.appendChild(row);
+}
+
+function collectHeaders() {
+  var out = [];
+  document.querySelectorAll('#req-headers .hgrid').forEach(function(row) {
+    var name = row.querySelector('.h-name').value.trim();
+    var value = row.querySelector('.h-value').value;
+    if (name) out.push({ name: name, value: value });
+  });
+  return out;
+}
+
+// ── Payload highlighting ────────────────────────────────────
+function escMin(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+var HL_RE = /(PARAM\s*\{[^}]*\})|(\\x[0-9a-fA-F]{2}|\\[rnt0\\])/g;
+
+function hlRender(text) {
+  var out = escMin(text).replace(HL_RE, function(m, tok, escSeq) {
+    if (tok) return '<span class="hl-tok">' + tok + '</span>';
+    if (escSeq) return '<span class="hl-esc">' + escSeq + '</span>';
+    return m;
+  });
+  if (out.slice(-1) === '\n' || out === '') out += '​';
+  return out;
+}
+
+function syncHl(taId, preId) {
+  var box = document.getElementById(taId);
+  var hl = document.getElementById(preId);
+  hl.innerHTML = hlRender(box.value);
+  box.style.height = 'auto';
+  box.style.height = Math.max(64, box.scrollHeight) + 'px';
+  renderTree(); // keep used checkmarks in sync
+}
+
+function toggleHelp() {
+  var panel = document.getElementById('help-panel');
+  var open = !panel.classList.contains('open');
+  panel.classList.toggle('open', open);
+  document.getElementById('help-toggle').textContent = open ? 'Hide syntax help' : 'Syntax help';
+}
+
+function updatePublishLine() {
+  var name = document.getElementById('req-name').value.trim() || 'Request';
+  var type = gEditor.type;
+  var hasResponse = type === 'http' || (type === 'tcp' && document.getElementById('req-wait').checked);
+  var line = 'Fires <code>' + esc(name) + ' Sent</code> / <code>' + esc(name) + ' Failed</code> (events)';
+  if (hasResponse) line += ' &middot; publishes <code>' + esc(name) + ' Response</code> (STRING variable)';
+  document.getElementById('pub-line').innerHTML = line;
+}
+
+function renderLastResult(entry) {
+  var card = document.getElementById('last-result-card');
+  card.style.display = 'block';
+  var line = document.getElementById('last-result-line');
+  var body = document.getElementById('last-result-body');
+  var when = entry.ts ? ' · ' + agoLabel(entry.ts) : '';
+  if (entry.status === 'error') {
+    line.innerHTML = '<span class="chip chip-err">' + esc(entry.detail || 'Error') + '</span>' + esc(when);
+  } else {
+    line.textContent = (entry.detail || 'sent') + when;
+  }
+  if (entry.response) {
+    body.style.display = 'block';
+    body.textContent = entry.response;
+  } else {
+    body.style.display = 'none';
+  }
+}
+
+function hideLastResult() {
+  document.getElementById('last-result-card').style.display = 'none';
+}
+
+function saveRequest(sendAfter) {
+  var nameInput = document.getElementById('req-name');
+  var name = nameInput.value.trim();
+  var errEl = document.getElementById('save-error');
+  errEl.textContent = '';
+  if (!name) { nameInput.classList.add('input-error'); errEl.textContent = 'Name is required.'; return; }
+  var type = gEditor.type;
+  if (type === 'http' && !document.getElementById('req-url').value.trim()) { errEl.textContent = 'URL is required.'; return; }
+  if ((type === 'tcp' || type === 'udp') && !document.getElementById('req-host').value.trim()) { errEl.textContent = 'Host is required.'; return; }
+  if (type === 'wol' && !document.getElementById('req-mac').value.trim()) { errEl.textContent = 'MAC address is required.'; return; }
+  if (!gEditor.originalName) {
+    var clash = gRequests.some(function(x) { return x.name === name; });
+    if (clash) {
+      nameInput.classList.add('input-error');
+      errEl.textContent = 'A request named "' + name + '" already exists. Names must be unique.';
+      return;
+    }
+  }
+  gSendAfterSave = !!sendAfter;
+  gPendingSendName = sendAfter ? name : null;
+  sendCommand('_SAVE_REQUEST', {
+    name: name,
+    originalName: gEditor.originalName,
+    type: type,
+    method: document.getElementById('req-method').value,
+    url: document.getElementById('req-url').value.trim(),
+    body: document.getElementById('req-body').value,
+    headers: collectHeaders(),
+    tlsVerify: document.getElementById('req-tls').checked,
+    host: document.getElementById('req-host').value.trim(),
+    port: Number(document.getElementById('req-port').value || 0),
+    payload: document.getElementById('req-payload').value,
+    encoding: gEditor.encoding,
+    waitResponse: document.getElementById('req-wait').checked,
+    timeout: Number(document.getElementById('req-timeout').value || 5),
+    mac: document.getElementById('req-mac').value.trim()
+  });
+  if (sendAfter) { gEditor.originalName = name; }
+  else closeEditor();
+}
+
+function onSaveResult(p) {
+  if (p && (p.ok === false || p.ok === 'false')) {
+    gSendAfterSave = false;
+    gPendingSendName = null;
+    document.getElementById('panel-list').classList.remove('active');
+    document.getElementById('panel-editor').classList.add('active');
+    document.getElementById('save-error').textContent = p.error || 'Save failed';
+  }
+}
+
+// ============================================================
+// Variable browser
+// ============================================================
+function onDevices(devices) {
+  gDevices = devices || [];
+  renderTree();
+}
+
+function onDeviceVariables(deviceId, variables) {
+  gVarsByDevice[String(deviceId)] = variables || [];
+  renderTree();
+}
+
+function toggleDevice(id) {
+  var key = String(id);
+  if (gLastQ) {
+    if (gSearchCollapsed[key]) delete gSearchCollapsed[key];
+    else gSearchCollapsed[key] = true;
+  } else if (gExpanded[key]) {
+    delete gExpanded[key];
+  } else {
+    gExpanded[key] = true;
+  }
+  if (!gVarsByDevice[key]) fetchVars(id);
+  renderTree();
+}
+
+function fetchVars(id) {
+  var key = String(id);
+  if (gRequestedVars[key]) return;
+  gRequestedVars[key] = true;
+  sendCommand('_GET_DEVICE_VARIABLES', { deviceId: Number(id) });
+}
+
+function usedTokenSet() {
+  // Set of "deviceId:variableRef" pairs referenced by any token-capable field.
+  var set = {};
+  var re = /PARAM\s*\{\s*(\d+)\s*,\s*([^}]*?)\s*\}/g;
+  document.querySelectorAll('[data-tok]').forEach(function(el) {
+    var m;
+    while ((m = re.exec(el.value || '')) !== null) set[m[1] + ':' + m[2]] = true;
+    re.lastIndex = 0;
+  });
+  return set;
+}
+
+function hi(s) {
+  var t = esc(s);
+  if (!gLastQ) return t;
+  var eq = esc(gLastQ).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return t.replace(new RegExp('(' + eq + ')', 'ig'), '<mark class="hlq">$1</mark>');
+}
+
+var AUTO_EXPAND_LIMIT = 25;
+var FETCH_LIMIT = 15;
+
+function renderTree() {
+  var q = (document.getElementById('var-search').value || '').toLowerCase();
+  if (q !== gLastQ) { gSearchCollapsed = {}; gLastQ = q; }
+  var tree = document.getElementById('tree');
+  var foot = document.getElementById('tree-foot');
+  var used = usedTokenSet();
+
+  var visible = [];
+  gDevices.forEach(function(d) {
+    var room = d.roomName || 'No Room';
+    var matchDevice = !q || (d.name || '').toLowerCase().indexOf(q) !== -1 || room.toLowerCase().indexOf(q) !== -1;
+    var vars = gVarsByDevice[String(d.id)];
+    var matchingVars = null;
+    if (q && !matchDevice) {
+      if (!vars) return;
+      matchingVars = vars.filter(function(v) { return (v.name || '').toLowerCase().indexOf(q) !== -1; });
+      if (!matchingVars.length) return;
+    }
+    visible.push({ d: d, room: room, matchingVars: matchingVars });
+  });
+
+  var autoExpand = q && visible.length <= AUTO_EXPAND_LIMIT;
+  var fetches = 0;
+  var html = '';
+  var lastRoom = null;
+
+  visible.forEach(function(item) {
+    var d = item.d;
+    var key = String(d.id);
+    var vars = gVarsByDevice[key];
+    if (item.room !== lastRoom) {
+      html += '<div class="troom">' + hi(item.room) + '</div>';
+      lastRoom = item.room;
+    }
+    var expanded = q
+      ? (autoExpand || !!item.matchingVars) && !gSearchCollapsed[key]
+      : !!gExpanded[key];
+    if (expanded && !vars && fetches < FETCH_LIMIT) {
+      fetchVars(d.id);
+      fetches++;
+    }
+    html += '<div class="tdev" onclick="toggleDevice(' + d.id + ')"><span class="chev">' + (expanded ? '&#9662;' : '&#9656;') + '</span>' + hi(d.name) + '</div>';
+    if (expanded) {
+      if (!vars) {
+        html += '<div class="tloading">loading variables...</div>';
+      } else {
+        var list = item.matchingVars || vars;
+        if (!list.length) html += '<div class="tloading">no variables</div>';
+        list.forEach(function(v) {
+          var isUsed = used[d.id + ':' + v.id] || used[d.id + ':' + v.name];
+          html += '<div class="tvar' + (isUsed ? ' used' : '') + '" onclick="insertToken(' + d.id + ',' + v.id + ')" title="' + esc(d.name) + ' &gt; ' + esc(v.name) + '">'
+            + '<span class="vname">' + hi(v.name) + '</span>'
+            + '<span class="vval">' + esc(v.value == null ? '' : v.value) + '</span>'
+            + '<span class="ins">Insert</span>'
+            + '</div>';
+        });
+      }
+    }
+  });
+
+  tree.innerHTML = html || '<div class="tloading">' + (gDevices.length ? 'no matches' : 'loading devices...') + '</div>';
+  foot.textContent = gDevices.length ? (visible.length + ' of ' + gDevices.length + ' devices') : '';
+}
+
+function defaultTokTarget() {
+  if (gEditor.type === 'http') return document.getElementById('req-body');
+  if (gEditor.type === 'tcp' || gEditor.type === 'udp') return document.getElementById('req-payload');
+  return null;
+}
+
+function insertToken(deviceId, variableId) {
+  var token = 'PARAM{' + deviceId + ',' + variableId + '}';
+  var box = (gTokTarget && document.contains(gTokTarget)) ? gTokTarget : defaultTokTarget();
+  if (!box) return;
+  var start = box.selectionStart != null ? box.selectionStart : box.value.length;
+  var end = box.selectionEnd != null ? box.selectionEnd : box.value.length;
+  box.value = box.value.slice(0, start) + token + box.value.slice(end);
+  var caret = start + token.length;
+  box.focus();
+  box.setSelectionRange(caret, caret);
+  if (box.id === 'req-body') syncHl('req-body','hl-body');
+  else if (box.id === 'req-payload') syncHl('req-payload','hl-payload');
+  else renderTree();
+}
+
+// Track the last focused token-capable field so Insert lands there.
+document.addEventListener('focusin', function(e) {
+  if (e.target && e.target.getAttribute && e.target.getAttribute('data-tok')) gTokTarget = e.target;
+});
+
+// ============================================================
+// Boot
+// ============================================================
+(async function boot() {
+  document.getElementById('nav-meta').textContent = 'Network Requests' + (gDriverId ? ' · device ' + gDriverId : '');
+  document.getElementById('req-wait').addEventListener('change', updatePublishLine);
+  if (!gApiHost) {
+    // No controller API (opened outside Composer): show demo data so the
+    // layout can be previewed.
+    document.getElementById('conn-warn').style.display = 'block';
+    var now = Math.floor(Date.now() / 1000);
+    onConfig([
+      { name: 'Rack LCDs On', type: 'http', method: 'GET', url: 'http://pi:secret@192.168.1.5:9080/api/v1/uctronics-lcd/start',
+        headers: [], status: 'ok', detail: 'HTTP 200 GET', response: '{"ok":true}', ts: now },
+      { name: 'Sub Level +10', type: 'http', method: 'POST', url: 'http://192.168.2.16/request.cgi',
+        body: '{"type":"http_set","packet":[{"id":62,"feature":"level.SW","value":10}]}',
+        headers: [], status: 'ok', detail: 'HTTP 200 POST', ts: now },
+      { name: 'Projector Power On', type: 'tcp', host: '192.168.1.30', port: 4352, payload: '%1POWR 1\\r',
+        encoding: 'text', waitResponse: true, timeout: 5, status: 'error', detail: 'no response from 192.168.1.30:4352 within 5s', ts: now },
+      { name: 'Wake Office PC', type: 'wol', mac: 'AA:BB:CC:DD:EE:FF', status: 'ok', detail: 'sent magic packet for AA:BB:CC:DD:EE:FF', ts: now }
+    ]);
+    onDevices([
+      { id: 100001, name: 'Variables Agent', roomName: 'Services' },
+      { id: 2795, name: 'Kasa HS300 Power Strip', roomName: 'Coffee Bar' }
+    ]);
+    onDeviceVariables(100001, [
+      { id: 2301, name: 'MB_HIGH_HUMIDITY_DIFF_THRESHOLD', type: 'NUMBER', value: '4' }
+    ]);
+    onDeviceVariables(2795, [
+      { id: 1014, name: 'Voltage', type: 'NUMBER', value: '122' },
+      { id: 1017, name: 'Output 5 Power', type: 'NUMBER', value: '1342.6' }
+    ]);
+    onWebhooks([
+      { name: 'Doorbell Motion', key: 'secret', from: '192.168.1.50', payload: 'zone=porch', ts: now - 120 },
+      { name: 'Backup Finished', key: '', ts: 0 }
+    ], 'http://192.168.1.2:49300/');
+    return;
+  }
+  await initSocket();
+  sendCommand('_GET_CONFIG');
+  sendCommand('_GET_DEVICES');
+  // Keep relative timestamps fresh
+  setInterval(function() { if (!gEditor.open) renderList(); }, 30000);
+})();
+</script>
+</body>
+</html>

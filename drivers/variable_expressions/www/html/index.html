@@ -791,7 +791,7 @@ function saveExpression() {
 }
 
 function onSaveResult(p) {
-  if (p && p.ok === false) {
+  if (p && (p.ok === false || p.ok === 'false')) {
     // Reopen the editor state message on validation failure
     document.getElementById('panel-list').classList.remove('active');
     document.getElementById('panel-editor').classList.add('active');
