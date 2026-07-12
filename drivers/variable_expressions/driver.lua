@@ -541,7 +541,14 @@ end
 --- @param data table The response data.
 --- @return string JSON response for REST callers.
 local function uiRespond(command, data)
-  C4:SendDataToUI(command, data)
+  -- C4:SendDataToUI cannot serialize boolean values (Director throws a
+  -- basic_string construction error), so send them as strings on the socket
+  -- push. The REST return keeps real booleans via JSON encoding.
+  local safe = {}
+  for k, v in pairs(data) do
+    safe[k] = type(v) == "boolean" and tostring(v) or v
+  end
+  C4:SendDataToUI(command, safe)
   data._command = command
   return JSON:encode(data)
 end
