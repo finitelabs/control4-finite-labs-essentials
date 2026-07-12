@@ -183,7 +183,7 @@ can file an issue on GitHub:
 
 # <span style="color:#109EFF">Changelog</span>
 
-## Unreleased
+## v20260712 - 2026-07-12
 
 ### Added
 
