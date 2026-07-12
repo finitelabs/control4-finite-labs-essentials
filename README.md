@@ -21,6 +21,7 @@ standalone and can be installed individually or together.
   - [Device Programmer](#device-programmer)
   - [Light Relay](#light-relay)
   - [Variable Expressions](#variable-expressions)
+  - [Network Requests](#network-requests)
 - [Installation](#installation)
   - [Installing the Drivers](#installing-the-drivers)
 - [Support](#support)
@@ -130,6 +131,26 @@ references change.
   and conditionals
 - Rendered expression shows each reference as `[Room > Device > Variable]`
 - Expressions and last results persist across driver restarts
+
+## Network Requests
+
+Send HTTP, raw TCP, UDP, and Wake-on-LAN commands to devices and services that
+have no Control4 driver. Define requests once, by name, in a dedicated Composer
+tab, then fire them from programming with a single Send Request command.
+
+**Key features:**
+
+- Requests tab with a searchable variable browser and per-request send history
+- HTTP and HTTPS with any method, custom headers, bodies, and basic auth
+- Raw TCP and UDP payloads as text (with escapes) or hex bytes; TCP can wait
+  for the device's response
+- Wake-on-LAN magic packets by MAC address
+- Insert live Control4 variable values anywhere with `PARAM{}` tokens
+- Per-request `<Name> Sent` / `<Name> Failed` events and a `<Name> Response`
+  variable holding the last response
+- Inbound webhooks fire `<Name> Received` events with the payload published to
+  a `<Name> Payload` variable, guarded by an optional key
+- Requests, webhooks, and last results persist across driver restarts
 
 <div style="page-break-after: always"></div>
 

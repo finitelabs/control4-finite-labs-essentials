@@ -12,6 +12,16 @@
 [//]: # "- Removed"
 <!-- prettier-ignore-end -->
 
+## Unreleased
+
+### Added
+
+- Initial release of Network Requests: named HTTP, TCP, UDP, and Wake-on-LAN
+  requests defined in a Requests tab and fired from programming by name, with
+  `PARAM{}` variable templating, per-request Sent/Failed events, and response
+  capture. Inbound webhooks fire per-webhook Received events with the payload
+  published to a variable, guarded by an optional key.
+
 ## v20260711 - 2026-07-11
 
 ### Added

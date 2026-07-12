@@ -79,6 +79,7 @@ Pipeline: `fmt` -> `preprocess` -> `update-driver.xml` -> `docs` -> `package` ->
 | `device_programmer`    | Creates programmable virtual sensors and relays settable from Control4 programming                      | bindings, persist, logging, utils                               |
 | `light_relay`          | Exposes selected light devices as relay bindings with bidirectional sync                                | bindings, persist, logging, utils                               |
 | `variable_expressions` | Named string/equation expressions over project variables, with auto recompute and a custom Composer tab | expressions, transform, values, events, persist, logging, utils |
+| `network_requests`     | Named HTTP/TCP/UDP/WOL requests fired from programming by name, with a custom Composer tab              | values, events, persist, http, logging, utils                   |
 
 ## Shared Library Reference
 
