@@ -9,3 +9,4 @@ readme_driver_slug: root
 readme_build: oss
 primary_color: "#109EFF"
 vendor_modules: json deferred drivers-common-public xml
+lib_modules: bindings conditionals events http lru persist values
