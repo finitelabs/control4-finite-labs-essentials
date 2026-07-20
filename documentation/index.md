@@ -1,4 +1,4 @@
-[copyright]: # "Copyright 2026 Finite Labs, LLC. All rights reserved."
+<!-- Copyright 2026 Finite Labs, LLC. All rights reserved. -->
 
 <style>
 @media print {
@@ -15,7 +15,7 @@
 
 <img alt="Finite Labs Essentials" src="./images/header.png" width="500"/>
 
----
+______________________________________________________________________
 
 # <span style="color:#109EFF">Overview</span>
 
@@ -48,7 +48,9 @@ standalone and can be installed individually or together.
   - [Installing the Drivers](#installing-the-drivers)
   <!-- #ifdef DRIVERCENTRAL -->
 - [Developer Information](#developer-information)
+
 <!-- #endif -->
+
 - [Support](#support)
 - [Changelog](#changelog)
 
@@ -99,11 +101,11 @@ temperature readings to a thermostat based on mode:
 `Individual Sensors -> Sensor Aggregators (per-mode) -> Sensor Multiplexer -> Thermostat`
 
 1. Create Sensor Aggregator instances for each mode (e.g., Away, Home, Sleep)
-2. Connect appropriate sensors to each aggregator
-3. Add a Sensor Multiplexer with Input Names set to `Away,Home,Sleep`
-4. Connect aggregator outputs to multiplexer inputs
-5. Connect multiplexer output to the thermostat
-6. Use programming to switch modes via the "Select Input" command
+1. Connect appropriate sensors to each aggregator
+1. Add a Sensor Multiplexer with Input Names set to `Away,Home,Sleep`
+1. Connect aggregator outputs to multiplexer inputs
+1. Connect multiplexer output to the thermostat
+1. Use programming to switch modes via the "Select Input" command
 
 See the individual Sensor Multiplexer documentation for the full walkthrough.
 
@@ -167,14 +169,14 @@ tab, then fire them from programming with a single Send Request command.
 
 - Requests tab with a searchable variable browser and per-request send history
 - HTTP and HTTPS with any method, custom headers, bodies, and basic auth
-- Raw TCP and UDP payloads as text (with escapes) or hex bytes; TCP can wait
-  for the device's response
+- Raw TCP and UDP payloads as text (with escapes) or hex bytes; TCP can wait for
+  the device's response
 - Wake-on-LAN magic packets by MAC address
 - Insert live Control4 variable values anywhere with `PARAM{}` tokens
 - Per-request `<Name> Sent` / `<Name> Failed` events and a `<Name> Response`
   variable holding the last response
-- Inbound webhooks fire `<Name> Received` events with the payload published to
-  a `<Name> Payload` variable, guarded by an optional key
+- Inbound webhooks fire `<Name> Received` events with the payload published to a
+  `<Name> Payload` variable, guarded by an optional key
 - Requests, webhooks, and last results persist across driver restarts
 
 <div style="page-break-after: always"></div>
@@ -203,16 +205,16 @@ documentation for setting it up.
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
    [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/utility-suite).
-2. Extract and install the desired `.c4z` driver files.
-3. Use the "Search" tab in Composer Pro to find the driver by name and add it to
+1. Extract and install the desired `.c4z` driver files.
+1. Use the "Search" tab in Composer Pro to find the driver by name and add it to
    your project.
 
 <!-- #else -->
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
    [Github](https://github.com/finitelabs/control4-finite-labs-essentials/releases/latest).
-2. Extract and install the desired `.c4z` driver files.
-3. Use the "Search" tab in Composer Pro to find the driver by name and add it to
+1. Extract and install the desired `.c4z` driver files.
+1. Use the "Search" tab in Composer Pro to find the driver by name and add it to
    your project.
 
 <!-- #endif -->
@@ -231,7 +233,7 @@ programming reference, and configuration guides.
 <img alt="Finite Labs" src="./images/finite-labs-logo.png" width="400"/>
 </p>
 
-Copyright &copy; 2026 Finite Labs LLC
+Copyright © 2026 Finite Labs LLC
 
 All information contained herein is, and remains the property of Finite Labs LLC
 and its suppliers, if any. The intellectual and technical concepts contained

@@ -1,4 +1,4 @@
-[copyright]: # "Copyright 2026 Finite Labs, LLC. All rights reserved."
+<!-- Copyright 2026 Finite Labs, LLC. All rights reserved. -->
 
 <style>
 @media print {
@@ -15,7 +15,7 @@
 
 <img alt="Sensor Aggregator" src="./images/header.png" width="500"/>
 
----
+______________________________________________________________________
 
 # <span style="color:#109EFF">Overview</span>
 
@@ -51,7 +51,9 @@ output bindings.
   - [Connections](#connections)
   <!-- #ifdef DRIVERCENTRAL -->
 - [Developer Information](#developer-information)
+
 <!-- #endif -->
+
 - [Support](#support)
 - [Changelog](#changelog)
 
@@ -100,15 +102,15 @@ for setting it up.
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
    [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/utility-suite).
-2. Extract and install the `sensor_aggregator.c4z` driver.
-3. Use the "Search" tab to find "Sensor Aggregator" and add it to your project.
+1. Extract and install the `sensor_aggregator.c4z` driver.
+1. Use the "Search" tab to find "Sensor Aggregator" and add it to your project.
 
 <!-- #else -->
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
    [Github](https://github.com/finitelabs/control4-finite-labs-essentials/releases/latest).
-2. Extract and install the `sensor_aggregator.c4z` driver.
-3. Use the "Search" tab to find "Sensor Aggregator" and add it to your project.
+1. Extract and install the `sensor_aggregator.c4z` driver.
+1. Use the "Search" tab to find "Sensor Aggregator" and add it to your project.
 
 <!-- #endif -->
 
@@ -122,17 +124,17 @@ for setting it up.
 
 Displays the DriverCentral cloud license status.
 
-#### Automatic Updates [ Off | **_On_** ]
+#### Automatic Updates \[ Off | **_On_** \]
 
 Enables or disables automatic driver updates via DriverCentral.
 
 <!-- #else -->
 
-#### Automatic Updates [ Off | **_On_** ]
+#### Automatic Updates \[ Off | **_On_** \]
 
 Enables or disables automatic driver updates from GitHub releases.
 
-#### Update Channel [ **_Production_** | Prerelease ]
+#### Update Channel \[ **_Production_** | Prerelease \]
 
 Sets the update channel for which releases are considered during automatic
 updates from GitHub releases.
@@ -149,36 +151,36 @@ Displays the current status of the driver.
 
 Displays the current version of the driver.
 
-#### Log Level [ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug | 5 - Trace | 6 - Ultra ]
+#### Log Level \[ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug | 5 - Trace | 6 - Ultra \]
 
 Sets the logging level. Default is `3 - Info`.
 
-#### Log Mode [ **_Off_** | Print | Log | Print and Log ]
+#### Log Mode \[ **_Off_** | Print | Log | Print and Log \]
 
 Sets the logging mode. Default is `Off`.
 
 ### Input Configuration
 
-#### Temperature Inputs [ 0 - 20, default: **_2_** ]
+#### Temperature Inputs \[ 0 - 20, default: **_2_** \]
 
 Number of temperature input bindings to create. Each input accepts a
 TEMPERATURE_VALUE connection from another driver.
 
-#### Humidity Inputs [ 0 - 20, default: **_2_** ]
+#### Humidity Inputs \[ 0 - 20, default: **_2_** \]
 
 Number of humidity input bindings to create. Each input accepts a HUMIDITY_VALUE
 connection from another driver.
 
-#### Contact Inputs [ 0 - 20, default: **_0_** ]
+#### Contact Inputs \[ 0 - 20, default: **_0_** \]
 
 Number of contact input bindings to create. Each input accepts a CONTACT_SENSOR
 connection from a contact sensor driver.
 
-#### Temperature Aggregation [ **_Mean_** | Median | Mode | Min | Max | IQR Mean ]
+#### Temperature Aggregation \[ **_Mean_** | Median | Mode | Min | Max | IQR Mean \]
 
 The aggregation function used to combine temperature inputs.
 
-#### Humidity Aggregation [ **_Mean_** | Median | Mode | Min | Max | IQR Mean ]
+#### Humidity Aggregation \[ **_Mean_** | Median | Mode | Min | Max | IQR Mean \]
 
 The aggregation function used to combine humidity inputs.
 
@@ -187,7 +189,7 @@ The aggregation function used to combine humidity inputs.
 > above Q3 + 1.5\*IQR, then computes the mean of the remaining values. With
 > fewer than 4 inputs, it falls back to a regular mean.
 
-#### Contact Aggregation [ **_Any_** | All | Majority ]
+#### Contact Aggregation \[ **_Any_** | All | Majority \]
 
 The aggregation function used to combine contact inputs. **Any** returns closed
 if any input is closed, **All** requires all inputs to be closed, and
@@ -241,7 +243,7 @@ bindings.
 
 **Parameters:**
 
-- **Are You Sure?** [ **_No_** | Yes ] - Confirmation to reset the driver.
+- **Are You Sure?** \[ **_No_** | Yes \] - Confirmation to reset the driver.
 
 ### Print Calibration Report
 

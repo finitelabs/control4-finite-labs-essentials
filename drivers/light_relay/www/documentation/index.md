@@ -1,4 +1,4 @@
-[copyright]: # "Copyright 2026 Finite Labs, LLC. All rights reserved."
+<!-- Copyright 2026 Finite Labs, LLC. All rights reserved. -->
 
 <style>
 @media print {
@@ -15,7 +15,7 @@
 
 <img alt="Light Relay" src="./images/header.png" width="500"/>
 
----
+______________________________________________________________________
 
 # <span style="color:#109EFF">Overview</span>
 
@@ -51,7 +51,9 @@ synchronization.
   - [Connections](#connections)
   <!-- #ifdef DRIVERCENTRAL -->
 - [Developer Information](#developer-information)
+
 <!-- #endif -->
+
 - [Support](#support)
 - [Changelog](#changelog)
 
@@ -106,15 +108,15 @@ for setting it up.
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
    [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/utility-suite).
-2. Extract and install the `light_relay.c4z` driver.
-3. Use the "Search" tab to find "Light Relay" and add it to your project.
+1. Extract and install the `light_relay.c4z` driver.
+1. Use the "Search" tab to find "Light Relay" and add it to your project.
 
 <!-- #else -->
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
    [Github](https://github.com/finitelabs/control4-finite-labs-essentials/releases/latest).
-2. Extract and install the `light_relay.c4z` driver.
-3. Use the "Search" tab to find "Light Relay" and add it to your project.
+1. Extract and install the `light_relay.c4z` driver.
+1. Use the "Search" tab to find "Light Relay" and add it to your project.
 
 <!-- #endif -->
 
@@ -128,17 +130,17 @@ for setting it up.
 
 Displays the DriverCentral cloud license status.
 
-#### Automatic Updates [ Off | **_On_** ]
+#### Automatic Updates \[ Off | **_On_** \]
 
 Enables or disables automatic driver updates via DriverCentral.
 
 <!-- #else -->
 
-#### Automatic Updates [ Off | **_On_** ]
+#### Automatic Updates \[ Off | **_On_** \]
 
 Enables or disables automatic driver updates from GitHub releases.
 
-#### Update Channel [ **_Production_** | Prerelease ]
+#### Update Channel \[ **_Production_** | Prerelease \]
 
 Sets the update channel for which releases are considered during automatic
 updates from GitHub releases.
@@ -155,11 +157,11 @@ Displays the current status of the driver.
 
 Displays the current version of the driver.
 
-#### Log Level [ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug | 5 - Trace | 6 - Ultra ]
+#### Log Level \[ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug | 5 - Trace | 6 - Ultra \]
 
 Sets the logging level. Default is `3 - Info`.
 
-#### Log Mode [ **_Off_** | Print | Log | Print and Log ]
+#### Log Mode \[ **_Off_** | Print | Log | Print and Log \]
 
 Sets the logging mode. Default is `Off`.
 
@@ -188,7 +190,7 @@ Resets the driver state, clearing all persisted values and bindings.
 
 **Parameters:**
 
-- **Are You Sure?** [ **_No_** | Yes ] - Confirmation to reset the driver.
+- **Are You Sure?** \[ **_No_** | Yes \] - Confirmation to reset the driver.
 
 ### Hide Lights In All Rooms
 
