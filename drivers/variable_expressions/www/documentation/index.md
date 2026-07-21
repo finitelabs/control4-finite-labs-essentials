@@ -1,4 +1,4 @@
-[copyright]: # "Copyright 2026 Finite Labs, LLC. All rights reserved."
+<!-- Copyright 2026 Finite Labs, LLC. All rights reserved. -->
 
 <style>
 @media print {
@@ -15,7 +15,7 @@
 
 <img alt="Variable Expressions" src="./images/header.png" width="500"/>
 
----
+______________________________________________________________________
 
 # <span style="color:#109EFF">Overview</span>
 
@@ -57,7 +57,9 @@ it references change.
   - [Examples](#examples)
   <!-- #ifdef DRIVERCENTRAL -->
 - [Developer Information](#developer-information)
+
 <!-- #endif -->
+
 - [Support](#support)
 - [Changelog](#changelog)
 
@@ -112,16 +114,16 @@ for setting it up.
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
    [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/utility-suite).
-2. Extract and install the `variable_expressions.c4z` driver.
-3. Use the "Search" tab to find "Variable Expressions" and add it to your
+1. Extract and install the `variable_expressions.c4z` driver.
+1. Use the "Search" tab to find "Variable Expressions" and add it to your
    project.
 
 <!-- #else -->
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
    [Github](https://github.com/finitelabs/control4-finite-labs-essentials/releases/latest).
-2. Extract and install the `variable_expressions.c4z` driver.
-3. Use the "Search" tab to find "Variable Expressions" and add it to your
+1. Extract and install the `variable_expressions.c4z` driver.
+1. Use the "Search" tab to find "Variable Expressions" and add it to your
    project.
 
 <!-- #endif -->
@@ -175,17 +177,17 @@ Renaming an expression renames its outputs; deleting it removes them.
 
 Displays the DriverCentral cloud license status.
 
-#### Automatic Updates [ Off | **_On_** ]
+#### Automatic Updates \[ Off | **_On_** \]
 
 Enables or disables automatic driver updates via DriverCentral.
 
 <!-- #else -->
 
-#### Automatic Updates [ Off | **_On_** ]
+#### Automatic Updates \[ Off | **_On_** \]
 
 Enables or disables automatic driver updates from GitHub releases.
 
-#### Update Channel [ **_Production_** | Prerelease ]
+#### Update Channel \[ **_Production_** | Prerelease \]
 
 Sets the update channel for which releases are considered during automatic
 updates from GitHub releases.
@@ -202,11 +204,11 @@ Displays the current status of the driver.
 
 Displays the current version of the driver.
 
-#### Log Level [ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug | 5 - Trace | 6 - Ultra ]
+#### Log Level \[ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug | 5 - Trace | 6 - Ultra \]
 
 Sets the logging level. Default is `3 - Info`.
 
-#### Log Mode [ **_Off_** | Print | Log | Print and Log ]
+#### Log Mode \[ **_Off_** | Print | Log | Print and Log \]
 
 Sets the logging mode. Default is `Off`.
 
@@ -228,7 +230,7 @@ all persisted state.
 
 **Parameters:**
 
-- **Are You Sure?** [ **_No_** | Yes ] - Confirmation to reset the driver.
+- **Are You Sure?** \[ **_No_** | Yes \] - Confirmation to reset the driver.
 
 <div style="page-break-after: always"></div>
 
@@ -300,8 +302,8 @@ editor.
 1. In the Expressions tab, add an expression named `Bathroom Humidity Diff` in
    Equation mode with automatic recompute enabled:
    `abs(PARAM{96,1002} - PARAM{97,1002})`
-2. The driver recalculates it whenever either humidity changes.
-3. Program off `When Bathroom Humidity Diff Result changes` (for example, run a
+1. The driver recalculates it whenever either humidity changes.
+1. Program off `When Bathroom Humidity Diff Result changes` (for example, run a
    fan when the difference exceeds a threshold).
 
 **Average of three temperatures**:
@@ -326,7 +328,7 @@ Pool PARAM{120,2001}F / Spa PARAM{120,2002}F
 <img alt="Finite Labs" src="./images/finite-labs-logo.png" width="400"/>
 </p>
 
-Copyright &copy; 2026 Finite Labs LLC
+Copyright © 2026 Finite Labs LLC
 
 All information contained herein is, and remains the property of Finite Labs LLC
 and its suppliers, if any. The intellectual and technical concepts contained

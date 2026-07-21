@@ -1,4 +1,4 @@
-[copyright]: # "Copyright 2026 Finite Labs, LLC. All rights reserved."
+<!-- Copyright 2026 Finite Labs, LLC. All rights reserved. -->
 
 <style>
 @media print {
@@ -15,7 +15,7 @@
 
 <img alt="Sensor Multiplexer" src="./images/header.png" width="500"/>
 
----
+______________________________________________________________________
 
 # <span style="color:#109EFF">Overview</span>
 
@@ -55,7 +55,9 @@ through.
 - [Use Case: Thermostat Temperature Source](#use-case-thermostat-temperature-source)
   <!-- #ifdef DRIVERCENTRAL -->
 - [Developer Information](#developer-information)
+
 <!-- #endif -->
+
 - [Support](#support)
 - [Changelog](#changelog)
 
@@ -103,15 +105,15 @@ for setting it up.
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
    [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/utility-suite).
-2. Extract and install the `sensor_multiplexer.c4z` driver.
-3. Use the "Search" tab to find "Sensor Multiplexer" and add it to your project.
+1. Extract and install the `sensor_multiplexer.c4z` driver.
+1. Use the "Search" tab to find "Sensor Multiplexer" and add it to your project.
 
 <!-- #else -->
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
    [Github](https://github.com/finitelabs/control4-finite-labs-essentials/releases/latest).
-2. Extract and install the `sensor_multiplexer.c4z` driver.
-3. Use the "Search" tab to find "Sensor Multiplexer" and add it to your project.
+1. Extract and install the `sensor_multiplexer.c4z` driver.
+1. Use the "Search" tab to find "Sensor Multiplexer" and add it to your project.
 
 <!-- #endif -->
 
@@ -125,17 +127,17 @@ for setting it up.
 
 Displays the DriverCentral cloud license status.
 
-#### Automatic Updates [ Off | **_On_** ]
+#### Automatic Updates \[ Off | **_On_** \]
 
 Enables or disables automatic driver updates via DriverCentral.
 
 <!-- #else -->
 
-#### Automatic Updates [ Off | **_On_** ]
+#### Automatic Updates \[ Off | **_On_** \]
 
 Enables or disables automatic driver updates from GitHub releases.
 
-#### Update Channel [ **_Production_** | Prerelease ]
+#### Update Channel \[ **_Production_** | Prerelease \]
 
 Sets the update channel for which releases are considered during automatic
 updates from GitHub releases.
@@ -152,11 +154,11 @@ Displays the current status of the driver.
 
 Displays the current version of the driver.
 
-#### Log Level [ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug | 5 - Trace | 6 - Ultra ]
+#### Log Level \[ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug | 5 - Trace | 6 - Ultra \]
 
 Sets the logging level. Default is `3 - Info`.
 
-#### Log Mode [ **_Off_** | Print | Log | Print and Log ]
+#### Log Mode \[ **_Off_** | Print | Log | Print and Log \]
 
 Sets the logging mode. Default is `Off`.
 
@@ -169,17 +171,17 @@ creates a set of input bindings for the enabled sensor types. Names are trimmed
 of whitespace, deduplicated (case-insensitive, first wins), and colons are
 stripped (reserved for internal use).
 
-#### Enable Temperature [ **_Yes_** | No ]
+#### Enable Temperature \[ **_Yes_** | No \]
 
 When enabled, creates a temperature input binding for each named group and a
 temperature output binding.
 
-#### Enable Humidity [ **_Yes_** | No ]
+#### Enable Humidity \[ **_Yes_** | No \]
 
 When enabled, creates a humidity input binding for each named group and a
 humidity output binding.
 
-#### Enable Contact [ Yes | **_No_** ]
+#### Enable Contact \[ Yes | **_No_** \]
 
 When enabled, creates a contact input binding for each named group and a contact
 output binding.
@@ -233,7 +235,7 @@ conditionals.
 
 **Parameters:**
 
-- **Are You Sure?** [ **_No_** | Yes ] - Confirmation to reset the driver.
+- **Are You Sure?** \[ **_No_** | Yes \] - Confirmation to reset the driver.
 
 <div style="page-break-after: always"></div>
 
@@ -291,7 +293,7 @@ programming actions when switching between input groups.
 
 A conditional is created for each name in the "Input Names" property:
 
-- **\<Name\>** - Tests whether the named input group is the currently active
+- **\<Name>** - Tests whether the named input group is the currently active
   selection. Shows as "Active" or "Inactive".
 
 For example, with names "Away,Home,Sleep", three conditionals are created:
@@ -314,9 +316,9 @@ Create three Sensor Aggregator driver instances:
 
 1. **Away Sensors** - Add temperature sensors relevant to away mode (e.g.,
    hallway sensors)
-2. **Home Sensors** - Add temperature sensors relevant to home mode (e.g.,
+1. **Home Sensors** - Add temperature sensors relevant to home mode (e.g.,
    living room, kitchen sensors)
-3. **Sleep Sensors** - Add temperature sensors relevant to sleep mode (e.g.,
+1. **Sleep Sensors** - Add temperature sensors relevant to sleep mode (e.g.,
    bedroom sensors)
 
 Connect the appropriate temperature sensors to each aggregator's input bindings.
@@ -324,8 +326,8 @@ Connect the appropriate temperature sensors to each aggregator's input bindings.
 ### Step 2: Add the Sensor Multiplexer
 
 1. Add the Sensor Multiplexer driver to your project.
-2. Set **Input Names** to `Away,Home,Sleep`.
-3. Ensure **Enable Temperature** is set to `Yes`.
+1. Set **Input Names** to `Away,Home,Sleep`.
+1. Ensure **Enable Temperature** is set to `Yes`.
 
 ### Step 3: Connect Aggregator Outputs to Multiplexer Inputs
 

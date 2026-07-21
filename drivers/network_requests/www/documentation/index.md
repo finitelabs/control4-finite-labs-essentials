@@ -1,4 +1,4 @@
-[copyright]: # "Copyright 2026 Finite Labs, LLC. All rights reserved."
+<!-- Copyright 2026 Finite Labs, LLC. All rights reserved. -->
 
 <style>
 @media print {
@@ -15,7 +15,7 @@
 
 <img alt="Network Requests" src="./images/header.png" width="500"/>
 
----
+______________________________________________________________________
 
 # <span style="color:#109EFF">Overview</span>
 
@@ -56,7 +56,9 @@ project.
   - [Examples](#examples)
   <!-- #ifdef DRIVERCENTRAL -->
 - [Developer Information](#developer-information)
+
 <!-- #endif -->
+
 - [Support](#support)
 - [Changelog](#changelog)
 
@@ -115,15 +117,15 @@ for setting it up.
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
    [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/utility-suite).
-2. Extract and install the `network_requests.c4z` driver.
-3. Use the "Search" tab to find "Network Requests" and add it to your project.
+1. Extract and install the `network_requests.c4z` driver.
+1. Use the "Search" tab to find "Network Requests" and add it to your project.
 
 <!-- #else -->
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
    [Github](https://github.com/finitelabs/control4-finite-labs-essentials/releases/latest).
-2. Extract and install the `network_requests.c4z` driver.
-3. Use the "Search" tab to find "Network Requests" and add it to your project.
+1. Extract and install the `network_requests.c4z` driver.
+1. Use the "Search" tab to find "Network Requests" and add it to your project.
 
 <!-- #endif -->
 
@@ -197,17 +199,17 @@ listen port is set by the `Webhook Port` driver property.
 
 Displays the DriverCentral cloud license status.
 
-#### Automatic Updates [ Off | **_On_** ]
+#### Automatic Updates \[ Off | **_On_** \]
 
 Enables or disables automatic driver updates via DriverCentral.
 
 <!-- #else -->
 
-#### Automatic Updates [ Off | **_On_** ]
+#### Automatic Updates \[ Off | **_On_** \]
 
 Enables or disables automatic driver updates from GitHub releases.
 
-#### Update Channel [ **_Production_** | Prerelease ]
+#### Update Channel \[ **_Production_** | Prerelease \]
 
 Sets the update channel for which releases are considered during automatic
 updates from GitHub releases.
@@ -224,11 +226,11 @@ Displays the current status of the driver.
 
 Displays the current version of the driver.
 
-#### Log Level [ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug | 5 - Trace | 6 - Ultra ]
+#### Log Level \[ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug | 5 - Trace | 6 - Ultra \]
 
 Sets the logging level. Default is `3 - Info`.
 
-#### Log Mode [ **_Off_** | Print | Log | Print and Log ]
+#### Log Mode \[ **_Off_** | Print | Log | Print and Log \]
 
 Sets the logging mode. Default is `Off`.
 
@@ -250,7 +252,7 @@ all persisted state.
 
 **Parameters:**
 
-- **Are You Sure?** [ **_No_** | Yes ] - Confirmation to reset the driver.
+- **Are You Sure?** \[ **_No_** | Yes \] - Confirmation to reset the driver.
 
 <div style="page-break-after: always"></div>
 
@@ -322,8 +324,8 @@ variable. When an external system calls the webhook's URL:
 
 1. The request body (or, for calls without a body, the query string) is
    published to `<Name> Payload`, capped at 8 KB.
-2. The `<Name> Received` event fires.
-3. The caller gets a `200 {"ok":true}` JSON response.
+1. The `<Name> Received` event fires.
+1. The caller gets a `200 {"ok":true}` JSON response.
 
 Program off the `<Name> Received` event; read `<Name> Payload` for the data.
 Pair with the Variable Expressions driver to parse values out of a JSON or
@@ -339,7 +341,7 @@ secret.
 
 1. In the Requests tab, add an HTTP request named `Rack LCD 1 On` with URL
    `http://pi:secret@192.168.1.5:9080/api/v1/uctronics-lcd/start`.
-2. In programming, fire it with `Send Request` -> `Rack LCD 1 On`.
+1. In programming, fire it with `Send Request` -> `Rack LCD 1 On`.
 
 **Set a subwoofer level from a variable** (HTTP POST with a JSON body):
 
@@ -371,7 +373,7 @@ it from any scene or schedule.
 <img alt="Finite Labs" src="./images/finite-labs-logo.png" width="400"/>
 </p>
 
-Copyright &copy; 2026 Finite Labs LLC
+Copyright © 2026 Finite Labs LLC
 
 All information contained herein is, and remains the property of Finite Labs LLC
 and its suppliers, if any. The intellectual and technical concepts contained

@@ -1,11 +1,13 @@
-# Changes here will be overwritten by Copier
-_commit: v0.5.0
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v0.9.11
 _src_path: git@github.com:finitelabs/control4-driver-template.git
-project_name: control4-finite-labs-essentials
-project_description: Finite Labs Essentials - a collection of independent Control4 drivers
-github_org: finitelabs
 distributions: drivercentral oss
-readme_driver_slug: root
+github_org: finitelabs
+lib_modules: bindings conditionals events http lru persist values
+primary_color: '#109EFF'
+project_description: Finite Labs Essentials - a collection of independent Control4
+    drivers
+project_name: control4-finite-labs-essentials
 readme_build: oss
-primary_color: "#109EFF"
+readme_driver_slug: root
 vendor_modules: json deferred drivers-common-public xml
