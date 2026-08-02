@@ -63,8 +63,6 @@ through.
 
 </div>
 
-<div style="page-break-after: always"></div>
-
 # <span style="color:#109EFF">System Requirements</span>
 
 - Control4 OS 3.3+
@@ -78,8 +76,6 @@ through.
 - Event fires when the active selection changes
 - Per-name conditionals for programming logic
 - Persistent state survives driver restarts
-
-<div style="page-break-after: always"></div>
 
 # <span style="color:#109EFF">Installer Setup</span>
 
@@ -237,8 +233,6 @@ conditionals.
 
 - **Are You Sure?** \[ **_No_** | Yes \] - Confirmation to reset the driver.
 
-<div style="page-break-after: always"></div>
-
 # <span style="color:#109EFF">Programming</span>
 
 ## Connections
@@ -299,8 +293,6 @@ A conditional is created for each name in the "Input Names" property:
 For example, with names "Away,Home,Sleep", three conditionals are created:
 "Away", "Home", and "Sleep".
 
-<div style="page-break-after: always"></div>
-
 # <span style="color:#109EFF">Use Case: Thermostat Temperature Source</span>
 
 This walkthrough demonstrates how to use the Sensor Multiplexer with Sensor
@@ -357,8 +349,6 @@ Use the **Scheduler agent** or custom programming to switch modes:
 You can also use the **conditionals** in programming to check which mode is
 active and branch logic accordingly.
 
-<div style="page-break-after: always"></div>
-
 <!-- #ifdef DRIVERCENTRAL -->
 
 # <span style="color:#109EFF">Developer Information</span>
@@ -399,7 +389,5 @@ https://github.com/finitelabs/control4-finite-labs-essentials/issues/new
 <a href="https://www.buymeacoffee.com/derek.miller" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
 <!-- #endif -->
-
-<div style="page-break-after: always"></div>
 
 <!-- #embed-changelog -->
