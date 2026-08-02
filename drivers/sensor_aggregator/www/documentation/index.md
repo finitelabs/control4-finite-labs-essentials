@@ -59,8 +59,6 @@ output bindings.
 
 </div>
 
-<div style="page-break-after: always"></div>
-
 # <span style="color:#109EFF">System Requirements</span>
 
 - Control4 OS 3.3+
@@ -75,8 +73,6 @@ output bindings.
 - Separate aggregation settings for each sensor type
 - Dynamic input and output bindings
 - Real-time recalculation when inputs change
-
-<div style="page-break-after: always"></div>
 
 # <span style="color:#109EFF">Installer Setup</span>
 
@@ -252,8 +248,6 @@ For each bound input, displays the device name, cached value, and the adjustment
 (delta) needed to match the aggregate. Useful for identifying sensors that need
 calibration offsets.
 
-<div style="page-break-after: always"></div>
-
 # <span style="color:#109EFF">Programming</span>
 
 ## Connections
@@ -278,8 +272,6 @@ drivers.
 
 These output bindings can be connected to other Control4 devices that consume
 temperature, humidity, or contact sensor values.
-
-<div style="page-break-after: always"></div>
 
 <!-- #ifdef DRIVERCENTRAL -->
 
@@ -321,7 +313,5 @@ https://github.com/finitelabs/control4-finite-labs-essentials/issues/new
 <a href="https://www.buymeacoffee.com/derek.miller" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
 <!-- #endif -->
-
-<div style="page-break-after: always"></div>
 
 <!-- #embed-changelog -->

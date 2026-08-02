@@ -37,8 +37,6 @@ standalone and can be installed individually or together.
 
 </div>
 
-<div style="page-break-after: always"></div>
-
 # <span style="color:#109EFF">System Requirements</span>
 
 - Control4 OS 3.3+
@@ -160,8 +158,6 @@ tab, then fire them from programming with a single Send Request command.
   `<Name> Payload` variable, guarded by an optional key
 - Requests, webhooks, and last results persist across driver restarts
 
-<div style="page-break-after: always"></div>
-
 # <span style="color:#109EFF">Installation</span>
 
 ## Installing the Drivers
@@ -176,8 +172,6 @@ Each driver includes its own documentation accessible from within Composer Pro.
 Refer to the individual driver documentation for detailed property descriptions,
 programming reference, and configuration guides.
 
-<div style="page-break-after: always"></div>
-
 # <span style="color:#109EFF">Support</span>
 
 If you have any questions or issues integrating these drivers with Control4, you
@@ -186,8 +180,6 @@ can file an issue on GitHub:
 https://github.com/finitelabs/control4-finite-labs-essentials/issues/new
 
 <a href="https://www.buymeacoffee.com/derek.miller" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
-
-<div style="page-break-after: always"></div>
 
 # <span style="color:#109EFF">Changelog</span>
 

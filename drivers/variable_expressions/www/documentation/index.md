@@ -65,8 +65,6 @@ it references change.
 
 </div>
 
-<div style="page-break-after: always"></div>
-
 # <span style="color:#109EFF">System Requirements</span>
 
 - Control4 OS 3.3+
@@ -87,8 +85,6 @@ it references change.
   and conditionals (`and`, `or`, comparisons)
 - Rendered expression shows each reference as `[Room > Device > Variable]`
 - Expressions and last results persist across driver restarts
-
-<div style="page-break-after: always"></div>
 
 # <span style="color:#109EFF">Installer Setup</span>
 
@@ -232,8 +228,6 @@ all persisted state.
 
 - **Are You Sure?** \[ **_No_** | Yes \] - Confirmation to reset the driver.
 
-<div style="page-break-after: always"></div>
-
 # <span style="color:#109EFF">Programming</span>
 
 ## Referencing Variables
@@ -320,8 +314,6 @@ Pool PARAM{120,2001}F / Spa PARAM{120,2002}F
 
 <!-- #ifdef DRIVERCENTRAL -->
 
-<div style="page-break-after: always"></div>
-
 # <span style="color:#109EFF">Developer Information</span>
 
 <p align="center">
@@ -360,7 +352,5 @@ https://github.com/finitelabs/control4-finite-labs-essentials/issues/new
 <a href="https://www.buymeacoffee.com/derek.miller" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
 <!-- #endif -->
-
-<div style="page-break-after: always"></div>
 
 <!-- #embed-changelog -->

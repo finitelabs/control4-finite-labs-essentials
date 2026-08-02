@@ -59,8 +59,6 @@ synchronization.
 
 </div>
 
-<div style="page-break-after: always"></div>
-
 # <span style="color:#109EFF">System Requirements</span>
 
 - Control4 OS 3.3+
@@ -77,8 +75,6 @@ synchronization.
 - `light.c4i`
 - `light_v2.c4i`
 - `outlet_light.c4i`
-
-<div style="page-break-after: always"></div>
 
 # <span style="color:#109EFF">Installer Setup</span>
 
@@ -199,8 +195,6 @@ Hides all lights selected in
 This is useful when lights are being controlled exclusively through their relay
 bindings and should not appear in the UI.
 
-<div style="page-break-after: always"></div>
-
 # <span style="color:#109EFF">Programming</span>
 
 ## Connections
@@ -224,8 +218,6 @@ fan controllers, fireplace relays).
 The relay responds to OPEN (turn light off), CLOSE (turn light on), and TOGGLE
 commands. Light state changes are reflected back as OPENED/CLOSED notifications
 on the relay binding.
-
-<div style="page-break-after: always"></div>
 
 <!-- #ifdef DRIVERCENTRAL -->
 
@@ -267,7 +259,5 @@ https://github.com/finitelabs/control4-finite-labs-essentials/issues/new
 <a href="https://www.buymeacoffee.com/derek.miller" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
 <!-- #endif -->
-
-<div style="page-break-after: always"></div>
 
 <!-- #embed-changelog -->
