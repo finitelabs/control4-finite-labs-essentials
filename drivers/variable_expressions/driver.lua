@@ -662,6 +662,29 @@ function UIR._EVAL_EXPRESSION(tParams)
   })
 end
 
+--- Whether a proxy merely restates the device that declares it. A proxy named
+--- for itself -- a security panel's areas, a receiver's tuner -- must stay its
+--- own entry or it vanishes from the browser.
+--- @param proxy table|nil
+--- @param owner table
+--- @return boolean
+local function isRestatedProxy(proxy, owner)
+  return proxy ~= nil and tostring(proxy.deviceName) == tostring(owner.deviceName)
+end
+
+--- Section heading for a member of a merged entry, taken from the proxy's .c4i.
+--- @param dev table
+--- @param isOwner boolean
+--- @return string
+local function proxySectionLabel(dev, isOwner)
+  if isOwner then
+    return "Device"
+  end
+  local file = tostring((dev or {}).driverFileName or "")
+  local base = file:match("^(.*)%.c4i$") or file:match("^(.*)%.c4z$")
+  return IsEmpty(base) and "Proxy" or base
+end
+
 --- Send the device list to the web UI with display names (Room > Device).
 ---
 --- A driver and the proxy it declares are separate project items sharing a room
@@ -672,14 +695,48 @@ function UIR._GET_DEVICES()
   log:trace("UIR.GET_DEVICES()")
   local devices = {}
   local allDevices = C4:GetDevices() or {}
+
+  -- Proxy id -> owning driver id, for proxies that only restate their owner.
+  local ownerOf = {}
   for id, dev in pairs(allDevices) do
-    local ok, deviceVars = pcall(C4.GetDeviceVariables, C4, id)
-    if ok and deviceVars and next(deviceVars) ~= nil then
-      devices[#devices + 1] = {
-        id = id,
-        name = dev.deviceName or ("Device " .. id),
-        roomName = dev.roomName or "",
-      }
+    for proxyId in pairs(dev.proxies or {}) do
+      local pid = tonumber(proxyId) or proxyId
+      if isRestatedProxy(allDevices[pid], dev) then
+        ownerOf[pid] = id
+      end
+    end
+  end
+
+  -- Collapse chains so a proxy of a proxy still lands in an entry.
+  local rootOf, membersOf = {}, {}
+  for id in pairs(allDevices) do
+    local root, seen = id, { [id] = true }
+    while ownerOf[root] ~= nil and not seen[ownerOf[root]] do
+      root = ownerOf[root]
+      seen[root] = true
+    end
+    rootOf[id] = root
+    membersOf[root] = membersOf[root] or {}
+    table.insert(membersOf[root], id)
+  end
+
+  for id, dev in pairs(allDevices) do
+    if rootOf[id] == id then
+      local hasVariables = false
+      for _, mid in ipairs(membersOf[id]) do
+        local ok, memberVars = pcall(C4.GetDeviceVariables, C4, mid)
+        if ok and memberVars ~= nil and next(memberVars) ~= nil then
+          hasVariables = true
+          break
+        end
+      end
+      if hasVariables then
+        devices[#devices + 1] = {
+          id = id,
+          name = dev.deviceName or ("Device " .. id),
+          roomName = dev.roomName or "",
+        }
+      end
     end
   end
   local labelCounts = {}
@@ -710,19 +767,54 @@ function UIR._GET_DEVICE_VARIABLES(tParams)
   if not devId then
     return
   end
-  local vars = {}
-  local ok, deviceVars = pcall(C4.GetDeviceVariables, C4, devId)
-  if ok and deviceVars then
-    for varId, varInfo in pairs(deviceVars) do
-      vars[#vars + 1] = {
-        id = tonumber(varId),
-        name = varInfo.name or ("var" .. varId),
-        type = varInfo.type or "STRING",
-        value = varInfo.value,
-      }
+
+  local entry = C4:GetDevices({ DeviceIds = tostring(devId) })[devId] or {}
+  local members = { { id = devId, section = proxySectionLabel(entry, true), order = 1 } }
+  local queue, seen = { { id = devId, dev = entry } }, { [devId] = true }
+  while #queue > 0 do
+    local cur = table.remove(queue, 1)
+    -- pairs() over proxies has no defined order, so walk them by id: section
+    -- order would otherwise vary between calls.
+    local childIds = {}
+    for proxyId in pairs((cur.dev or {}).proxies or {}) do
+      childIds[#childIds + 1] = tonumber(proxyId) or proxyId
+    end
+    table.sort(childIds)
+    for _, pid in ipairs(childIds) do
+      local proxy = C4:GetDevices({ DeviceIds = tostring(pid) })[pid]
+      if not seen[pid] and isRestatedProxy(proxy, cur.dev) then
+        seen[pid] = true
+        members[#members + 1] = { id = pid, section = proxySectionLabel(proxy, false), order = #members + 1 }
+        queue[#queue + 1] = { id = pid, dev = proxy }
+      end
     end
   end
+
+  local vars = {}
+  for _, member in ipairs(members) do
+    local ok, deviceVars = pcall(C4.GetDeviceVariables, C4, member.id)
+    if ok and deviceVars then
+      for varId, varInfo in pairs(deviceVars) do
+        vars[#vars + 1] = {
+          id = tonumber(varId),
+          deviceId = member.id,
+          section = member.section,
+          order = member.order,
+          name = varInfo.name or ("var" .. varId),
+          type = varInfo.type or "STRING",
+          value = varInfo.value,
+        }
+      end
+    end
+  end
+  -- Order on the member's position, not its label: comparing label strings ties
+  -- when a proxy's .c4i is named Device, and the owner-first rule contradicts
+  -- that tie. LuaJIT's table.sort does not reject the resulting cycle, it just
+  -- silently stops putting the device's own variables first.
   table.sort(vars, function(a, b)
+    if a.order ~= b.order then
+      return a.order < b.order
+    end
     return (a.name or "") < (b.name or "")
   end)
   return uiRespond("DEVICE_VARIABLES_DATA", {
