@@ -852,7 +852,8 @@ function openEditor(req) {
   if (req && req.status) renderLastResult(req); else hideLastResult();
   document.getElementById('panel-list').classList.remove('active');
   document.getElementById('panel-editor').classList.add('active');
-  if (!gDevices.length) sendCommand('_GET_DEVICES');
+  // Unguarded: the list must refresh on every open, not just populate once.
+  sendCommand('_GET_DEVICES');
   syncHl('req-body','hl-body');
   syncHl('req-payload','hl-payload');
   updatePublishLine();
@@ -1032,6 +1033,8 @@ function onSaveResult(p) {
 // ============================================================
 function onDevices(devices) {
   gDevices = devices || [];
+  gVarsByDevice = {};
+  gRequestedVars = {};
   renderTree();
 }
 
