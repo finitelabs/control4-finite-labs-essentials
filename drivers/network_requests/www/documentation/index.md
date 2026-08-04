@@ -145,8 +145,8 @@ the Send button on the row.
 1. **Type** - HTTP, TCP, UDP, or WOL.
 1. **Target** - where the request goes: method and URL for HTTP, `host:port` for
    TCP and UDP, and the MAC address for WOL.
-1. **Last Result** - the outcome of the most recent send. Hovering the cell
-   shows the captured response and how long ago it was sent.
+1. **Last Result** - the outcome of the most recent send. Hovering a successful
+   send shows the captured response and how long ago it was sent.
 1. **Send / Edit / X** - send the request immediately, open it in the editor, or
    delete it along with its events and Response variable.
 1. **Failed send** - failures show the error in place of the result, for example
@@ -184,8 +184,8 @@ HTTP request.
    body underneath it when there was one.
 1. **Cancel / Save & Send / Save Request** - discard the changes, save and fire
    the request immediately (the result lands in Last Result), or just save it.
-1. **Publish line** - the events and the variable this request owns once it is
-   saved.
+1. **Publish line** - the events this request owns once it is saved, plus the
+   Response variable for HTTP and response-waiting TCP requests.
 
 #### TCP, UDP, and WOL Requests
 
