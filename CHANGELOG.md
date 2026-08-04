@@ -28,6 +28,9 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 ### Fixed
 
 - Fixed the delete button being cut off in the Requests and Expressions tabs.
+- Variable Expressions and Network Requests: the variable browser no longer
+  shows rows that look identical. Devices with no variables are hidden, and
+  devices that still share a room and name are labelled with their device id.
 
 ## v20260712 - 2026-07-12
 

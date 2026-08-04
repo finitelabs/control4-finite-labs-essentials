@@ -663,17 +663,34 @@ function UIR._EVAL_EXPRESSION(tParams)
 end
 
 --- Send the device list to the web UI with display names (Room > Device).
+---
+--- A driver and the proxy it declares are separate project items sharing a room
+--- and name, so the browser listed the same device twice, one half expanding to
+--- "no variables". Those are dropped. Survivors can still collide -- a project
+--- may hold many instances of one driver -- so they get the device id appended.
 function UIR._GET_DEVICES()
   log:trace("UIR.GET_DEVICES()")
   local devices = {}
   local allDevices = C4:GetDevices() or {}
   for id, dev in pairs(allDevices) do
-    local name = dev.deviceName or ("Device " .. id)
-    devices[#devices + 1] = {
-      id = id,
-      name = name,
-      roomName = dev.roomName or "",
-    }
+    local ok, deviceVars = pcall(C4.GetDeviceVariables, C4, id)
+    if ok and deviceVars and next(deviceVars) ~= nil then
+      devices[#devices + 1] = {
+        id = id,
+        name = dev.deviceName or ("Device " .. id),
+        roomName = dev.roomName or "",
+      }
+    end
+  end
+  local labelCounts = {}
+  for _, d in ipairs(devices) do
+    local label = d.roomName .. " > " .. d.name
+    labelCounts[label] = (labelCounts[label] or 0) + 1
+  end
+  for _, d in ipairs(devices) do
+    if labelCounts[d.roomName .. " > " .. d.name] > 1 then
+      d.name = string.format("%s (%s)", d.name, d.id)
+    end
   end
   table.sort(devices, function(a, b)
     if (a.roomName or "") ~= (b.roomName or "") then
