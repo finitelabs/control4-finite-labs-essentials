@@ -28,9 +28,13 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 ### Fixed
 
 - Fixed the delete button being cut off in the Requests and Expressions tabs.
-- Variable Expressions and Network Requests: the variable browser no longer
-  shows rows that look identical. Devices with no variables are hidden, and
-  devices that still share a room and name are labelled with their device id.
+- Variable Expressions and Network Requests: a device that a driver exposes
+  through a proxy of the same name now appears once in the variable browser
+  instead of several times, with its variables grouped by where they come from.
+  Proxies that stand for something of their own, such as a security panel's
+  areas or a receiver's tuner, are still listed separately. Devices with no
+  variables are hidden, and any that still share a room and name are labelled
+  with their device id. A device's own variables are always listed first.
 - The variable browser now refreshes each time it opens, so devices and
   variables created during the session appear without reloading the tab, and the
   values shown are current rather than those from when a device was first

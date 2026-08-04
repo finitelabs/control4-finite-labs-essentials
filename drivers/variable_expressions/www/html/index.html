@@ -204,6 +204,10 @@
       font-size: 9.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
       color: #9ca3af; padding: 8px 2px 3px;
     }
+    .tsection {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+      color: #b6bcc6; padding: 5px 6px 2px 22px;
+    }
     .tdev {
       display: flex; align-items: center; gap: 5px;
       padding: 4px 4px; border-radius: 5px;
@@ -916,9 +920,17 @@ function renderTree() {
         // Variable-name matches narrow the list; a room/device match shows all
         var list = item.matchingVars || vars;
         if (!list.length) html += '<div class="tloading">no variables</div>';
+        var lastSection = null;
         list.forEach(function(v) {
-          var isUsed = used[d.id + ':' + v.id] || used[d.id + ':' + v.name];
-          html += '<div class="tvar' + (isUsed ? ' used' : '') + '" onclick="insertToken(' + d.id + ',' + v.id + ')" title="' + esc(d.name) + ' &gt; ' + esc(v.name) + '">'
+          // An entry can span a driver and the proxies restating it; head each
+          // member's block, and token on the member that owns the variable.
+          if (v.section && v.section !== lastSection) {
+            html += '<div class="tsection">' + esc(v.section) + '</div>';
+            lastSection = v.section;
+          }
+          var owner = v.deviceId != null ? v.deviceId : d.id;
+          var isUsed = used[owner + ':' + v.id] || used[owner + ':' + v.name];
+          html += '<div class="tvar' + (isUsed ? ' used' : '') + '" onclick="insertToken(' + owner + ',' + v.id + ')" title="' + esc(d.name) + ' &gt; ' + esc(v.name) + '">'
             + '<span class="vname">' + hi(v.name) + '</span>'
             + '<span class="vval">' + esc(v.value == null ? '' : v.value) + '</span>'
             + '<span class="ins">Insert</span>'
