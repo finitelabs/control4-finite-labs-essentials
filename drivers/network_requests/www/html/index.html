@@ -311,7 +311,9 @@
             <th class="col-type" style="width:64px;">Type</th>
             <th>Target</th>
             <th style="width:24%;">Last Result</th>
-            <th style="width:118px;"></th>
+            <!-- Send + Edit + delete need 136px; a narrower fixed column pushes
+                 the delete button past the table edge, where table-wrap clips it. -->
+            <th style="width:140px;"></th>
           </tr>
         </thead>
         <tbody id="req-rows"></tbody>

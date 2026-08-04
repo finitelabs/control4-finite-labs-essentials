@@ -18,6 +18,17 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Removed
 -->
 
+## Unreleased
+
+### Added
+
+- Added annotated screenshots of the Requests and Expressions tabs to the
+  Network Requests and Variable Expressions documentation.
+
+### Fixed
+
+- Fixed the delete button being cut off in the Requests and Expressions tabs.
+
 ## v20260712 - 2026-07-12
 
 ### Added
