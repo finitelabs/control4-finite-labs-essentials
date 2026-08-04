@@ -214,6 +214,10 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Variable Expressions and Network Requests: the variable browser no longer
   shows rows that look identical. Devices with no variables are hidden, and
   devices that still share a room and name are labelled with their device id.
+- The variable browser now refreshes each time it opens, so devices and
+  variables created during the session appear without reloading the tab, and the
+  values shown are current rather than those from when a device was first
+  expanded.
 
 ## v20260712 - 2026-07-12
 

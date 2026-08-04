@@ -634,7 +634,8 @@ function openEditor(expr) {
   setMode(expr && expr.mode === 'string' ? 'string' : 'equation', true);
   document.getElementById('panel-list').classList.remove('active');
   document.getElementById('panel-editor').classList.add('active');
-  if (!gDevices.length) sendCommand('_GET_DEVICES');
+  // Unguarded: the list must refresh on every open, not just populate once.
+  sendCommand('_GET_DEVICES');
   renderPreviewPlaceholder();
   onTemplateInput();
   document.getElementById('expr-name').focus();
@@ -806,6 +807,8 @@ function onSaveResult(p) {
 // ============================================================
 function onDevices(devices) {
   gDevices = devices || [];
+  gVarsByDevice = {};
+  gRequestedVars = {};
   renderTree();
 }
 
