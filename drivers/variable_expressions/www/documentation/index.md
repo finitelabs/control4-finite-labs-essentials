@@ -129,29 +129,65 @@ for setting it up.
 The Expressions tab in Composer (select the driver, then the Expressions tab) is
 the primary way to create and manage standing calculations.
 
-### Expression list
+### Expression List
 
 Every named expression appears as a row with its mode, a rendered view of what
 it references, the last result, and whether it recalculates automatically.
-Results update live as the driver recalculates. A row showing
-`Unresolved reference` points at a reference that no longer exists, for example
-a device that was removed.
+Results update live as the driver recalculates.
 
-### Editor
+<img alt="Expression list" src="./images/ui-expressions.png" width="640"/>
 
-- **Variables browser**: search across rooms, devices, and variable names. Click
-  a device to load its variables with their current values. Click a variable to
-  insert its `PARAM{}` token at the cursor.
-- **Mode**: `Equation` evaluates the substituted template as math and publishes
-  a NUMBER. `String` publishes the substituted text as a STRING.
-- **Live preview**: as you type, the driver renders the references, substitutes
-  current values, and evaluates the result in its sandbox. Errors show inline
-  before anything is saved.
-- **Recalculate when referenced variables change**: when enabled, the driver
-  watches every variable the expression references and recalculates on change.
-  Changes are debounced (1 second) so rapidly updating sources coalesce into a
-  single recalculation. When disabled, the expression only recalculates from the
-  Calculate Expression programming command or the Run button.
+1. **+ Add Expression** - opens an empty editor for a new expression.
+1. **Name** - the name the output variable, the event, and programming use. The
+   dot to its left is green once the expression has produced a result, amber
+   when the last run failed, and grey before its first run.
+1. **Mode** - `NUMBER` for an equation, `STRING` for a string template.
+1. **Expression** - the template with each reference rendered as
+   `[Room > Device > Variable]`, so a row is readable without opening it.
+1. **Last Result** - the value currently published to the `<Name> Result`
+   variable. Hovering shows how long ago it was calculated.
+1. **Recompute** - `Auto` when the driver watches the referenced variables,
+   `Manual` when the expression only runs on demand.
+1. **Run / Edit / X** - recalculate now, open the expression in the editor, or
+   delete it along with its output variable and event.
+1. **Unresolved reference** - the expression references something that no longer
+   exists, for example a device that was removed. The previous result is kept.
+
+### Expression Editor
+
+Add Expression and Edit both open the editor in place of the list.
+
+<img alt="Expression editor" src="./images/ui-expression-editor.png" width="640"/>
+
+1. **Search** - filters the variable browser by room, device, or variable name.
+   Matching devices expand automatically.
+1. **Variable** - click a device to load its variables with their current
+   values, then click a variable to insert its `PARAM{}` token at the cursor. A
+   green check marks variables the expression already references.
+1. **Name** - names the `<Name> Result` variable and the `<Name> Calculated`
+   event. Renaming an expression renames both.
+1. **Mode** - `Equation` evaluates the substituted template as math and
+   publishes a NUMBER. `String` publishes the substituted text as a STRING.
+1. **Expression** - the template. Tokens, functions, numbers, and strings are
+   highlighted as you type.
+1. **Syntax help** - the reference for tokens, operators, and functions, without
+   leaving the editor.
+1. **References** - the template with each token rendered as
+   `[Room > Device > Variable]`, which is the quickest way to confirm a token
+   points where you meant it to.
+1. **With current values** - the same template with the variables' current
+   values substituted, exactly as it will be evaluated (Equation mode only).
+1. **Result** - the value the controller computed for that substitution. Errors
+   appear here in red, before anything is saved.
+1. **Publish line** - the variable and event this expression owns once saved.
+1. **Recalculate when referenced variables change** - when enabled, the driver
+   watches every variable the expression references and recalculates on change,
+   debounced by 1 second so rapidly updating sources coalesce into a single
+   recalculation. The count of watched references is shown alongside. When
+   disabled, the expression only recalculates from the Calculate Expression
+   programming command or the Run button.
+1. **Cancel / Run Once / Save Expression** - discard the changes, evaluate the
+   expression without saving it, or save it.
 
 ### Outputs
 

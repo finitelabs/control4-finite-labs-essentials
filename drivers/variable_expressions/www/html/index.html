@@ -309,7 +309,9 @@
             <th>Expression</th>
             <th style="width:16%;">Last Result</th>
             <th class="col-recompute" style="width:88px;">Recompute</th>
-            <th style="width:118px;"></th>
+            <!-- Run + Edit + delete need 130px; a narrower fixed column pushes
+                 the delete button past the table edge, where table-wrap clips it. -->
+            <th style="width:140px;"></th>
           </tr>
         </thead>
         <tbody id="expr-rows"></tbody>

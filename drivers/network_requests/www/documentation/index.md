@@ -130,30 +130,87 @@ for setting it up.
 The Requests tab in Composer (select the driver, then the Requests tab) is the
 primary way to create and manage named requests.
 
-### Request list
+### Request List
 
 Every named request appears as a row with its type, target, and the result of
 its last send. Results update live as requests fire, whether from programming or
 the Send button on the row.
 
-### Editor
+<img alt="Request list" src="./images/ui-requests.png" width="640"/>
 
-- **Type**: HTTP, TCP, UDP, or WOL. The form shows the fields for the selected
-  type.
-- **Variables browser**: search across rooms, devices, and variable names. Click
-  a device to load its variables with their current values. Click a variable to
-  insert its `PARAM{}` token into the focused field.
-- **HTTP**: method, URL (basic auth supported as
-  `http://user:pass@host:port/path`), optional headers, and an optional body.
-  TLS certificates are only validated when **Validate TLS certificate** is
-  checked, so self-signed LAN devices work by default.
-- **TCP / UDP**: host, port, and a payload. Text payloads decode `\r`, `\n`,
-  `\t`, `\0`, `\\`, and `\xNN` escapes; hex payloads are written as hex bytes
-  (`02 41 54 0d`, `0x02,0x41`, or `0241540d`). TCP requests can optionally wait
-  for the device's response with a configurable timeout.
-- **WOL**: the MAC address of the device to wake.
-- **Save & Send**: saves the request and sends it immediately, showing the
-  result and any captured response in the editor.
+1. **+ Add Request** - opens an empty editor for a new request.
+1. **Name** - the name programming uses to fire the request. The dot to its left
+   shows the last outcome: green for a successful send, amber for a failure, and
+   grey when the request has not been sent yet.
+1. **Type** - HTTP, TCP, UDP, or WOL.
+1. **Target** - where the request goes: method and URL for HTTP, `host:port` for
+   TCP and UDP, and the MAC address for WOL.
+1. **Last Result** - the outcome of the most recent send. Hovering a successful
+   send shows the captured response and how long ago it was sent.
+1. **Send / Edit / X** - send the request immediately, open it in the editor, or
+   delete it along with its events and Response variable.
+1. **Failed send** - failures show the error in place of the result, for example
+   a refused connection, a timeout, or an unresolved `PARAM{}` reference.
+
+### Request Editor
+
+Add Request and Edit both open the editor in place of the list. The fields below
+the Type selector are the ones the selected type needs; the screenshot shows an
+HTTP request.
+
+<img alt="Request editor" src="./images/ui-request-editor.png" width="640"/>
+
+1. **Search** - filters the variable browser by room, device, or variable name.
+   Matching devices expand automatically.
+1. **Variable** - click a device to load its variables with their current
+   values, then click a variable to insert its `PARAM{}` token into the field
+   you last edited. A green check marks variables the request already
+   references.
+1. **Name** - the name used by programming, by the events, and by the Response
+   variable. It is fixed once the request has been saved: to rename, create a
+   new request and delete the old one. Names must be unique.
+1. **Type** - switches between HTTP, TCP, UDP, and WOL.
+1. **Method / URL** - the HTTP method and the destination. Basic auth goes in
+   the URL as `http://user:pass@host:port/path`.
+1. **Headers** - optional request headers. **+ Add header** adds a row and the X
+   removes one; rows left without a name are dropped when saving.
+1. **Validate TLS certificate** - off by default, so self-signed HTTPS endpoints
+   on the LAN work without extra setup. Turn it on when the certificate matters.
+1. **Body** - the request body. `PARAM{}` tokens are highlighted and replaced
+   with the variables' current values every time the request is sent.
+1. **Syntax help** - a reference for tokens, text and hex payloads, and the HTTP
+   specifics, without leaving the editor.
+1. **Last Result** - the outcome of the last send, with the captured response
+   body underneath it when there was one.
+1. **Cancel / Save & Send / Save Request** - discard the changes, save and fire
+   the request immediately (the result lands in Last Result), or just save it.
+1. **Publish line** - the events this request owns once it is saved, plus the
+   Response variable for HTTP and response-waiting TCP requests.
+
+#### TCP, UDP, and WOL Requests
+
+Selecting TCP or UDP replaces the HTTP fields with a raw payload form. The
+variables browser works the same way and is left out of the screenshot below.
+
+<img alt="TCP request fields" src="./images/ui-request-editor-tcp.png" width="640"/>
+
+1. **Host** - the address to connect to.
+1. **Port** - the TCP or UDP port.
+1. **Text / Hex** - how the payload is read. Text decodes the escapes `\r`,
+   `\n`, `\t`, `\0`, `\\`, and `\xNN`, and substitutes `PARAM{}` tokens. Hex
+   sends raw bytes: whitespace, commas, and `0x` prefixes are ignored, so
+   `02 41 54 0d`, `0x02,0x41,0x54,0x0d`, and `0241540d` all send the same four
+   bytes. Tokens are not substituted in hex payloads.
+1. **Payload** - the bytes to send. Escapes and tokens are highlighted.
+1. **Wait for a response** - TCP only. The driver holds the connection open
+   until the device answers and publishes the answer to the Response variable.
+   UDP is always fire and forget.
+1. **Timeout (s)** - how long to wait for that response before the send fails.
+1. **Last Result** - here, a send that timed out, which fired the
+   `<Name> Failed` event.
+
+WOL requests take a single **MAC address** field and broadcast a Wake-on-LAN
+magic packet to it.
 
 ### Outputs
 
@@ -172,18 +229,31 @@ already taken is rejected. Deleting a request removes its events and variable.
 
 ### Webhooks
 
-The Webhooks card manages inbound HTTP endpoints. Adding a webhook named
-`Doorbell Motion` creates:
+The Webhooks card manages inbound HTTP endpoints: an external system calls a URL
+and the driver fires an event.
 
-- A URL like `http://<controller>:<port>/Doorbell%20Motion` (Copy puts it on the
-  clipboard), answering GET and POST
+<img alt="Webhooks" src="./images/ui-webhooks.png" width="640"/>
+
+1. **+ Add Webhook** - reveals the form at the bottom of the card.
+1. **Name** - names the webhook's event and payload variable, and forms the last
+   part of its URL. The dot shows whether it has ever been called.
+1. **URL** - the address external systems call, built from the controller's
+   address and the `Webhook Port` property. It answers GET and POST.
+1. **Last Received** - when the webhook was last called, and by whom. Hovering
+   shows the payload that arrived.
+1. **Copy / X** - put the full URL, key included, on the clipboard, or delete
+   the webhook along with its event and payload variable.
+1. **Name / Key** - the new webhook's name and its optional key. With a key set,
+   callers must append `?key=<value>`; calls with a missing or wrong key are
+   rejected with HTTP 403 and fire nothing.
+
+Adding a webhook named `Doorbell Motion` creates:
+
+- A URL like `http://<controller>:<port>/Doorbell%20Motion`, answering GET and
+  POST
 - An event `Doorbell Motion Received` that fires on every accepted call
 - A read-only variable `Doorbell Motion Payload` holding the request body (or
   query string), updated before the event fires
-
-An optional per-webhook **key** requires callers to append `?key=<value>`; calls
-with a missing or wrong key are rejected with HTTP 403 and fire nothing. The
-listen port is set by the `Webhook Port` driver property.
 
 ## Driver Properties
 
