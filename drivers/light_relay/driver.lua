@@ -11,6 +11,7 @@ require("lib.utils")
 require("drivers-common-public.global.handlers")
 require("drivers-common-public.global.lib")
 require("drivers-common-public.global.timer")
+require("drivers-common-public.global.url")
 
 JSON = require("JSON")
 
@@ -313,12 +314,15 @@ end
 -- Update Drivers
 --------------------------------------------------------------------------------
 
+--- Action: Update Drivers
 function EC.Update_Drivers()
   log:trace("EC.Update_Drivers()")
   log:print("Updating drivers")
   UpdateDrivers(true)
 end
 
+--- Update the driver from the GitHub repository.
+--- @param forceUpdate? boolean Force the update even if the driver is up to date (optional).
 function UpdateDrivers(forceUpdate)
   log:trace("UpdateDrivers(%s)", forceUpdate)
   githubUpdater

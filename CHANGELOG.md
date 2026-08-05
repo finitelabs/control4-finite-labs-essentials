@@ -27,6 +27,13 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Fixed
 
+- Device Programmer, Light Relay, Sensor Aggregator, Sensor Multiplexer and
+  Variable Expressions can now update themselves. Both the Update Drivers action
+  and the automatic update check failed with an internal error, so these drivers
+  could only be updated by installing a new release by hand. Network Requests
+  was unaffected.
+- Sensor Multiplexer now shows the Finite Labs icon in Composer and on
+  Navigators instead of a generic placeholder.
 - Fixed the delete button being cut off in the Requests and Expressions tabs.
 - Variable Expressions and Network Requests: a device that a driver exposes
   through a proxy of the same name now appears once in the variable browser
