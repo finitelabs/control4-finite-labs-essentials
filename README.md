@@ -201,7 +201,7 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Removed
 -->
 
-## Unreleased
+## v20260805 - 2026-08-05
 
 ### Added
 
@@ -214,7 +214,9 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   Variable Expressions can now update themselves. Both the Update Drivers action
   and the automatic update check failed with an internal error, so these drivers
   could only be updated by installing a new release by hand. Network Requests
-  was unaffected.
+  was unaffected. The broken updater is also what would have fetched this fix,
+  so copies already installed need one manual update in Composer; after that
+  they keep themselves up to date as normal.
 - Sensor Multiplexer now shows the Finite Labs icon in Composer and on
   Navigators instead of a generic placeholder.
 - Fixed the delete button being cut off in the Requests and Expressions tabs.
