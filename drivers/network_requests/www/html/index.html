@@ -654,6 +654,7 @@ var gVarsByDevice = {};          // id -> [{id, name, type, value}]
 var gExpanded = {};              // id -> true (manual expansion outside search)
 var gSearchCollapsed = {};       // id -> true (collapse override while searching)
 var gRequestedVars = {};         // id -> true (variable fetch already in flight)
+var gPrevLoaded = {};            // id -> true (had variables at least once; survives onDevices)
 var gLastQ = '';                 // current search term
 var gEditor = { open: false, originalName: '', type: 'http', encoding: 'text' };
 var gTokTarget = null;           // last focused token-capable field
@@ -1044,6 +1045,7 @@ function onDevices(devices) {
 
 function onDeviceVariables(deviceId, variables) {
   gVarsByDevice[String(deviceId)] = variables || [];
+  gPrevLoaded[String(deviceId)] = true;
   renderTree();
 }
 
@@ -1098,13 +1100,19 @@ function renderTree() {
   var used = usedTokenSet();
 
   var visible = [];
+  var fetches = 0;
   gDevices.forEach(function(d) {
     var room = d.roomName || 'No Room';
     var matchDevice = !q || (d.name || '').toLowerCase().indexOf(q) !== -1 || room.toLowerCase().indexOf(q) !== -1;
     var vars = gVarsByDevice[String(d.id)];
     var matchingVars = null;
     if (q && !matchDevice) {
-      if (!vars) return;
+      if (!vars) {
+        // onDevices() cleared the var cache; re-fetch devices we had loaded so a
+        // variable-name search still finds them, then wait for the next render.
+        if (gPrevLoaded[String(d.id)] && fetches < FETCH_LIMIT) { fetchVars(d.id); fetches++; }
+        return;
+      }
       matchingVars = vars.filter(function(v) { return (v.name || '').toLowerCase().indexOf(q) !== -1; });
       if (!matchingVars.length) return;
     }
@@ -1112,7 +1120,6 @@ function renderTree() {
   });
 
   var autoExpand = q && visible.length <= AUTO_EXPAND_LIMIT;
-  var fetches = 0;
   var html = '';
   var lastRoom = null;
 
