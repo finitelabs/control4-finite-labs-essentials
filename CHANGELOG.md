@@ -18,6 +18,15 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Removed
 -->
 
+## Unreleased
+
+### Fixed
+
+- Fixed a device you had expanded and then collapsed disappearing from a
+  variable-name search in the variable browser; its variables are re-fetched
+  when a search would otherwise miss it. Affects Variable Expressions and
+  Network Requests.
+
 ## v20260805 - 2026-08-05
 
 ### Added
