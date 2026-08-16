@@ -9,6 +9,10 @@
 
 local log = require("lib.logging")
 
+require("drivers-common-public.global.handlers")
+require("drivers-common-public.global.timer")
+require("lib.utils")
+
 ---------------------------------------------------------------------------
 -- Local Helpers
 ---------------------------------------------------------------------------
