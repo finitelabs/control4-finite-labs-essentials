@@ -11,7 +11,6 @@ require("lib.utils")
 require("drivers-common-public.global.handlers")
 require("drivers-common-public.global.lib")
 require("drivers-common-public.global.timer")
-require("drivers-common-public.global.url")
 
 JSON = require("JSON")
 
@@ -459,8 +458,6 @@ end
 
 function OnDriverLateInit()
   log:trace("OnDriverLateInit()")
-
-  C4:FileSetDir("c29tZXNwZWNpYWxrZXk=++11")
 
   if not CheckMinimumVersion("Driver Status") then
     return
