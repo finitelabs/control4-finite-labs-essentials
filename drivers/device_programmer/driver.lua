@@ -78,7 +78,8 @@ end
 --------------------------------------------------------------------------------
 
 --- Get persisted temperature values.
---- @return table<string, number?> values Map of name → Celsius value.
+--- Set_Temperature converts to the project's TemperatureScale before persisting.
+--- @return table<string, number?> values Map of name → value in the project scale.
 local function getTemperatureValues()
   return persist:get(PERSIST_TEMPERATURE_VALUES, {})
 end
@@ -156,7 +157,7 @@ end
 --- @param value number? The temperature value.
 local function sendTemperatureValue(binding, value)
   if binding and value then
-    SendToProxy(binding.bindingId, "VALUE_CHANGED", { VALUE = value, SCALE = getTemperatureScale() })
+    SendToProxy(binding.bindingId, "VALUE_CHANGED", SensorValueParams(value, getTemperatureScale()))
   end
 end
 
@@ -165,7 +166,7 @@ end
 --- @param value number? The humidity percent.
 local function sendHumidityValue(binding, value)
   if binding and value then
-    SendToProxy(binding.bindingId, "VALUE_CHANGED", { VALUE = value, SCALE = "PERCENT" })
+    SendToProxy(binding.bindingId, "VALUE_CHANGED", SensorValueParams(value, "PERCENT"))
   end
 end
 
@@ -219,7 +220,7 @@ local function registerTemperatureOutputHandlers(binding, name)
     if strCommand == "GET_VALUE" then
       local value = getTemperatureValues()[name]
       if value then
-        SendToProxy(idBinding, "VALUE_CHANGED", { VALUE = value, SCALE = getTemperatureScale() })
+        SendToProxy(idBinding, "VALUE_CHANGED", SensorValueParams(value, getTemperatureScale()))
       end
     end
   end
@@ -230,7 +231,7 @@ local function registerTemperatureOutputHandlers(binding, name)
     if bIsBound then
       local value = getTemperatureValues()[name]
       if value then
-        SendToProxy(idBinding, "VALUE_CHANGED", { VALUE = value, SCALE = getTemperatureScale() })
+        SendToProxy(idBinding, "VALUE_CHANGED", SensorValueParams(value, getTemperatureScale()))
       end
     end
   end
@@ -246,7 +247,7 @@ local function registerHumidityOutputHandlers(binding, name)
     if strCommand == "GET_VALUE" then
       local value = getHumidityValues()[name]
       if value then
-        SendToProxy(idBinding, "VALUE_CHANGED", { VALUE = value, SCALE = "PERCENT" })
+        SendToProxy(idBinding, "VALUE_CHANGED", SensorValueParams(value, "PERCENT"))
       end
     end
   end
@@ -257,7 +258,7 @@ local function registerHumidityOutputHandlers(binding, name)
     if bIsBound then
       local value = getHumidityValues()[name]
       if value then
-        SendToProxy(idBinding, "VALUE_CHANGED", { VALUE = value, SCALE = "PERCENT" })
+        SendToProxy(idBinding, "VALUE_CHANGED", SensorValueParams(value, "PERCENT"))
       end
     end
   end
