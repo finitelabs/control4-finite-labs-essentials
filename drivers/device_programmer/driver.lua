@@ -78,7 +78,8 @@ end
 --------------------------------------------------------------------------------
 
 --- Get persisted temperature values.
---- @return table<string, number?> values Map of name → Celsius value.
+--- Set_Temperature converts to the project's TemperatureScale before persisting.
+--- @return table<string, number?> values Map of name → value in the project scale.
 local function getTemperatureValues()
   return persist:get(PERSIST_TEMPERATURE_VALUES, {})
 end

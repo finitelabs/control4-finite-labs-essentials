@@ -68,9 +68,13 @@ T.section("every VALUE_CHANGED payload is built by SensorValueParams")
 --------------------------------------------------------------------------------
 
 local senders = 0
+local sendLines = 0
 for name, src in pairs(drivers) do
   for line in src:gmatch("[^\n]+") do
     -- The RFP handlers compare against the same string, so anchor on the send.
+    if line:find("SendToProxy", 1, true) and line:find('"VALUE_CHANGED"', 1, true) then
+      sendLines = sendLines + 1
+    end
     local params = line:match('SendToProxy%s*%(.-"VALUE_CHANGED"%s*,%s*(.-)%s*%)%s*$')
     if params then
       senders = senders + 1
@@ -82,27 +86,50 @@ end
 -- A rename or refactor that stopped matching would otherwise pass silently.
 T.check("the scan found sender lines to check", senders > 0, senders)
 
+-- The pattern above requires the call to close on its own line, so one written
+-- across several lines is invisible to it and would move only the assertion
+-- count. Every line that opens a VALUE_CHANGED send must have been parsed.
+T.check(
+  "every VALUE_CHANGED send line was parsed as a sender",
+  senders == sendLines,
+  string.format("parsed %d of %d send lines", senders, sendLines)
+)
+
 --------------------------------------------------------------------------------
 T.section("temperature inputs use the tolerant parse")
 --------------------------------------------------------------------------------
 
 -- A provider may send CELSIUS, FAHRENHEIT, or VALUE with a SCALE; YoLink sends
--- CELSIUS and FAHRENHEIT and no VALUE at all.
-for _, name in ipairs({ "sensor_aggregator", "sensor_multiplexer" }) do
-  local src = drivers[name]
-  if src then
-    T.check(name .. " reads a temperature input with CelsiusFromParams", src:find("CelsiusFromParams(", 1, true) ~= nil)
-  else
-    T.check(name .. " source was read", false, "missing")
-  end
-end
+-- CELSIUS and FAHRENHEIT and no VALUE at all. Humidity carries no scale to
+-- convert, so its arm must keep reading VALUE directly.
+--
+-- Both arms are read out of the single branch that selects between them. A
+-- file-global search for either call cannot see which arm it sits in, so it
+-- still passes when the two are swapped.
+local INPUT_BRANCHES = {
+  { driver = "sensor_aggregator", lhs = "persistKey", rhs = "PERSIST_TEMP_VALUES" },
+  { driver = "sensor_multiplexer", lhs = "sensorKey", rhs = "INPUT_TEMP" },
+}
 
--- Humidity has no scale conversion, so it still reads VALUE directly; asserting
--- that keeps a future edit from routing a percentage through a Celsius parse.
-for _, name in ipairs({ "sensor_aggregator", "sensor_multiplexer" }) do
-  local src = drivers[name]
-  if src then
-    T.check(name .. " still reads a humidity input from VALUE", src:find('Select(tParams, "VALUE")', 1, true) ~= nil)
+for _, case in ipairs(INPUT_BRANCHES) do
+  local src = drivers[case.driver]
+  if not src then
+    T.check(case.driver .. " source was read", false, "missing")
+  else
+    local guarded, fallback = src:match(
+      "if%s+" .. case.lhs .. "%s*==%s*" .. case.rhs .. "%s+then%s+value%s*=%s*(.-)%s*else%s+value%s*=%s*(.-)%s*end"
+    )
+    local missing = "no if/else on " .. case.lhs .. " == " .. case.rhs
+    T.check(
+      case.driver .. ": the " .. case.rhs .. " arm parses with CelsiusFromParams",
+      guarded ~= nil and guarded:match("^CelsiusFromParams%s*%(") ~= nil,
+      guarded or missing
+    )
+    T.check(
+      case.driver .. ": the else arm reads VALUE directly",
+      fallback ~= nil and fallback:find('Select(tParams, "VALUE")', 1, true) ~= nil,
+      fallback or missing
+    )
   end
 end
 
