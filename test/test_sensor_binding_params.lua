@@ -67,33 +67,115 @@ T.check("found at least one driver.lua", next(drivers) ~= nil, "no drivers/*/dri
 T.section("every VALUE_CHANGED payload is built by SensorValueParams")
 --------------------------------------------------------------------------------
 
-local senders = 0
-local sendLines = 0
+-- Bounded on the open paren so SensorValueParamsX would not satisfy it.
+local function isHelperCall(params)
+  return params ~= nil and params:match("^SensorValueParams%s*%(") ~= nil
+end
+
+-- A wrapped call reaches a failure message as several lines, of which the
+-- harness prints only the first.
+local function oneLine(text)
+  return (text:gsub("%s+", " "))
+end
+
+--- Every VALUE_CHANGED send in src as { label, params }, the number of sends
+--- seen, and the number of SendToProxy occurrences %b() could not read as a
+--- call. Matched over the whole source rather than line by line, so a send whose
+--- arguments are wrapped across lines is parsed like any other; the RFP handlers
+--- compare against the same command string, hence anchoring on the send.
+local function valueChangedSends(src)
+  local sends, parsed, unreadable = 0, {}, 0
+  for _ in src:gmatch("SendToProxy") do
+    unreadable = unreadable + 1
+  end
+  for call in src:gmatch("SendToProxy%s*(%b())") do
+    unreadable = unreadable - 1
+    if call:find('"VALUE_CHANGED"', 1, true) then
+      sends = sends + 1
+      local params = call:sub(2, -2):match('"VALUE_CHANGED"%s*,%s*(.-)%s*$')
+      if params then
+        table.insert(parsed, { label = oneLine("SendToProxy" .. call), params = params })
+      end
+    end
+  end
+  return sends, parsed, unreadable
+end
+
+local sends, parsed, unreadable = 0, {}, 0
 for name, src in pairs(drivers) do
-  for line in src:gmatch("[^\n]+") do
-    -- The RFP handlers compare against the same string, so anchor on the send.
-    if line:find("SendToProxy", 1, true) and line:find('"VALUE_CHANGED"', 1, true) then
-      sendLines = sendLines + 1
-    end
-    local params = line:match('SendToProxy%s*%(.-"VALUE_CHANGED"%s*,%s*(.-)%s*%)%s*$')
-    if params then
-      senders = senders + 1
-      T.check(name .. ": " .. (line:gsub("^%s+", "")), params:match("^SensorValueParams%("), params)
-    end
+  local driverSends, driverParsed, driverUnreadable = valueChangedSends(src)
+  sends = sends + driverSends
+  unreadable = unreadable + driverUnreadable
+  for _, send in ipairs(driverParsed) do
+    table.insert(parsed, send)
+    T.check(name .. ": " .. send.label, isHelperCall(send.params), oneLine(send.params))
   end
 end
 
 -- A rename or refactor that stopped matching would otherwise pass silently.
-T.check("the scan found sender lines to check", senders > 0, senders)
+T.check("the scan found sends to check", #parsed > 0, #parsed)
 
--- The pattern above requires the call to close on its own line, so one written
--- across several lines is invisible to it and would move only the assertion
--- count. Every line that opens a VALUE_CHANGED send must have been parsed.
+-- Two ways a send goes unchecked, both of which move only the assertion count:
+-- %b() cannot read the call, or it can but no payload argument parses out of it.
 T.check(
-  "every VALUE_CHANGED send line was parsed as a sender",
-  senders == sendLines,
-  string.format("parsed %d of %d send lines", senders, sendLines)
+  "every SendToProxy occurrence was read as a call",
+  unreadable == 0,
+  string.format("%d occurrences did not parse as SendToProxy(...)", unreadable)
 )
+T.check(
+  "every VALUE_CHANGED send yielded a payload argument",
+  #parsed == sends,
+  string.format("parsed %d of %d sends", #parsed, sends)
+)
+
+--------------------------------------------------------------------------------
+T.section("the sender scan reads a send however it is wrapped")
+--------------------------------------------------------------------------------
+
+-- stylua keeps every send in the drivers on one line, so the wrapped forms the
+-- matcher exists to handle are unreachable above and nothing there would notice
+-- if it stopped reading them. Both directions are asserted, because a matcher
+-- accepting every payload passes the section above as quietly as one reading no
+-- sends at all. A payload the helper built is correct however it is wrapped, so
+-- the wrapped helper call is required to pass rather than fail closed.
+local WRAPPED_HELPER = [[
+C4:SendToProxy(
+  bindingId,
+  "VALUE_CHANGED",
+  SensorValueParams(
+    value,
+    scale
+  )
+)
+]]
+
+local WRAPPED_TABLE = [[
+C4:SendToProxy(
+  bindingId,
+  "VALUE_CHANGED",
+  { VALUE = value, TIMESTAMP = os.time() }
+)
+]]
+
+local WRAPPED_CASES = {
+  { what = "a wrapped SensorValueParams call", src = WRAPPED_HELPER, accepted = true },
+  { what = "a wrapped hand-built table", src = WRAPPED_TABLE, accepted = false },
+}
+
+for _, case in ipairs(WRAPPED_CASES) do
+  local caseSends, caseParsed, caseUnreadable = valueChangedSends(case.src)
+  T.check(
+    case.what .. " is one readable send",
+    caseSends == 1 and caseUnreadable == 0,
+    string.format("%d sends, %d unreadable", caseSends, caseUnreadable)
+  )
+  T.check(case.what .. " yields a payload argument", #caseParsed == 1, #caseParsed)
+  T.check(
+    case.what .. (case.accepted and " is accepted" or " is rejected"),
+    #caseParsed == 1 and isHelperCall(caseParsed[1].params) == case.accepted,
+    caseParsed[1] and oneLine(caseParsed[1].params) or "no payload argument parsed"
+  )
+end
 
 --------------------------------------------------------------------------------
 T.section("temperature inputs use the tolerant parse")
