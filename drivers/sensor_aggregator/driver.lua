@@ -344,7 +344,7 @@ end
 local function sendAggregatedValue(outputKey, value, scale)
   local binding = bindings:getDynamicBinding(NS_OUTPUT, outputKey)
   if binding and value then
-    SendToProxy(binding.bindingId, "VALUE_CHANGED", { VALUE = value, SCALE = scale })
+    SendToProxy(binding.bindingId, "VALUE_CHANGED", SensorValueParams(value, scale))
   end
 end
 
@@ -458,7 +458,13 @@ local function registerInputHandlers(binding, persistKey, recalcFn)
   RFP[binding.bindingId] = function(idBinding, strCommand, tParams, _args)
     log:trace("RFP[%s](%s, %s, %s)", binding.bindingId, idBinding, strCommand, tParams)
     if strCommand == "VALUE_CHANGED" then
-      local value = tonumber(Select(tParams, "VALUE"))
+      -- A temperature provider may send CELSIUS, FAHRENHEIT or VALUE with a SCALE.
+      local value
+      if persistKey == PERSIST_TEMP_VALUES then
+        value = CelsiusFromParams(tParams, "CELSIUS")
+      else
+        value = tonumber(Select(tParams, "VALUE"))
+      end
       if value then
         setCachedValue(persistKey, binding.key, value)
         recalcFn()
@@ -499,7 +505,7 @@ local function registerOutputHandlers(binding, outputKey, scale, persistKey)
       local aggFunc = AGG_FUNCTIONS[aggFuncName] or calcMean
       local result = aggFunc(vals)
       if result then
-        SendToProxy(idBinding, "VALUE_CHANGED", { VALUE = result, SCALE = scale })
+        SendToProxy(idBinding, "VALUE_CHANGED", SensorValueParams(result, scale))
       end
     end
   end
@@ -513,7 +519,7 @@ local function registerOutputHandlers(binding, outputKey, scale, persistKey)
       local aggFunc = AGG_FUNCTIONS[aggFuncName] or calcMean
       local result = aggFunc(vals)
       if result then
-        SendToProxy(idBinding, "VALUE_CHANGED", { VALUE = result, SCALE = scale })
+        SendToProxy(idBinding, "VALUE_CHANGED", SensorValueParams(result, scale))
       end
     end
   end

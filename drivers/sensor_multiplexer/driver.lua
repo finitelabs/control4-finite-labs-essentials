@@ -200,7 +200,7 @@ local lastContactOutputState = nil
 local function sendTempOutput(value)
   local binding = bindings:getDynamicBinding(NS_OUTPUT, OUTPUT_TEMP)
   if binding and value then
-    SendToProxy(binding.bindingId, "VALUE_CHANGED", { VALUE = value, SCALE = "CELSIUS" })
+    SendToProxy(binding.bindingId, "VALUE_CHANGED", SensorValueParams(value, "CELSIUS"))
   end
 end
 
@@ -209,7 +209,7 @@ end
 local function sendHumOutput(value)
   local binding = bindings:getDynamicBinding(NS_OUTPUT, OUTPUT_HUM)
   if binding and value then
-    SendToProxy(binding.bindingId, "VALUE_CHANGED", { VALUE = value, SCALE = "PERCENT" })
+    SendToProxy(binding.bindingId, "VALUE_CHANGED", SensorValueParams(value, "PERCENT"))
   end
 end
 
@@ -336,7 +336,13 @@ local function registerNumericInputHandlers(binding, name, sensorKey)
   RFP[binding.bindingId] = function(idBinding, strCommand, tParams, _args)
     log:trace("RFP[%s](%s, %s, %s)", binding.bindingId, idBinding, strCommand, tParams)
     if strCommand == "VALUE_CHANGED" then
-      local value = tonumber(Select(tParams, "VALUE"))
+      -- A temperature provider may send CELSIUS, FAHRENHEIT or VALUE with a SCALE.
+      local value
+      if sensorKey == INPUT_TEMP then
+        value = CelsiusFromParams(tParams, "CELSIUS")
+      else
+        value = tonumber(Select(tParams, "VALUE"))
+      end
       if value then
         setCachedInputValue(name, sensorKey, value)
         if getActiveInput() == name then
@@ -423,7 +429,7 @@ local function registerNumericOutputHandlers(binding, sensorKey, scale)
       if activeName then
         local value = getCachedInputValue(activeName, sensorKey)
         if value then
-          SendToProxy(idBinding, "VALUE_CHANGED", { VALUE = value, SCALE = scale })
+          SendToProxy(idBinding, "VALUE_CHANGED", SensorValueParams(value, scale))
         end
       end
     end
@@ -437,7 +443,7 @@ local function registerNumericOutputHandlers(binding, sensorKey, scale)
       if activeName then
         local value = getCachedInputValue(activeName, sensorKey)
         if value then
-          SendToProxy(idBinding, "VALUE_CHANGED", { VALUE = value, SCALE = scale })
+          SendToProxy(idBinding, "VALUE_CHANGED", SensorValueParams(value, scale))
         end
       end
     end
