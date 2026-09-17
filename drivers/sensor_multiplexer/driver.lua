@@ -339,7 +339,7 @@ local function registerNumericInputHandlers(binding, name, sensorKey)
       -- A temperature provider may send CELSIUS, FAHRENHEIT or VALUE with a SCALE.
       local value
       if sensorKey == INPUT_TEMP then
-        value = tofinite(CelsiusFromParams(tParams, "CELSIUS"))
+        value = CelsiusFromParams(tParams, "CELSIUS")
       else
         value = tofinite(Select(tParams, "VALUE"))
       end

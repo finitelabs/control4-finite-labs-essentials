@@ -17,8 +17,7 @@
 -- out of its source and run under a synthetic environment: real lib/utils
 -- helpers, stubbed driver-local collaborators.
 --
--- Every assertion is paired with a mutant run that reverts the fix, without
--- which a handler that stopped being reached at all would pass vacuously.
+-- Temperature arms have no revert run: since template v0.9.25 the guard is inside CelsiusFromParams (reverted in test_sensor_params.lua).
 --
 -- Regression test for DRV-122.
 
@@ -179,7 +178,9 @@ local AGGREGATOR_CASES = {
   },
   { what = "a NaN number on the temperature arm", key = "TEMP", params = { VALUE = NAN, SCALE = "CELSIUS" } },
   { what = "a NaN sent as CELSIUS", key = "TEMP", params = { CELSIUS = "nan" } },
+  { what = "an overflowing exponent sent as CELSIUS", key = "TEMP", params = { CELSIUS = "1e999" } },
   { what = "a NaN sent as FAHRENHEIT", key = "TEMP", params = { FAHRENHEIT = "nan" } },
+  { what = "an overflowing exponent sent as FAHRENHEIT", key = "TEMP", params = { FAHRENHEIT = "1e999" } },
   { what = "a NaN string on the humidity arm", key = "HUM", params = { VALUE = "nan" } },
   { what = "an infinity string on the humidity arm", key = "HUM", params = { VALUE = "inf" } },
 }
@@ -189,13 +190,19 @@ for _, case in ipairs(AGGREGATOR_CASES) do
   T.eq(case.what .. " is not cached", cached.input_1, nil)
   T.eq(case.what .. " triggers no recalculation", recalcs, 0)
 
-  local mutantCached = driveAggregator(case.key, case.params, true)
-  T.check(
-    case.what .. " IS cached once the fix is reverted",
-    mutantCached.input_1 ~= nil,
-    "the mutant rejected it too, so the case proves nothing"
-  )
+  -- Only the humidity arm is guarded by the driver, so only it has a revert.
+  if case.key == "HUM" then
+    local mutantCached = driveAggregator(case.key, case.params, true)
+    T.check(
+      case.what .. " IS cached once the fix is reverted",
+      mutantCached.input_1 ~= nil,
+      "the mutant rejected it too, so the case proves nothing"
+    )
+  end
 end
+
+local stillGuarded = driveAggregator("TEMP", { VALUE = "nan", SCALE = "CELSIUS" }, true)
+T.eq("the temperature arm stays guarded with the driver's tofinite reverted", stillGuarded.input_1, nil)
 
 T.section("sensor_aggregator: a finite reading still gets through")
 local finiteCached, finiteRecalcs = driveAggregator("TEMP", { VALUE = "21.5", SCALE = "CELSIUS" }, false)
@@ -245,6 +252,7 @@ local MULTIPLEXER_CASES = {
   { what = "a NaN string on the temperature arm", key = "TEMP", params = { VALUE = "nan", SCALE = "CELSIUS" } },
   { what = "an infinity string on the temperature arm", key = "TEMP", params = { VALUE = "inf", SCALE = "CELSIUS" } },
   { what = "a NaN sent as CELSIUS", key = "TEMP", params = { CELSIUS = "nan" } },
+  { what = "an overflowing exponent sent as FAHRENHEIT", key = "TEMP", params = { FAHRENHEIT = "1e999" } },
   { what = "a NaN string on the humidity arm", key = "HUM", params = { VALUE = "nan" } },
   { what = "an infinity string on the humidity arm", key = "HUM", params = { VALUE = "inf" } },
 }
@@ -254,13 +262,19 @@ for _, case in ipairs(MULTIPLEXER_CASES) do
   T.eq(case.what .. " is not cached", cached[case.key], nil)
   T.eq(case.what .. " updates no output", updates, 0)
 
-  local mutantCached = driveMultiplexer(case.key, case.params, true)
-  T.check(
-    case.what .. " IS cached once the fix is reverted",
-    mutantCached[case.key] ~= nil,
-    "the mutant rejected it too, so the case proves nothing"
-  )
+  -- Only the humidity arm is guarded by the driver, so only it has a revert.
+  if case.key == "HUM" then
+    local mutantCached = driveMultiplexer(case.key, case.params, true)
+    T.check(
+      case.what .. " IS cached once the fix is reverted",
+      mutantCached[case.key] ~= nil,
+      "the mutant rejected it too, so the case proves nothing"
+    )
+  end
 end
+
+local muxStillGuarded = driveMultiplexer("TEMP", { VALUE = "nan", SCALE = "CELSIUS" }, true)
+T.eq("the temperature arm stays guarded with the driver's tofinite reverted", muxStillGuarded.TEMP, nil)
 
 T.section("sensor_multiplexer: a finite reading still gets through")
 local muxCached, muxUpdates = driveMultiplexer("TEMP", { VALUE = "21.5", SCALE = "CELSIUS" }, false)
