@@ -189,9 +189,7 @@ T.section("temperature inputs use the tolerant parse")
 -- file-global search for either call cannot see which arm it sits in, so it
 -- still passes when the two are swapped.
 --
--- Since template v0.9.25 CelsiusFromParams rejects a non-finite reading itself,
--- so only the humidity arm still names `tofinite`. That a non-finite reading is
--- actually rejected is asserted in test_nonfinite_readings.lua.
+-- Since template v0.9.25 the helper does the finite check, so only the else arm names tofinite.
 -- Regression test for DRV-122.
 local INPUT_BRANCHES = {
   { driver = "sensor_aggregator", lhs = "persistKey", rhs = "PERSIST_TEMP_VALUES" },

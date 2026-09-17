@@ -17,15 +17,7 @@
 -- out of its source and run under a synthetic environment: real lib/utils
 -- helpers, stubbed driver-local collaborators.
 --
--- A case the driver itself guards is paired with a mutant run that reverts that
--- guard, without which a handler that stopped being reached would pass vacuously.
---
--- The temperature arms have no such pairing. Since template v0.9.25
--- CelsiusFromParams rejects a non-finite reading itself, the driver holds no
--- guard there to revert and a mutant arm could never fail; that helper's revert
--- check lives in the template's test_sensor_params.lua. Those cases still prove
--- the driver routes the reading through the guarded helper, and the positive
--- controls are what keep them honest.
+-- Temperature arms have no revert run: since template v0.9.25 the guard is inside CelsiusFromParams (reverted in test_sensor_params.lua).
 --
 -- Regression test for DRV-122.
 
@@ -209,10 +201,6 @@ for _, case in ipairs(AGGREGATOR_CASES) do
   end
 end
 
--- Why the cases above carry no revert arm, asserted rather than left to prose:
--- neutering the driver environment's tofinite changes nothing here, because the
--- guard sits inside the helper where that override cannot reach. A driver-side
--- wrap coming back is caught by test_sensor_binding_params.lua, not here.
 local stillGuarded = driveAggregator("TEMP", { VALUE = "nan", SCALE = "CELSIUS" }, true)
 T.eq("the temperature arm stays guarded with the driver's tofinite reverted", stillGuarded.input_1, nil)
 
