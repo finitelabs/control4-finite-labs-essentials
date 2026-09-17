@@ -188,6 +188,9 @@ T.section("temperature inputs use the tolerant parse")
 -- Both arms are read out of the single branch that selects between them. A
 -- file-global search for either call cannot see which arm it sits in, so it
 -- still passes when the two are swapped.
+--
+-- Both arms must also name `tofinite`; that a non-finite reading is actually
+-- rejected is asserted in test_nonfinite_readings.lua. Regression test for DRV-122.
 local INPUT_BRANCHES = {
   { driver = "sensor_aggregator", lhs = "persistKey", rhs = "PERSIST_TEMP_VALUES" },
   { driver = "sensor_multiplexer", lhs = "sensorKey", rhs = "INPUT_TEMP" },
@@ -204,7 +207,7 @@ for _, case in ipairs(INPUT_BRANCHES) do
     local missing = "no if/else on " .. case.lhs .. " == " .. case.rhs
     T.check(
       case.driver .. ": the " .. case.rhs .. " arm parses with CelsiusFromParams",
-      guarded ~= nil and guarded:match("^CelsiusFromParams%s*%(") ~= nil,
+      guarded ~= nil and guarded:find("CelsiusFromParams(tParams,", 1, true) ~= nil,
       guarded or missing
     )
     T.check(
@@ -212,6 +215,13 @@ for _, case in ipairs(INPUT_BRANCHES) do
       fallback ~= nil and fallback:find('Select(tParams, "VALUE")', 1, true) ~= nil,
       fallback or missing
     )
+    for _, arm in ipairs({ { "the " .. case.rhs .. " arm", guarded }, { "the else arm", fallback } }) do
+      T.check(
+        case.driver .. ": " .. arm[1] .. " admits only a finite reading",
+        arm[2] ~= nil and arm[2]:match("^tofinite%s*%(") ~= nil,
+        arm[2] or missing
+      )
+    end
   end
 end
 

@@ -810,7 +810,16 @@ function OnServerDataIn(nHandle, strData, strClientAddress)
     webhookBuffers[nHandle] = nil
     return webhookRespond(nHandle, 400, "Bad Request", { ok = false })
   end
-  local contentLength = tonumber(head:match("[Cc]ontent%-[Ll]ength:%s*(%d+)")) or 0
+  local declaredLength = head:match("[Cc]ontent%-[Ll]ength:%s*(%d+)")
+  local contentLength = 0
+  if declaredLength ~= nil then
+    -- Infinity, not 0, so a length too large for a double takes the 413 below.
+    contentLength = tofinite(declaredLength) or math.huge
+    if contentLength > MAX_RESPONSE_BYTES * 2 then
+      webhookBuffers[nHandle] = nil
+      return webhookRespond(nHandle, 413, "Payload Too Large", { ok = false })
+    end
+  end
   local body = buffer:sub(headerEnd + 4)
   if #body < contentLength then
     return

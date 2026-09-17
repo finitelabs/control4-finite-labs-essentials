@@ -728,7 +728,7 @@ function EC.Set_Temperature(params)
   end
 
   -- Parse value
-  local value = tonumber(valueStr)
+  local value = tofinite(valueStr)
   if value == nil then
     log:warn("Set Temperature: invalid value '%s'", valueStr)
     return
@@ -772,7 +772,7 @@ function EC.Set_Humidity(params)
   end
 
   -- Parse value
-  local value = tonumber(valueStr)
+  local value = tofinite(valueStr)
   if value == nil then
     log:warn("Set Humidity: invalid value '%s'", valueStr)
     return
