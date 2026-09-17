@@ -436,18 +436,28 @@ local WEBHOOK_CASES = {
   { what = "a Content-Length larger than the body bound", header = "99999999" },
 }
 
+-- Asserted once, so a source change that moves the anchors names itself here
+-- rather than as a failure in every mutant arm below.
+T.check(
+  "the revert still finds the guard in the current source",
+  revertWebhookGuard(cut["function OnServerDataIn"]) ~= nil,
+  "the anchors no longer match, so the mutant arms cannot revert anything"
+)
+
 for _, case in ipairs(WEBHOOK_CASES) do
   local buffers, responses = driveWebhook(request(case.header, "hi"), false)
   T.eq(case.what .. " releases the connection buffer", buffers[1], nil)
   T.eq(case.what .. " is answered", responses[1] and responses[1].code, 413)
 
   -- Reverted, the buffer is retained forever waiting for a body that cannot
-  -- arrive, which is the unbounded growth this guard exists to stop.
-  local mutantBuffers, mutantResponses = driveWebhook(request(case.header, "hi"), revertWebhookGuard)
+  -- arrive, which is the unbounded growth this guard exists to stop. loadCut
+  -- refuses to run a revert that matched nothing rather than quietly re-running
+  -- the fixed code, so that refusal is reported instead of aborting the file.
+  local ok, mutantBuffers, mutantResponses = pcall(driveWebhook, request(case.header, "hi"), revertWebhookGuard)
   T.check(
     case.what .. " IS retained once the fix is reverted",
-    mutantBuffers[1] ~= nil and mutantResponses[1] == nil,
-    "the mutant released it too, so the case proves nothing"
+    ok and mutantBuffers[1] ~= nil and mutantResponses[1] == nil,
+    ok and "the mutant released it too, so the case proves nothing" or tostring(mutantBuffers)
   )
 end
 
