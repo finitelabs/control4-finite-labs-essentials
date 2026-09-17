@@ -337,11 +337,13 @@ local function registerNumericInputHandlers(binding, name, sensorKey)
     log:trace("RFP[%s](%s, %s, %s)", binding.bindingId, idBinding, strCommand, tParams)
     if strCommand == "VALUE_CHANGED" then
       -- A temperature provider may send CELSIUS, FAHRENHEIT or VALUE with a SCALE.
+      -- CelsiusFromParams parses with tonumber, which yields NaN and infinity
+      -- rather than nil; a cached NaN then republishes on every input switch.
       local value
       if sensorKey == INPUT_TEMP then
-        value = CelsiusFromParams(tParams, "CELSIUS")
+        value = tofinite(CelsiusFromParams(tParams, "CELSIUS"))
       else
-        value = tonumber(Select(tParams, "VALUE"))
+        value = tofinite(Select(tParams, "VALUE"))
       end
       if value then
         setCachedInputValue(name, sensorKey, value)

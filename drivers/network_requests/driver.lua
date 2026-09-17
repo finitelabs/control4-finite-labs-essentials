@@ -810,7 +810,18 @@ function OnServerDataIn(nHandle, strData, strClientAddress)
     webhookBuffers[nHandle] = nil
     return webhookRespond(nHandle, 400, "Bad Request", { ok = false })
   end
-  local contentLength = tonumber(head:match("[Cc]ontent%-[Ll]ength:%s*(%d+)")) or 0
+  local declaredLength = head:match("[Cc]ontent%-[Ll]ength:%s*(%d+)")
+  local contentLength = 0
+  if declaredLength ~= nil then
+    -- A digit run too long for a double parses as infinity, which no byte count
+    -- can reach, so the wait below would never end. The header guard above only
+    -- runs while headers are incomplete, leaving this the sole bound on a body.
+    contentLength = tofinite(declaredLength) or math.huge
+    if contentLength > MAX_RESPONSE_BYTES * 2 then
+      webhookBuffers[nHandle] = nil
+      return webhookRespond(nHandle, 413, "Payload Too Large", { ok = false })
+    end
+  end
   local body = buffer:sub(headerEnd + 4)
   if #body < contentLength then
     return

@@ -459,11 +459,13 @@ local function registerInputHandlers(binding, persistKey, recalcFn)
     log:trace("RFP[%s](%s, %s, %s)", binding.bindingId, idBinding, strCommand, tParams)
     if strCommand == "VALUE_CHANGED" then
       -- A temperature provider may send CELSIUS, FAHRENHEIT or VALUE with a SCALE.
+      -- CelsiusFromParams parses with tonumber, which yields NaN and infinity
+      -- rather than nil; one NaN admitted here poisons every later aggregate.
       local value
       if persistKey == PERSIST_TEMP_VALUES then
-        value = CelsiusFromParams(tParams, "CELSIUS")
+        value = tofinite(CelsiusFromParams(tParams, "CELSIUS"))
       else
-        value = tonumber(Select(tParams, "VALUE"))
+        value = tofinite(Select(tParams, "VALUE"))
       end
       if value then
         setCachedValue(persistKey, binding.key, value)
