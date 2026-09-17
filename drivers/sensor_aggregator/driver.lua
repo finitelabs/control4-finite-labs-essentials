@@ -461,7 +461,7 @@ local function registerInputHandlers(binding, persistKey, recalcFn)
       -- A temperature provider may send CELSIUS, FAHRENHEIT or VALUE with a SCALE.
       local value
       if persistKey == PERSIST_TEMP_VALUES then
-        value = tofinite(CelsiusFromParams(tParams, "CELSIUS"))
+        value = CelsiusFromParams(tParams, "CELSIUS")
       else
         value = tofinite(Select(tParams, "VALUE"))
       end
