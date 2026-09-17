@@ -15,14 +15,10 @@
 -- OnDriverInit needs project context the shim does not model, so a driver.lua
 -- cannot be loaded far enough to reach these handlers. Each one is instead cut
 -- out of its source and run under a synthetic environment: real lib/utils
--- helpers, stubbed driver-local collaborators. The helper under test is always
--- the real one, never a stub, or the assertions would be comparing the harness
--- to itself.
+-- helpers, stubbed driver-local collaborators.
 --
--- Every assertion is paired with a mutant run in which `tofinite` is replaced by
--- `tonumber`, which is what the call sites used before this fix. The mutant must
--- admit the reading the fixed handler rejects. Without that arm a handler that
--- stopped being reached at all would pass every rejection assertion vacuously.
+-- Every assertion is paired with a mutant run that reverts the fix, without
+-- which a handler that stopped being reached at all would pass vacuously.
 --
 -- Regression test for DRV-122.
 
@@ -193,8 +189,6 @@ for _, case in ipairs(AGGREGATOR_CASES) do
   T.eq(case.what .. " is not cached", cached.input_1, nil)
   T.eq(case.what .. " triggers no recalculation", recalcs, 0)
 
-  -- The mutation arm: with tonumber in place of tofinite the reading gets in.
-  -- If this ever passes, the assertions above have stopped discriminating.
   local mutantCached = driveAggregator(case.key, case.params, true)
   T.check(
     case.what .. " IS cached once the fix is reverted",
@@ -345,8 +339,6 @@ local PROGRAMMER_CASES = {
   { which = "Set_Temperature", what = "the word inf", value = "inf" },
   { which = "Set_Temperature", what = "an exponent that overflows a double", value = "1e400" },
   { which = "Set_Humidity", what = "the word nan", value = "nan" },
-  -- An infinity does clamp to 100, so only the NaN survives Set_Humidity's
-  -- clamp; the overflow cases are the ones the clamp cannot absorb.
   { which = "Set_Humidity", what = "an exponent that overflows a double", value = "1e400", clamped = true },
 }
 
@@ -449,10 +441,8 @@ for _, case in ipairs(WEBHOOK_CASES) do
   T.eq(case.what .. " releases the connection buffer", buffers[1], nil)
   T.eq(case.what .. " is answered", responses[1] and responses[1].code, 413)
 
-  -- Reverted, the buffer is retained forever waiting for a body that cannot
-  -- arrive, which is the unbounded growth this guard exists to stop. loadCut
-  -- refuses to run a revert that matched nothing rather than quietly re-running
-  -- the fixed code, so that refusal is reported instead of aborting the file.
+  -- pcall so that loadCut refusing a revert that matched nothing is reported as
+  -- this case failing rather than aborting the file.
   local ok, mutantBuffers, mutantResponses = pcall(driveWebhook, request(case.header, "hi"), revertWebhookGuard)
   T.check(
     case.what .. " IS retained once the fix is reverted",

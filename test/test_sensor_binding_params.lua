@@ -189,9 +189,8 @@ T.section("temperature inputs use the tolerant parse")
 -- file-global search for either call cannot see which arm it sits in, so it
 -- still passes when the two are swapped.
 --
--- Both arms must also reject a non-finite reading, which is what admits it that
--- is asserted here; that it is rejected is asserted behaviourally in
--- test_nonfinite_readings.lua. Regression test for DRV-122.
+-- Both arms must also name `tofinite`; that a non-finite reading is actually
+-- rejected is asserted in test_nonfinite_readings.lua. Regression test for DRV-122.
 local INPUT_BRANCHES = {
   { driver = "sensor_aggregator", lhs = "persistKey", rhs = "PERSIST_TEMP_VALUES" },
   { driver = "sensor_multiplexer", lhs = "sensorKey", rhs = "INPUT_TEMP" },
