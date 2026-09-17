@@ -813,9 +813,7 @@ function OnServerDataIn(nHandle, strData, strClientAddress)
   local declaredLength = head:match("[Cc]ontent%-[Ll]ength:%s*(%d+)")
   local contentLength = 0
   if declaredLength ~= nil then
-    -- A digit run too long for a double parses as infinity, which no byte count
-    -- can reach, so the wait below would never end. The header guard above only
-    -- runs while headers are incomplete, leaving this the sole bound on a body.
+    -- Infinity, not 0, so a length too large for a double takes the 413 below.
     contentLength = tofinite(declaredLength) or math.huge
     if contentLength > MAX_RESPONSE_BYTES * 2 then
       webhookBuffers[nHandle] = nil

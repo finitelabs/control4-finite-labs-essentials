@@ -727,8 +727,7 @@ function EC.Set_Temperature(params)
     return
   end
 
-  -- Parse value. The Value parameter is free text, and tonumber reads "nan",
-  -- "inf" and any digit run too long for a double as a non-finite number.
+  -- Parse value
   local value = tofinite(valueStr)
   if value == nil then
     log:warn("Set Temperature: invalid value '%s'", valueStr)
@@ -772,8 +771,7 @@ function EC.Set_Humidity(params)
     return
   end
 
-  -- Parse value. math.max/math.min clamp an infinity but return NaN unchanged,
-  -- so the clamp below cannot stand in for rejecting a non-finite parse.
+  -- Parse value
   local value = tofinite(valueStr)
   if value == nil then
     log:warn("Set Humidity: invalid value '%s'", valueStr)
