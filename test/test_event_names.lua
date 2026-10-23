@@ -13,8 +13,6 @@ local T = require("testlib")
 require("c4_shim")
 require("lib.utils")
 
--- Resolved from this file rather than the working directory: make test runs from
--- the driver root, test/run_test.sh does not.
 local root = (debug.getinfo(1, "S").source:match("^@(.*[/\\])") or "./") .. ".."
 
 T.section("Sensor Multiplexer's Selection Changed names the device")
