@@ -201,6 +201,13 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Removed
 -->
 
+## Unreleased
+
+### Fixed
+
+- Fixed Sensor Multiplexer's Selection Changed event leaving the device's name
+  out of its script title in Composer Pro. The title now names the multiplexer.
+
 ## v20260816 - 2026-08-16
 
 ### Fixed
