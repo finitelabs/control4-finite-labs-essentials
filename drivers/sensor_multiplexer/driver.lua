@@ -624,7 +624,7 @@ local function ensureSelectionChangedEvent()
     NS_EVENTS,
     EVENT_SELECTION_CHANGED,
     "Selection Changed",
-    "Fires when the active input selection changes"
+    "Fires when the active input selection of NAME changes"
   )
 end
 
