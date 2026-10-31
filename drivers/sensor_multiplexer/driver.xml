@@ -136,6 +136,27 @@
           <item>No</item>
         </items>
       </property>
+      <!-- Thermostat Link -->
+      <property>
+        <name>Thermostat Link</name>
+        <type>LABEL</type>
+        <default>Thermostat Link</default>
+      </property>
+      <property>
+        <name>Linked Thermostat</name>
+        <type>DEVICE_SELECTOR</type>
+        <items>
+          <item>thermostatV2.c4i</item>
+        </items>
+        <multiselect>false</multiselect>
+        <description>Thermostat fed by Output Temperature. When set, Select Input also sets the thermostat preset of the same name, in an order that cannot start or stop the equipment between the two changes.</description>
+      </property>
+      <property>
+        <name>Thermostat Link Status</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
       <!-- Multiplexer Output -->
       <property>
         <name>Multiplexer Output</name>

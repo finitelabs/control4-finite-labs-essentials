@@ -49,6 +49,19 @@ local INPUT_CONTACT = "contact"
 local PERSIST_INPUT_VALUES = "InputValues"
 local PERSIST_ACTIVE_INPUT = "ActiveInput"
 local PERSIST_PARSED_NAMES = "ParsedNames"
+local PERSIST_LEARNED_PRESETS = "LearnedPresets"
+
+--- How long to wait for the linked thermostat to confirm one change before sending the next.
+local LINK_CONFIRM_TIMEOUT_MS = 10000
+local LINK_POLL_MS = 50
+
+--- How close the thermostat's reported temperature must be to count as the new input's.
+--- Covers the proxy's 0.5 °C rounding and a Fahrenheit thermostat's 1 °F steps.
+local LINK_TEMPERATURE_MATCH_C = 0.6
+
+--- Thermostat proxy variables whose changes the linked mode follows. The proxy
+--- updates the Celsius copies whichever scale the thermostat reports in.
+local FOLLOWED_THERMOSTAT_VARIABLES = { "PRESET", "HEAT_SETPOINT_C", "COOL_SETPOINT_C" }
 
 --- Event/conditional namespace
 local NS_EVENTS = "Mux"
@@ -167,22 +180,38 @@ end
 -- Property Helpers
 --------------------------------------------------------------------------------
 
---- Check if temperature is enabled.
+--- Get the linked thermostat proxy's device ID.
+--- @return integer|nil deviceId The thermostat proxy ID, or nil when not linked.
+local function getLinkedThermostatId()
+  return tointeger(Properties["Linked Thermostat"])
+end
+
+--- Check if temperature is enabled. A linked thermostat always needs it.
 --- @return boolean enabled
 local function isTempEnabled()
-  return Properties["Enable Temperature"] == "Yes"
+  return getLinkedThermostatId() ~= nil or Properties["Enable Temperature"] == "Yes"
 end
 
---- Check if humidity is enabled.
+--- Check if humidity is enabled. Not offered while linked to a thermostat.
 --- @return boolean enabled
 local function isHumEnabled()
-  return Properties["Enable Humidity"] == "Yes"
+  return getLinkedThermostatId() == nil and Properties["Enable Humidity"] == "Yes"
 end
 
---- Check if contact is enabled.
+--- Check if contact is enabled. Not offered while linked to a thermostat.
 --- @return boolean enabled
 local function isContactEnabled()
-  return Properties["Enable Contact"] == "Yes"
+  return getLinkedThermostatId() == nil and Properties["Enable Contact"] == "Yes"
+end
+
+--- Show the properties that apply to the current mode. Linked mode carries
+--- temperature only, so the sensor type switches give way to the link status.
+local function updateLinkedVisibility()
+  local linked = getLinkedThermostatId() ~= nil
+  for _, property in ipairs({ "Enable Temperature", "Enable Humidity", "Enable Contact" }) do
+    C4:SetPropertyAttribs(property, linked and constants.HIDE_PROPERTY or constants.SHOW_PROPERTY)
+  end
+  C4:SetPropertyAttribs("Thermostat Link Status", linked and constants.SHOW_PROPERTY or constants.HIDE_PROPERTY)
 end
 
 --------------------------------------------------------------------------------
@@ -323,6 +352,366 @@ local function setActiveInput(name)
   updateOutputs()
 end
 
+--- Check whether a name is one of the configured input names.
+--- @param name string|nil The name to check.
+--- @return boolean found
+local function isInputName(name)
+  for _, n in ipairs(getParsedNames()) do
+    if n == name then
+      return true
+    end
+  end
+  return false
+end
+
+--------------------------------------------------------------------------------
+-- Linked Thermostat
+--------------------------------------------------------------------------------
+
+--- Thermostat proxy variable IDs keyed by name, read from the linked proxy.
+--- @type table<string, integer>
+local thermostatVarIds = {}
+
+--- The thermostat whose variables are being followed.
+--- @type integer|nil
+local followedThermostatId = nil
+
+--- The input name a linked change is switching to, while one is in progress.
+--- @type string|nil
+local linkedTransition = nil
+
+--- The latest input requested while a linked change was in progress.
+--- @type string|nil
+local queuedLinkedInput = nil
+
+--- Read a variable from the linked thermostat proxy by name.
+--- @param name string The variable name.
+--- @return string|nil value
+local function thermostatVar(name)
+  local thermostatId, variableId = getLinkedThermostatId(), thermostatVarIds[name]
+  if thermostatId == nil or variableId == nil then
+    return nil
+  end
+  return C4:GetDeviceVariable(thermostatId, variableId)
+end
+
+--- Read a temperature or setpoint from the linked thermostat in Celsius.
+--- The proxy rounds its Celsius copies to 0.5, so a Fahrenheit thermostat is read in its own scale.
+--- @param prefix string The variable name without its scale suffix (e.g. "COOL_SETPOINT").
+--- @return number|nil celsius
+local function thermostatCelsius(prefix)
+  if thermostatVar("SCALE") == "FAHRENHEIT" then
+    return f2c(tofinite(thermostatVar(prefix .. "_F")))
+  end
+  return tofinite(thermostatVar(prefix .. "_C"))
+end
+
+--- Describe the thermostat's current setpoints, to recognize a preset by them.
+--- @return string|nil key The heat and cool setpoints, or nil if neither is known.
+local function setpointKey()
+  local heat, cool = thermostatCelsius("HEAT_SETPOINT"), thermostatCelsius("COOL_SETPOINT")
+  if heat == nil and cool == nil then
+    return nil
+  end
+  return tostring(heat) .. "/" .. tostring(cool)
+end
+
+--- Get the setpoints seen for each preset on the linked thermostat.
+--- @return table<string, string> presets Setpoint keys keyed by preset name.
+local function getLearnedPresets()
+  local learned = persist:get(PERSIST_LEARNED_PRESETS, {})
+  if learned.thermostat ~= getLinkedThermostatId() then
+    return {}
+  end
+  return learned.presets or {}
+end
+
+--- Remember the setpoints a preset applies.
+--- @param name string The preset name.
+--- @param key string The setpoint key.
+local function learnPreset(name, key)
+  local presets = getLearnedPresets()
+  if presets[name] == key then
+    return
+  end
+  log:debug("Learned thermostat preset '%s' as %s", name, key)
+  presets[name] = key
+  persist:set(PERSIST_LEARNED_PRESETS, { thermostat = getLinkedThermostatId(), presets = presets })
+end
+
+--- Classify what the thermostat is currently calling for.
+--- @return string call "cool", "heat" or "idle".
+local function thermostatCall()
+  local state = string.lower(tostring(thermostatVar("HVAC_STATE") or ""))
+  if state:find("cool") then
+    return "cool"
+  elseif state:find("heat") then
+    return "heat"
+  end
+  return "idle"
+end
+
+--- Work out what a thermostat would call for at a temperature.
+--- @param celsius number The temperature.
+--- @param mode string|nil The HVAC mode.
+--- @param heat number|nil The heat setpoint.
+--- @param cool number|nil The cool setpoint.
+--- @return string call "cool", "heat" or "idle".
+local function callFor(celsius, mode, heat, cool)
+  mode = string.lower(tostring(mode or ""))
+  local auto = mode == "auto"
+  if (auto or mode:find("cool")) and cool ~= nil and celsius > cool then
+    return "cool"
+  end
+  if (auto or mode:find("heat")) and heat ~= nil and celsius < heat then
+    return "heat"
+  end
+  return "idle"
+end
+
+--- Show whether the link is ready to use.
+local function updateLinkStatus()
+  local thermostatId = getLinkedThermostatId()
+  if thermostatId == nil then
+    UpdateProperty("Thermostat Link Status", "", true)
+    return
+  end
+
+  local connected = false
+  local output = bindings:getDynamicBinding(NS_OUTPUT, OUTPUT_TEMP)
+  if output then
+    for consumerId in pairs(C4:GetBoundConsumerDevices(C4:GetDeviceID(), output.bindingId) or {}) do
+      for proxyId in string.gmatch(tostring(C4:GetProxyDevicesById(consumerId) or ""), "%d+") do
+        if tointeger(proxyId) == thermostatId then
+          connected = true
+        end
+      end
+    end
+  end
+  if not connected then
+    UpdateProperty("Thermostat Link Status", "Connect Output Temperature to this thermostat's Temperature input", true)
+    return
+  end
+
+  local learned, unseen = getLearnedPresets(), {}
+  for _, name in ipairs(getParsedNames()) do
+    if learned[name] == nil then
+      table.insert(unseen, name)
+    end
+  end
+  if #unseen > 0 then
+    UpdateProperty(
+      "Thermostat Link Status",
+      "Linked. Not yet seen on the thermostat: " .. table.concat(unseen, ", "),
+      true
+    )
+  else
+    UpdateProperty("Thermostat Link Status", "Linked", true)
+  end
+end
+
+--- Select the input for a preset the thermostat changed to by itself.
+--- @param name string|nil The preset name.
+--- @param reason string Why the thermostat is believed to be on that preset.
+local function followThermostat(name, reason)
+  if linkedTransition ~= nil or not isInputName(name) or name == getActiveInput() then
+    return
+  end
+  log:info("Thermostat %s; selecting input '%s'", reason, name)
+  setActiveInput(name)
+end
+
+--- React to a followed thermostat variable changing.
+--- @param variableName string The variable name.
+--- @param value string|nil The new value.
+local function onThermostatVariableChanged(variableName, value)
+  log:trace("onThermostatVariableChanged(%s, %s)", variableName, value)
+  if variableName == "PRESET" then
+    if IsEmpty(value) then
+      return
+    end
+    local key = setpointKey()
+    if key ~= nil then
+      learnPreset(value, key)
+      updateLinkStatus()
+    end
+    followThermostat(value, "reports preset '" .. value .. "'")
+    return
+  end
+
+  -- Setpoints reach the proxy as soon as the thermostat reports them, while
+  -- PRESET can trail by seconds, so a preset is recognized by its setpoints first.
+  local key = setpointKey()
+  local match, matches = nil, 0
+  for name, learnedKey in pairs(getLearnedPresets()) do
+    if learnedKey == key then
+      match, matches = name, matches + 1
+    end
+  end
+  if matches == 1 then
+    followThermostat(match, "setpoints match preset '" .. match .. "'")
+  end
+end
+
+--- Poll the thermostat until a check passes or the wait times out.
+--- @param check fun(): boolean The confirmation check.
+--- @param onDone fun(confirmed: boolean) Called once with whether the check passed.
+local function waitForThermostat(check, onDone)
+  local started = C4:GetTime()
+  SetTimer("LinkedThermostat", LINK_POLL_MS, function()
+    local confirmed = check()
+    if confirmed or C4:GetTime() - started >= LINK_CONFIRM_TIMEOUT_MS then
+      CancelTimer("LinkedThermostat")
+      onDone(confirmed)
+    end
+  end, true)
+end
+
+--- Ask the linked thermostat to apply a preset.
+--- @param name string The preset name.
+local function setThermostatPreset(name)
+  log:debug("Setting thermostat preset '%s'", name)
+  SendToDevice(getLinkedThermostatId(), "SET_PRESET", { NAME = name })
+end
+
+local linkedSelect
+
+--- Finish a linked change and start any input requested meanwhile.
+local function endLinkedTransition()
+  linkedTransition = nil
+  local nextInput = queuedLinkedInput
+  queuedLinkedInput = nil
+  if nextInput ~= nil then
+    linkedSelect(nextInput)
+  end
+end
+
+--- Switch the input and the thermostat preset of the same name, in the order
+--- that keeps the thermostat from starting or stopping between the two.
+--- @param name string The input and preset name.
+linkedSelect = function(name)
+  if not isInputName(name) then
+    log:warn("Select Input: '%s' is not one of the input names", name)
+    return
+  end
+  if linkedTransition ~= nil then
+    log:info("Switching to '%s' is in progress; '%s' will follow", linkedTransition, name)
+    queuedLinkedInput = name
+    return
+  end
+  if thermostatVar("PRESET") == name then
+    setActiveInput(name)
+    return
+  end
+
+  local newTemp = getCachedInputValue(name, INPUT_TEMP)
+  local heat, cool = thermostatCelsius("HEAT_SETPOINT"), thermostatCelsius("COOL_SETPOINT")
+  local mode, call = thermostatVar("HVAC_MODE"), thermostatCall()
+  local inputFirst
+  if newTemp == nil then
+    -- The input has no temperature to send, so its order makes no difference.
+    inputFirst = true
+  elseif heat == nil and cool == nil then
+    log:warn("Thermostat setpoints are unknown; changing the preset before the input")
+    inputFirst = false
+  else
+    -- Between the two changes the thermostat sees one mode's temperature with
+    -- the other mode's setpoints. Going first with whichever change leaves its
+    -- current call as it is means that in-between state never starts or stops
+    -- the equipment on its own.
+    inputFirst = callFor(newTemp, mode, heat, cool) == call
+  end
+  log:info(
+    "Switching to '%s' (mode %s, heat %s, cool %s, calling %s, new temperature %s): %s first",
+    name,
+    mode,
+    heat,
+    cool,
+    call,
+    newTemp,
+    inputFirst and "input" or "preset"
+  )
+
+  linkedTransition = name
+  local keyBefore = setpointKey()
+  local function presetApplied()
+    return thermostatVar("PRESET") == name or setpointKey() ~= keyBefore
+  end
+
+  if inputFirst then
+    setActiveInput(name)
+    waitForThermostat(function()
+      local reported = thermostatCelsius("TEMPERATURE")
+      return newTemp == nil or (reported ~= nil and math.abs(reported - newTemp) <= LINK_TEMPERATURE_MATCH_C)
+    end, function(confirmed)
+      if not confirmed then
+        log:warn("Thermostat did not report the '%s' temperature; setting the preset anyway", name)
+      end
+      setThermostatPreset(name)
+      waitForThermostat(presetApplied, function(applied)
+        if not applied then
+          log:warn("Thermostat did not switch to preset '%s'", name)
+        end
+        endLinkedTransition()
+      end)
+    end)
+  else
+    setThermostatPreset(name)
+    waitForThermostat(presetApplied, function(applied)
+      if not applied then
+        log:warn("Thermostat did not switch to preset '%s'; selecting the input anyway", name)
+      end
+      setActiveInput(name)
+      endLinkedTransition()
+    end)
+  end
+end
+
+--- Stop following the thermostat and drop any linked change in progress.
+local function stopFollowingThermostat()
+  CancelTimer("LinkedThermostat")
+  linkedTransition, queuedLinkedInput = nil, nil
+  if followedThermostatId ~= nil then
+    for _, variableName in ipairs(FOLLOWED_THERMOSTAT_VARIABLES) do
+      local variableId = thermostatVarIds[variableName]
+      if variableId ~= nil then
+        UnregisterVariableListener(followedThermostatId, variableId)
+      end
+    end
+  end
+  followedThermostatId = nil
+  thermostatVarIds = {}
+end
+
+--- Look up the thermostat's variables and follow its preset and setpoints.
+--- @param thermostatId integer The thermostat proxy ID.
+local function startFollowingThermostat(thermostatId)
+  for variableId, variable in pairs(C4:GetDeviceVariables(thermostatId) or {}) do
+    thermostatVarIds[variable.name] = tointeger(variableId)
+  end
+  followedThermostatId = thermostatId
+  for _, variableName in ipairs(FOLLOWED_THERMOSTAT_VARIABLES) do
+    local variableId = thermostatVarIds[variableName]
+    if variableId == nil then
+      log:warn("Linked thermostat %s has no %s variable", thermostatId, variableName)
+    else
+      RegisterVariableListener(thermostatId, variableId, function(_, _, value)
+        onThermostatVariableChanged(variableName, value)
+      end)
+    end
+  end
+end
+
+--- Select an input, through the thermostat when one is linked.
+--- @param name string The input name.
+local function selectInput(name)
+  if getLinkedThermostatId() ~= nil then
+    linkedSelect(name)
+  else
+    setActiveInput(name)
+  end
+end
+
 --------------------------------------------------------------------------------
 -- Input Binding Handler Registration
 --------------------------------------------------------------------------------
@@ -446,6 +835,9 @@ local function registerNumericOutputHandlers(binding, sensorKey, scale)
           SendToProxy(idBinding, "VALUE_CHANGED", SensorValueParams(value, scale))
         end
       end
+    end
+    if sensorKey == INPUT_TEMP then
+      updateLinkStatus()
     end
   end
 end
@@ -821,32 +1213,37 @@ function OPC.Input_Names(propertyValue)
   ensureSelectionChangedEvent()
   reconcileConditionals()
 
-  -- Validate active selection
+  -- Validate active selection. A linked thermostat's current preset wins over the first name.
   local activeName = getActiveInput()
+  local fallbackName = names[1]
+  if getLinkedThermostatId() ~= nil and isInputName(thermostatVar("PRESET")) then
+    fallbackName = thermostatVar("PRESET")
+  end
   if #names == 0 then
     -- Empty names list: deselect
     if activeName ~= nil then
       setActiveInput(nil)
     end
-  elseif activeName == nil then
-    -- No active selection, select first
-    setActiveInput(names[1])
-  else
-    -- Check if active name still exists
-    local found = false
-    for _, name in ipairs(names) do
-      if name == activeName then
-        found = true
-        break
-      end
-    end
-    if not found then
-      -- Active name removed, select first remaining
-      setActiveInput(names[1])
-    end
+  elseif not isInputName(activeName) then
+    setActiveInput(fallbackName)
   end
 
   updateOutputs()
+  updateLinkStatus()
+end
+
+function OPC.Linked_Thermostat(propertyValue)
+  log:trace("OPC.Linked_Thermostat('%s')", propertyValue)
+  stopFollowingThermostat()
+  updateLinkedVisibility()
+  reconcileInputBindings()
+  ensureOutputBindings()
+  local thermostatId = getLinkedThermostatId()
+  if thermostatId ~= nil then
+    startFollowingThermostat(thermostatId)
+  end
+  updateOutputs()
+  updateLinkStatus()
 end
 
 function OPC.Enable_Temperature(propertyValue)
@@ -894,7 +1291,7 @@ function EC.Select_Input(params)
     log:warn("Select Input command called without input name")
     return
   end
-  setActiveInput(inputName)
+  selectInput(inputName)
 end
 
 --------------------------------------------------------------------------------
@@ -917,7 +1314,7 @@ function EC.Cycle_Input()
     end
   end
   log:print("Cycling input: %s → %s", activeName or "(none)", names[nextIndex])
-  setActiveInput(names[nextIndex])
+  selectInput(names[nextIndex])
 end
 
 --- Reset driver to initial state
@@ -929,6 +1326,8 @@ function EC.Reset_Driver(params)
   log:print("Resetting driver to initial state")
 
   -- Reset all dynamic state
+  stopFollowingThermostat()
+  persist:set(PERSIST_LEARNED_PRESETS, nil)
   bindings:reset()
   values:reset()
   events:reset()
@@ -954,6 +1353,7 @@ function EC.Reset_Driver(params)
   OPC.Enable_Temperature(Properties["Enable Temperature"])
   OPC.Enable_Humidity(Properties["Enable Humidity"])
   OPC.Enable_Contact(Properties["Enable Contact"])
+  OPC.Linked_Thermostat(Properties["Linked Thermostat"])
 end
 
 --#ifndef DRIVERCENTRAL
