@@ -19,6 +19,9 @@ local values = require("lib.values")
 local persist = require("lib.persist")
 local constants = require("constants")
 local updateSettings = require("lib.update-settings")
+--#ifdef DRIVERCENTRAL
+local supportCode = require("lib.support-code")
+--#endif
 --#ifndef DRIVERCENTRAL
 local githubUpdater = require("lib.github-updater")
 --#endif
@@ -784,6 +787,13 @@ function EC.SET_UPDATE_SETTING(params)
   log:trace("EC.SET_UPDATE_SETTING(%s)", params)
   updateSettings:take(params)
 end
+
+--#ifdef DRIVERCENTRAL
+--- Not logged: the value is the code.
+function OPC.Support_Code(propertyValue)
+  supportCode:enter(propertyValue)
+end
+--#endif
 
 function OPC.Temperature_Inputs(propertyValue)
   log:trace("OPC.Temperature_Inputs('%s')", propertyValue)

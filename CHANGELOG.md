@@ -20,6 +20,17 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ## Unreleased
 
+<!-- #ifdef DRIVERCENTRAL -->
+
+### Added
+
+- Added a `Support Code` property to the Device Programmer, Light Relay, Network
+  Requests, Sensor Aggregator, Sensor Multiplexer and Variable Expressions
+  drivers. A code from Finite Labs support opens the driver's Lua tab in
+  Composer for an hour; leave it blank otherwise.
+
+<!-- #endif -->
+
 ### Fixed
 
 - Fixed Sensor Multiplexer's Selection Changed event leaving the device's name

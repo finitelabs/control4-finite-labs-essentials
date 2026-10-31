@@ -20,6 +20,9 @@ local values = require("lib.values")
 local events = require("lib.events")
 local ExpressionEngine = require("lib.expressions")
 local updateSettings = require("lib.update-settings")
+--#ifdef DRIVERCENTRAL
+local supportCode = require("lib.support-code")
+--#endif
 --#ifndef DRIVERCENTRAL
 local githubUpdater = require("lib.github-updater")
 --#endif
@@ -517,6 +520,13 @@ function EC.SET_UPDATE_SETTING(params)
   log:trace("EC.SET_UPDATE_SETTING(%s)", params)
   updateSettings:take(params)
 end
+
+--#ifdef DRIVERCENTRAL
+--- Not logged: the value is the code.
+function OPC.Support_Code(propertyValue)
+  supportCode:enter(propertyValue)
+end
+--#endif
 
 --------------------------------------------------------------------------------
 -- Web UI Request Handlers (UIR)
