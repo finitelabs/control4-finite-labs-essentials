@@ -137,5 +137,25 @@ EC.Select_Input({ Input = "Away" })
 settle()
 T.eq("is Linked once all have been seen", Properties["Thermostat Link Status"], "Linked")
 
+--------------------------------------------------------------------------------
+T.section("Auto: an order that lands on the final call is clean")
+--------------------------------------------------------------------------------
+-- Away's 16/27 at 18 °C is idle, and Home's 28 °C ends up cooling against 20/24. Home's setpoints
+-- first would call for heat at 18 °C on the way; the temperature first goes straight to cooling.
+thermostat:set("HVAC_MODE", "Auto")
+persist:set("InputValues", { Home = { temp = 28 }, Sleep = { temp = 21 }, Away = { temp = 18 } })
+thermostat:set("TEMPERATURE_C", 18)
+commands()
+EC.Select_Input({ Input = "Home" })
+settle()
+T.eq("sends the temperature first", commands(), { "TEMPERATURE 28", "SET_PRESET Home" })
+
+-- Back to Away while cooling: 18 °C against Home's 20/24 would call for heat, but Away's 16/27
+-- at 28 °C keeps cooling until the temperature lands, so the preset goes first.
+thermostat:set("HVAC_STATE", "Cooling")
+EC.Select_Input({ Input = "Away" })
+settle()
+T.eq("sends the preset first", commands(), { "SET_PRESET Away", "TEMPERATURE 18" })
+
 thermostat:restore()
 T.finish()

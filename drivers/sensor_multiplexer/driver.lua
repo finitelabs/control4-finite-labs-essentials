@@ -422,9 +422,14 @@ local function thermostatCelsius(prefix)
   return tofinite(thermostatVar(prefix .. "_C"))
 end
 
+--- @class ThermostatPreset
+--- @field name string The thermostat's spelling of the preset name.
+--- @field heat number|nil The heat setpoint it applies, in Celsius.
+--- @field cool number|nil The cool setpoint it applies, in Celsius.
+
 --- Read the linked thermostat's presets. The thermostat proxy keeps the list
 --- itself, so this works whichever driver is behind it.
---- @return table<string, string> presets The thermostat's spelling of each preset name, keyed by its lowercase form.
+--- @return table<string, ThermostatPreset> presets The presets, keyed by lowercase name.
 local function getThermostatPresets()
   local thermostatId = getLinkedThermostatId()
   if thermostatId == nil then
@@ -432,11 +437,21 @@ local function getThermostatPresets()
   end
   local xml = C4:SendUIRequest(thermostatId, "GET_PRESETS", {})
   local root = not IsEmpty(xml) and C4:ParseXml(xml) or nil
+  local fahrenheit = thermostatVar("SCALE") == "FAHRENHEIT"
   local presets = {}
   for _, node in ipairs(Select(root, "ChildNodes") or {}) do
     local name = Select(node, "Attributes", "name")
     if not IsEmpty(name) and presets[string.lower(name)] == nil then
-      presets[string.lower(name)] = name
+      local fields = {}
+      local fieldsXml = Select(node, "Attributes", "preset_fields")
+      for _, field in ipairs(Select(not IsEmpty(fieldsXml) and C4:ParseXml(fieldsXml) or nil, "ChildNodes") or {}) do
+        fields[Select(field, "Attributes", "id") or ""] = tofinite(Select(field, "Attributes", "value"))
+      end
+      local preset = { name = name, heat = fields.heat_setpoint_c, cool = fields.cool_setpoint_c }
+      if fahrenheit then
+        preset.heat, preset.cool = f2c(fields.heat_setpoint_f), f2c(fields.cool_setpoint_f)
+      end
+      presets[string.lower(name)] = preset
     end
   end
   return presets
@@ -531,10 +546,10 @@ local function updateLinkStatus()
 
   local presets, learned, missing, unseen = getThermostatPresets(), getLearnedPresets(), {}, {}
   for _, name in ipairs(getParsedNames()) do
-    local presetName = presets[string.lower(name)]
-    if presetName == nil then
+    local preset = presets[string.lower(name)]
+    if preset == nil then
       table.insert(missing, name)
-    elseif learned[presetName] == nil then
+    elseif learned[preset.name] == nil then
       table.insert(unseen, name)
     end
   end
@@ -643,12 +658,13 @@ linkedSelect = function(name)
   end
   updateLinkStatus()
   -- A thermostat ignores a preset name it does not have, so there is nothing to wait for.
-  local presetName = getThermostatPresets()[string.lower(name)]
-  if presetName == nil then
+  local preset = getThermostatPresets()[string.lower(name)]
+  if preset == nil then
     log:warn("Thermostat has no preset named '%s'; selecting the input only", name)
     setActiveInput(name)
     return
   end
+  local presetName = preset.name
   if thermostatVar("PRESET") == presetName then
     setActiveInput(name)
     return
@@ -657,7 +673,7 @@ linkedSelect = function(name)
   local newTemp = getCachedInputValue(name, INPUT_TEMP)
   local heat, cool = thermostatCelsius("HEAT_SETPOINT"), thermostatCelsius("COOL_SETPOINT")
   local mode, call = thermostatVar("HVAC_MODE"), thermostatCall()
-  local inputFirst
+  local inputFirst, final
   if newTemp == nil then
     -- The input has no temperature to send, so its order makes no difference.
     inputFirst = true
@@ -665,18 +681,27 @@ linkedSelect = function(name)
     log:warn("Thermostat setpoints are unknown; changing the preset before the input")
     inputFirst = false
   else
-    -- Between the two changes the thermostat sees one mode's temperature against the other's
-    -- setpoints; going first with the change that keeps its current call means that never starts or stops it.
-    inputFirst = callFor(newTemp, mode, heat, cool) == call
+    -- Between the two changes the thermostat sees one mode's temperature against the other's setpoints. An order is
+    -- clean when that in-between call is the current one or the one the switch ends on; keeping the current one wins.
+    local viaInput, viaPreset = callFor(newTemp, mode, heat, cool), nil
+    local oldTemp = thermostatCelsius("TEMPERATURE")
+    if (preset.heat ~= nil or preset.cool ~= nil) and oldTemp ~= nil then
+      final = callFor(newTemp, mode, preset.heat, preset.cool)
+      viaPreset = callFor(oldTemp, mode, preset.heat, preset.cool)
+    end
+    local inputClean = viaInput == call or viaInput == final
+    local presetClean = viaPreset ~= nil and (viaPreset == call or viaPreset == final)
+    inputFirst = viaInput == call or (inputClean and not presetClean)
   end
   log:info(
-    "Switching to '%s' (mode %s, heat %s, cool %s, calling %s, new temperature %s): %s first",
+    "Switching to '%s' (mode %s, heat %s, cool %s, calling %s, new temperature %s, ending %s): %s first",
     name,
     mode,
     heat,
     cool,
     call,
     newTemp,
+    final or "unknown",
     inputFirst and "input" or "preset"
   )
 

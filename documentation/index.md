@@ -91,7 +91,7 @@ through.
 - Event fires when the active selection changes
 - Per-name conditionals for programming logic
 - Optional thermostat link that switches the thermostat preset along with the
-  input, without short-cycling the equipment
+  input in an order that avoids short-cycling the equipment
 
 ### Use Case: Thermostat Temperature Source
 

@@ -72,7 +72,7 @@ through.
 - Event fires when the active selection changes
 - Per-name conditionals for programming logic
 - Optional thermostat link that switches the thermostat preset along with the
-  input, without short-cycling the equipment
+  input in an order that avoids short-cycling the equipment
 
 ### Use Case: Thermostat Temperature Source
 
@@ -212,10 +212,10 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 - Sensor Multiplexer can now be linked to the thermostat it feeds. Select Input
   then sets the thermostat preset of the same name as well, changing the
-  thermostat's temperature and setpoints in an order that cannot start or stop
-  the equipment in between. Before, switching modes could briefly compare one
-  mode's setpoints against the other mode's room and short-cycle the system.
-  Presets changed at the thermostat itself are followed as soon as the
+  thermostat's temperature and setpoints in an order that keeps the equipment
+  from starting or stopping in between. Before, switching modes could briefly
+  compare one mode's setpoints against the other mode's room and short-cycle the
+  system. Presets changed at the thermostat itself are followed as soon as the
   thermostat reports their setpoints. Input and preset names match ignoring
   capitals, and the link's status names any input the thermostat has no preset
   for.

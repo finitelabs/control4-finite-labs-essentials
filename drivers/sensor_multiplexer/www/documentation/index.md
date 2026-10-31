@@ -77,7 +77,7 @@ through.
 - Event fires when the active selection changes
 - Per-name conditionals for programming logic
 - Optional thermostat link that switches the thermostat preset along with the
-  input, without short-cycling the equipment
+  input in an order that avoids short-cycling the equipment
 - Persistent state survives driver restarts
 
 # <span style="color:#109EFF">Installer Setup</span>
@@ -413,9 +413,14 @@ for heating or cooling, the equipment starts and stops again a moment later.
 
 Which change can safely go first depends on the room temperatures, the setpoints
 and whether the equipment is already running, so no fixed order in programming
-is right every time. The link reads all three from the thermostat on each Select
-Input and goes first with whichever change leaves the thermostat's current call
-as it is.
+is right every time. On each Select Input the link reads them from the
+thermostat and its presets, works out what the thermostat would call for between
+the two changes in either order, and picks an order in which that is either what
+it is calling for now or what it will call for once both changes are in.
+
+Such an order nearly always exists. In Auto, a switch between modes whose
+temperatures and setpoints cross over can have none; the link then changes the
+preset first.
 
 Programming triggered by the thermostat's own preset change is always too late,
 because the thermostat applies the new setpoints before Control4 is told the
