@@ -90,6 +90,8 @@ through.
 - Programming command to select the active input
 - Event fires when the active selection changes
 - Per-name conditionals for programming logic
+- Optional thermostat link that switches the thermostat preset along with the
+  input in an order that avoids short-cycling the equipment
 
 ### Use Case: Thermostat Temperature Source
 
@@ -103,7 +105,10 @@ temperature readings to a thermostat based on mode:
 1. Add a Sensor Multiplexer with Input Names set to `Away,Home,Sleep`
 1. Connect aggregator outputs to multiplexer inputs
 1. Connect multiplexer output to the thermostat
-1. Use programming to switch modes via the "Select Input" command
+1. Give the thermostat a preset per input name and set the multiplexer's Linked
+   Thermostat to it
+1. Use programming to switch modes via the "Select Input" command, which sets
+   the thermostat preset too
 
 See the individual Sensor Multiplexer documentation for the full walkthrough.
 

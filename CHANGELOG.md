@@ -20,6 +20,18 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ## Unreleased
 
+### Added
+
+- Sensor Multiplexer can now be linked to the thermostat it feeds. Select Input
+  then sets the thermostat preset of the same name as well, changing the
+  thermostat's temperature and setpoints in an order that keeps the equipment
+  from starting or stopping in between. Before, switching modes could briefly
+  compare one mode's setpoints against the other mode's room and short-cycle the
+  system. Presets changed at the thermostat itself are followed as soon as the
+  thermostat reports their setpoints. Input and preset names match ignoring
+  capitals, and the link's status names any input the thermostat has no preset
+  for.
+
 ### Fixed
 
 - Fixed Sensor Multiplexer's Selection Changed event leaving the device's name

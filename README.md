@@ -71,6 +71,8 @@ through.
 - Programming command to select the active input
 - Event fires when the active selection changes
 - Per-name conditionals for programming logic
+- Optional thermostat link that switches the thermostat preset along with the
+  input in an order that avoids short-cycling the equipment
 
 ### Use Case: Thermostat Temperature Source
 
@@ -84,7 +86,10 @@ temperature readings to a thermostat based on mode:
 1. Add a Sensor Multiplexer with Input Names set to `Away,Home,Sleep`
 1. Connect aggregator outputs to multiplexer inputs
 1. Connect multiplexer output to the thermostat
-1. Use programming to switch modes via the "Select Input" command
+1. Give the thermostat a preset per input name and set the multiplexer's Linked
+   Thermostat to it
+1. Use programming to switch modes via the "Select Input" command, which sets
+   the thermostat preset too
 
 See the individual Sensor Multiplexer documentation for the full walkthrough.
 
@@ -202,6 +207,18 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 -->
 
 ## Unreleased
+
+### Added
+
+- Sensor Multiplexer can now be linked to the thermostat it feeds. Select Input
+  then sets the thermostat preset of the same name as well, changing the
+  thermostat's temperature and setpoints in an order that keeps the equipment
+  from starting or stopping in between. Before, switching modes could briefly
+  compare one mode's setpoints against the other mode's room and short-cycle the
+  system. Presets changed at the thermostat itself are followed as soon as the
+  thermostat reports their setpoints. Input and preset names match ignoring
+  capitals, and the link's status names any input the thermostat has no preset
+  for.
 
 ### Fixed
 

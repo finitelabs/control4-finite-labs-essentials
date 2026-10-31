@@ -45,6 +45,7 @@ through.
     - [Cloud Settings](#cloud-settings)
     - [Driver Settings](#driver-settings)
     - [Input Configuration](#input-configuration)
+    - [Thermostat Link](#thermostat-link)
     - [Multiplexer Output](#multiplexer-output)
   - [Driver Actions](#driver-actions)
 - [Programming](#programming)
@@ -75,6 +76,8 @@ through.
 - Programming command to select the active input
 - Event fires when the active selection changes
 - Per-name conditionals for programming logic
+- Optional thermostat link that switches the thermostat preset along with the
+  input in an order that avoids short-cycling the equipment
 - Persistent state survives driver restarts
 
 # <span style="color:#109EFF">Installer Setup</span>
@@ -185,6 +188,37 @@ humidity output binding.
 When enabled, creates a contact input binding for each named group and a contact
 output binding.
 
+The three Enable properties are hidden while a thermostat is linked. A link
+carries temperature only, so temperature is always on and humidity and contact
+are off, removing their bindings.
+
+### Thermostat Link
+
+#### Linked Thermostat
+
+The thermostat that Output Temperature feeds. Leave it empty to use the
+multiplexer on its own. When set, each input is paired with the thermostat's
+preset of the same name, ignoring capitals, and switching one switches the
+other. See
+[Use Case: Thermostat Temperature Source](#use-case-thermostat-temperature-source).
+
+#### Thermostat Link Status (read-only)
+
+Shown only while a thermostat is linked. It is checked again on every Select
+Input and every preset change at the thermostat.
+
+- **Connect Output Temperature to this thermostat's Temperature input** - Output
+  Temperature is not connected to the linked thermostat.
+- **Thermostat has no preset named: \<names>** - The listed inputs have no
+  preset on the thermostat. Selecting one of them switches the input only and
+  leaves the thermostat's setpoints as they are. Create the preset or rename the
+  input.
+- **Linked. Not yet seen on the thermostat: \<names>** - The listed presets have
+  not been applied since the link was made. Until each has been applied once,
+  the multiplexer only notices a change to it made at the thermostat when the
+  thermostat reports the preset name, a few seconds later.
+- **Linked** - Ready.
+
 ### Multiplexer Output
 
 #### Active Input Name (read-only)
@@ -225,7 +259,8 @@ the current version.
 ### Cycle Input
 
 Cycles to the next input in the names list, wrapping from the last name back to
-the first. Useful for testing or manual cycling through input groups.
+the first. Useful for testing or manual cycling through input groups. With a
+linked thermostat it switches the preset too, as Select Input does.
 
 ### Reset Driver
 
@@ -265,7 +300,7 @@ bindings from other drivers (such as Sensor Aggregator outputs).
 
 Output bindings are created based on the Enable Temperature/Humidity/Contact
 properties. Connect these to devices that consume sensor values (e.g., a
-thermostat).
+thermostat). With a linked thermostat, only Output Temperature exists.
 
 ## Commands
 
@@ -273,6 +308,12 @@ thermostat).
 
 Selects the active input group by name. Use this command in programming to
 switch which group of sensor values is passed to the output.
+
+With a linked thermostat, it also sets the thermostat preset of the same name,
+choosing which of the two changes goes first and waiting for the thermostat to
+confirm it before sending the other. A Select Input that arrives while one is
+still in progress runs after it. An input with no matching preset is selected at
+once and the thermostat is left alone.
 
 **Parameters:**
 
@@ -338,19 +379,61 @@ In the Connections tab:
 ### Step 4: Connect Multiplexer Output to Thermostat
 
 Connect the **Sensor Multiplexer** → Output Temperature to the thermostat's
-temperature input binding (C4-THERM).
+temperature input binding (on a C4-THERM, the **Temperature** connection), and
+set the thermostat to control from that remote sensor.
 
-### Step 5: Program Mode Switching
+### Step 5: Link the Thermostat
 
-Use the **Scheduler agent** or custom programming to switch modes:
+1. On the thermostat, create a preset for each input name (`Away`, `Home`,
+   `Sleep`) with that mode's setpoints. Capitals do not have to match.
+1. On the multiplexer, set **Linked Thermostat** to the thermostat.
+1. Check that **Thermostat Link Status** neither asks you to connect Output
+   Temperature nor lists inputs with no preset.
+
+### Step 6: Program Mode Switching
+
+Use the **Scheduler agent** or custom programming to execute **Select Input**,
+and only Select Input. It sets the thermostat preset itself:
 
 - **Morning (6 AM)**: Execute "Select Input" command with Input = "Home"
 - **Evening (10 PM)**: Execute "Select Input" command with Input = "Sleep"
 - **Away mode**: Execute "Select Input" command with Input = "Away" (triggered
   by occupancy or manual toggle)
 
-You can also use the **conditionals** in programming to check which mode is
-active and branch logic accordingly.
+Turn off the thermostat's own preset schedule, and remove any programming that
+sets the preset or runs Select Input when the thermostat's preset changes. You
+can still use the **conditionals** to check which mode is active.
+
+### Why the Link Is Needed
+
+A mode change is two changes: the thermostat's setpoints and the temperature it
+reads. Between them, a thermostat using the multiplexer as its remote sensor
+compares one mode's setpoints against the other mode's room. If that mix calls
+for heating or cooling, the equipment starts and stops again a moment later.
+
+Which change can safely go first depends on the room temperatures, the setpoints
+and whether the equipment is already running, so no fixed order in programming
+is right every time. On each Select Input the link reads them from the
+thermostat and its presets, works out what the thermostat would call for between
+the two changes in either order, and picks an order in which that is either what
+it is calling for now or what it will call for once both changes are in.
+
+Such an order nearly always exists. In Auto, a switch between modes whose
+temperatures and setpoints cross over can have none; the link then changes the
+preset first.
+
+Programming triggered by the thermostat's own preset change is always too late,
+because the thermostat applies the new setpoints before Control4 is told the
+preset changed. On a C4-THERM that takes about 2 seconds.
+
+### Presets Changed at the Thermostat
+
+A preset picked on a touchscreen, in the app, on the thermostat itself or by the
+thermostat's schedule still applies its setpoints first. The link cannot reorder
+that. It switches the input as soon as the thermostat reports the new setpoints,
+recognizing the preset by the setpoints it has seen that preset apply before.
+That shortens the mismatch from seconds to about one round trip to the
+thermostat. Run mode changes through Select Input to avoid it entirely.
 
 <!-- #ifdef DRIVERCENTRAL -->
 
