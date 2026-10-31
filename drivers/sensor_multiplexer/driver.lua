@@ -364,6 +364,22 @@ local function isInputName(name)
   return false
 end
 
+--- Find the input a thermostat preset stands for. Names match ignoring case.
+--- @param presetName string|nil The preset name.
+--- @return string|nil name The input name, or nil if no input matches.
+local function inputForPreset(presetName)
+  if IsEmpty(presetName) then
+    return nil
+  end
+  local wanted = string.lower(presetName)
+  for _, n in ipairs(getParsedNames()) do
+    if string.lower(n) == wanted then
+      return n
+    end
+  end
+  return nil
+end
+
 --------------------------------------------------------------------------------
 -- Linked Thermostat
 --------------------------------------------------------------------------------
@@ -404,6 +420,26 @@ local function thermostatCelsius(prefix)
     return f2c(tofinite(thermostatVar(prefix .. "_F")))
   end
   return tofinite(thermostatVar(prefix .. "_C"))
+end
+
+--- Read the linked thermostat's presets. The thermostat proxy keeps the list
+--- itself, so this works whichever driver is behind it.
+--- @return table<string, string> presets The thermostat's spelling of each preset name, keyed by its lowercase form.
+local function getThermostatPresets()
+  local thermostatId = getLinkedThermostatId()
+  if thermostatId == nil then
+    return {}
+  end
+  local xml = C4:SendUIRequest(thermostatId, "GET_PRESETS", {})
+  local root = not IsEmpty(xml) and C4:ParseXml(xml) or nil
+  local presets = {}
+  for _, node in ipairs(Select(root, "ChildNodes") or {}) do
+    local name = Select(node, "Attributes", "name")
+    if not IsEmpty(name) and presets[string.lower(name)] == nil then
+      presets[string.lower(name)] = name
+    end
+  end
+  return presets
 end
 
 --- Describe the thermostat's current setpoints, to recognize a preset by them.
@@ -493,13 +529,18 @@ local function updateLinkStatus()
     return
   end
 
-  local learned, unseen = getLearnedPresets(), {}
+  local presets, learned, missing, unseen = getThermostatPresets(), getLearnedPresets(), {}, {}
   for _, name in ipairs(getParsedNames()) do
-    if learned[name] == nil then
+    local presetName = presets[string.lower(name)]
+    if presetName == nil then
+      table.insert(missing, name)
+    elseif learned[presetName] == nil then
       table.insert(unseen, name)
     end
   end
-  if #unseen > 0 then
+  if #missing > 0 then
+    UpdateProperty("Thermostat Link Status", "Thermostat has no preset named: " .. table.concat(missing, ", "), true)
+  elseif #unseen > 0 then
     UpdateProperty(
       "Thermostat Link Status",
       "Linked. Not yet seen on the thermostat: " .. table.concat(unseen, ", "),
@@ -511,10 +552,11 @@ local function updateLinkStatus()
 end
 
 --- Select the input for a preset the thermostat changed to by itself.
---- @param name string|nil The preset name.
+--- @param presetName string|nil The preset name.
 --- @param reason string Why the thermostat is believed to be on that preset.
-local function followThermostat(name, reason)
-  if linkedTransition ~= nil or not isInputName(name) or name == getActiveInput() then
+local function followThermostat(presetName, reason)
+  local name = inputForPreset(presetName)
+  if linkedTransition ~= nil or name == nil or name == getActiveInput() then
     return
   end
   log:info("Thermostat %s; selecting input '%s'", reason, name)
@@ -588,7 +630,7 @@ end
 
 --- Switch the input and the thermostat preset of the same name, in the order
 --- that keeps the thermostat from starting or stopping between the two.
---- @param name string The input and preset name.
+--- @param name string The input name.
 linkedSelect = function(name)
   if not isInputName(name) then
     log:warn("Select Input: '%s' is not one of the input names", name)
@@ -599,7 +641,15 @@ linkedSelect = function(name)
     queuedLinkedInput = name
     return
   end
-  if thermostatVar("PRESET") == name then
+  updateLinkStatus()
+  -- A thermostat ignores a preset name it does not have, so there is nothing to wait for.
+  local presetName = getThermostatPresets()[string.lower(name)]
+  if presetName == nil then
+    log:warn("Thermostat has no preset named '%s'; selecting the input only", name)
+    setActiveInput(name)
+    return
+  end
+  if thermostatVar("PRESET") == presetName then
     setActiveInput(name)
     return
   end
@@ -615,10 +665,8 @@ linkedSelect = function(name)
     log:warn("Thermostat setpoints are unknown; changing the preset before the input")
     inputFirst = false
   else
-    -- Between the two changes the thermostat sees one mode's temperature with
-    -- the other mode's setpoints. Going first with whichever change leaves its
-    -- current call as it is means that in-between state never starts or stops
-    -- the equipment on its own.
+    -- Between the two changes the thermostat sees one mode's temperature against the other's
+    -- setpoints; going first with the change that keeps its current call means that never starts or stops it.
     inputFirst = callFor(newTemp, mode, heat, cool) == call
   end
   log:info(
@@ -635,7 +683,7 @@ linkedSelect = function(name)
   linkedTransition = name
   local keyBefore = setpointKey()
   local function presetApplied()
-    return thermostatVar("PRESET") == name or setpointKey() ~= keyBefore
+    return thermostatVar("PRESET") == presetName or setpointKey() ~= keyBefore
   end
 
   if inputFirst then
@@ -647,19 +695,19 @@ linkedSelect = function(name)
       if not confirmed then
         log:warn("Thermostat did not report the '%s' temperature; setting the preset anyway", name)
       end
-      setThermostatPreset(name)
+      setThermostatPreset(presetName)
       waitForThermostat(presetApplied, function(applied)
         if not applied then
-          log:warn("Thermostat did not switch to preset '%s'", name)
+          log:warn("Thermostat did not switch to preset '%s'", presetName)
         end
         endLinkedTransition()
       end)
     end)
   else
-    setThermostatPreset(name)
+    setThermostatPreset(presetName)
     waitForThermostat(presetApplied, function(applied)
       if not applied then
-        log:warn("Thermostat did not switch to preset '%s'; selecting the input anyway", name)
+        log:warn("Thermostat did not switch to preset '%s'; selecting the input anyway", presetName)
       end
       setActiveInput(name)
       endLinkedTransition()
@@ -1216,8 +1264,8 @@ function OPC.Input_Names(propertyValue)
   -- Validate active selection. A linked thermostat's current preset wins over the first name.
   local activeName = getActiveInput()
   local fallbackName = names[1]
-  if getLinkedThermostatId() ~= nil and isInputName(thermostatVar("PRESET")) then
-    fallbackName = thermostatVar("PRESET")
+  if getLinkedThermostatId() ~= nil then
+    fallbackName = inputForPreset(thermostatVar("PRESET")) or fallbackName
   end
   if #names == 0 then
     -- Empty names list: deselect

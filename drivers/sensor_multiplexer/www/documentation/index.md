@@ -197,16 +197,22 @@ are off, removing their bindings.
 #### Linked Thermostat
 
 The thermostat that Output Temperature feeds. Leave it empty to use the
-multiplexer on its own. When set, each input name is also the name of a preset
-on that thermostat, and switching one switches the other. See
+multiplexer on its own. When set, each input is paired with the thermostat's
+preset of the same name, ignoring capitals, and switching one switches the
+other. See
 [Use Case: Thermostat Temperature Source](#use-case-thermostat-temperature-source).
 
 #### Thermostat Link Status (read-only)
 
-Shown only while a thermostat is linked:
+Shown only while a thermostat is linked. It is checked again on every Select
+Input and every preset change at the thermostat.
 
 - **Connect Output Temperature to this thermostat's Temperature input** - Output
   Temperature is not connected to the linked thermostat.
+- **Thermostat has no preset named: \<names>** - The listed inputs have no
+  preset on the thermostat. Selecting one of them switches the input only and
+  leaves the thermostat's setpoints as they are. Create the preset or rename the
+  input.
 - **Linked. Not yet seen on the thermostat: \<names>** - The listed presets have
   not been applied since the link was made. Until each has been applied once,
   the multiplexer only notices a change to it made at the thermostat when the
@@ -306,7 +312,8 @@ switch which group of sensor values is passed to the output.
 With a linked thermostat, it also sets the thermostat preset of the same name,
 choosing which of the two changes goes first and waiting for the thermostat to
 confirm it before sending the other. A Select Input that arrives while one is
-still in progress runs after it.
+still in progress runs after it. An input with no matching preset is selected at
+once and the thermostat is left alone.
 
 **Parameters:**
 
@@ -377,11 +384,11 @@ set the thermostat to control from that remote sensor.
 
 ### Step 5: Link the Thermostat
 
-1. On the thermostat, create a preset for each input name, spelled exactly the
-   same (`Away`, `Home`, `Sleep`), with that mode's setpoints.
+1. On the thermostat, create a preset for each input name (`Away`, `Home`,
+   `Sleep`) with that mode's setpoints. Capitals do not have to match.
 1. On the multiplexer, set **Linked Thermostat** to the thermostat.
-1. Check that **Thermostat Link Status** no longer asks you to connect Output
-   Temperature.
+1. Check that **Thermostat Link Status** neither asks you to connect Output
+   Temperature nor lists inputs with no preset.
 
 ### Step 6: Program Mode Switching
 

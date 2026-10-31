@@ -149,7 +149,7 @@
           <item>thermostatV2.c4i</item>
         </items>
         <multiselect>false</multiselect>
-        <description>Thermostat fed by Output Temperature. When set, Select Input also sets the thermostat preset of the same name, in an order that cannot start or stop the equipment between the two changes.</description>
+        <description>Thermostat fed by Output Temperature. When set, Select Input also sets the thermostat preset of the same name (capitals ignored), in an order that cannot start or stop the equipment between the two changes.</description>
       </property>
       <property>
         <name>Thermostat Link Status</name>
