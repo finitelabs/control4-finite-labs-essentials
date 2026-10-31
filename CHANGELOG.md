@@ -20,9 +20,9 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ## Unreleased
 
-<!-- #ifdef DRIVERCENTRAL -->
-
 ### Added
+
+<!-- #ifdef DRIVERCENTRAL -->
 
 - Added a `Support Code` property to the Device Programmer, Light Relay, Network
   Requests, Sensor Aggregator, Sensor Multiplexer and Variable Expressions
@@ -34,6 +34,14 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   hits; the documentation says what they hold.
 
 <!-- #endif -->
+
+- Sensor Multiplexer can now be linked to the thermostat it feeds. Select Input
+  then sets the thermostat preset of the same name as well, changing the
+  thermostat's temperature and setpoints in an order that cannot start or stop
+  the equipment in between. Before, switching modes could briefly compare one
+  mode's setpoints against the other mode's room and short-cycle the system.
+  Presets changed at the thermostat itself are followed as soon as the
+  thermostat reports their setpoints.
 
 ### Fixed
 
