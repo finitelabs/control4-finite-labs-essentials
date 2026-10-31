@@ -64,9 +64,17 @@ function F.thermostat(opts)
     if tonumber(deviceId) ~= t.proxyId or request ~= "GET_PRESETS" then
       return sendUIRequest(self, deviceId, request, params)
     end
+    -- As the proxy answers: each preset's fields are XML escaped into one attribute.
     local out = { "<presets>" }
     for i, preset in ipairs(t.presets) do
-      out[#out + 1] = string.format('<preset preset_id="%d" name="%s" preset_edit="all"/>', i, preset.name)
+      local fields = string.format(
+        '<preset_fields><field id="heat_setpoint_c" value="%s"/><field id="cool_setpoint_c" value="%s"/></preset_fields>',
+        preset.heat,
+        preset.cool
+      )
+      fields = fields:gsub("<", "&lt;"):gsub(">", "&gt;"):gsub('"', "&quot;")
+      out[#out + 1] =
+        string.format('<preset preset_id="%d" name="%s" preset_fields="%s" preset_edit="all"/>', i, preset.name, fields)
     end
     out[#out + 1] = "</presets>"
     return table.concat(out)
