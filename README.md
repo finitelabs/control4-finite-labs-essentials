@@ -216,7 +216,9 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   the equipment in between. Before, switching modes could briefly compare one
   mode's setpoints against the other mode's room and short-cycle the system.
   Presets changed at the thermostat itself are followed as soon as the
-  thermostat reports their setpoints.
+  thermostat reports their setpoints. Input and preset names match ignoring
+  capitals, and the link's status names any input the thermostat has no preset
+  for.
 
 ### Fixed
 
