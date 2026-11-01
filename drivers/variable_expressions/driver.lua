@@ -433,6 +433,10 @@ function OnDriverLateInit()
   UpdateProperty("Driver Status", "Ready")
 end
 
+--#ifdef DRIVERCENTRAL
+OnDriverLateInit = diagnostics:wrapLateInit(OnDriverLateInit)
+--#endif
+
 --- Clean up watches and flag expressions when a referenced device is removed.
 --- @param deviceId number
 function OnDeviceRemovedFromProject(deviceId)
