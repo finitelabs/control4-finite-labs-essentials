@@ -258,7 +258,7 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   instead of several times, with its variables grouped by where they come from.
   Proxies that stand for something of their own, such as a security panel's
   areas or a receiver's tuner, are still listed separately. Devices with no
-  variables are hidden, and any that still share a room and name are labelled
+  variables are hidden, and any that still share a room and name are labeled
   with their device id. A device's own variables are always listed first.
 - The variable browser now refreshes each time it opens, so devices and
   variables created during the session appear without reloading the tab, and the

@@ -1,5 +1,5 @@
--- Sensor Multiplexer fixtures: a thermostat proxy, with a C4-THERM behind it, as the
--- multiplexer's thermostat link sees it over Director.
+-- Sensor Multiplexer fixtures: a thermostat proxy and the thermostat behind it, as the
+-- multiplexer's thermostat link sees them over Director.
 
 require("c4_shim")
 require("c4_local")
@@ -16,7 +16,7 @@ local VARIABLES = {
   "COOL_SETPOINT_C",
 }
 
---- Install a thermostat. Like C4-THERM, it applies a SET_PRESET only for a preset name
+--- Install a thermostat. It applies a SET_PRESET only for a preset name
 --- it has exactly, and reports the temperature it is sent on its remote sensor input.
 --- @param opts table { presets = { { name, heat, cool } }, mode, preset, temperature }
 --- @return table thermostat `.proxyId`, `.protocolId`, `.sent` (every command, in order, with

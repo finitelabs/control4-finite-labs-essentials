@@ -229,7 +229,7 @@ other. See
 Shown only while a thermostat is linked. It is checked again on every Select
 Input and every preset change at the thermostat.
 
-- **Connect Output Temperature to this thermostat's Temperature input** - Output
+- **Connect Output Temperature to this thermostat's temperature input** - Output
   Temperature is not connected to the linked thermostat.
 - **Thermostat has no preset named: \<names>** - The listed inputs have no
   preset on the thermostat. Selecting one of them switches the input only and
@@ -410,8 +410,8 @@ In the Connections tab:
 ### Step 4: Connect Multiplexer Output to Thermostat
 
 Connect the **Sensor Multiplexer** → Output Temperature to the thermostat's
-temperature input binding (on a C4-THERM, the **Temperature** connection), and
-set the thermostat to control from that remote sensor.
+remote temperature input, and set the thermostat to control from that remote
+sensor.
 
 ### Step 5: Link the Thermostat
 
@@ -455,7 +455,7 @@ preset first.
 
 Programming triggered by the thermostat's own preset change is always too late,
 because the thermostat applies the new setpoints before Control4 is told the
-preset changed. On a C4-THERM that takes about 2 seconds.
+preset changed.
 
 ### Presets Changed at the Thermostat
 

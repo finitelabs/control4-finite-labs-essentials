@@ -71,7 +71,7 @@ T.eq("the active input follows the thermostat's preset", Properties["Active Inpu
 T.eq(
   "status asks for the connection first",
   Properties["Thermostat Link Status"],
-  "Connect Output Temperature to this thermostat's Temperature input"
+  "Connect Output Temperature to this thermostat's temperature input"
 )
 
 local output = assert(bindings:getDynamicBinding("Output", "temperature"))

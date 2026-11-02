@@ -544,7 +544,7 @@ local function updateLinkStatus()
     end
   end
   if not connected then
-    UpdateProperty("Thermostat Link Status", "Connect Output Temperature to this thermostat's Temperature input", true)
+    UpdateProperty("Thermostat Link Status", "Connect Output Temperature to this thermostat's temperature input", true)
     return
   end
 
