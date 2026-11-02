@@ -714,6 +714,10 @@ function OnDriverLateInit()
   UpdateProperty("Driver Status", "Ready")
 end
 
+--#ifdef DRIVERCENTRAL
+OnDriverLateInit = diagnostics:wrapLateInit(OnDriverLateInit)
+--#endif
+
 --------------------------------------------------------------------------------
 -- OPC Handlers
 --------------------------------------------------------------------------------
