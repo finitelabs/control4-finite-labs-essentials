@@ -6,13 +6,14 @@
 -- or:
 --   ./test/run_test.sh test_sensor_binding_params.lua
 --
--- The helpers' own behaviour is covered by test_sensor_params.lua. What is
+-- The helpers' own behavior is covered by test_sensor_params.lua. What is
 -- checked here is that the drivers call them, which no unit test can see: a
 -- driver.lua cannot be loaded far enough to reach these handlers (OnDriverInit
--- needs project context the shim does not model), so the call sites are read
--- from the sources instead. A payload that omits TIMESTAMP crashes C4-THERM at
--- its driver.lua:2982, and one that omits CELSIUS is discarded; a consumer that
--- reads VALUE only ingests nothing from a provider sending CELSIUS/FAHRENHEIT.
+-- needs project context the shim does not model), so the test reads each
+-- driver.lua's text for the call sites instead. A payload that omits TIMESTAMP
+-- crashes a bound thermostat, and one that omits CELSIUS is discarded; a
+-- consumer that reads VALUE only ingests nothing from a provider sending
+-- CELSIUS/FAHRENHEIT.
 -- Regression test for DRV-121.
 
 local T = require("testlib")
@@ -181,8 +182,8 @@ end
 T.section("temperature inputs use the tolerant parse")
 --------------------------------------------------------------------------------
 
--- A provider may send CELSIUS, FAHRENHEIT, or VALUE with a SCALE; YoLink sends
--- CELSIUS and FAHRENHEIT and no VALUE at all. Humidity carries no scale to
+-- A provider may send CELSIUS, FAHRENHEIT, or VALUE with a SCALE, and some send
+-- CELSIUS and FAHRENHEIT with no VALUE at all. Humidity carries no scale to
 -- convert, so its arm must keep reading VALUE directly.
 --
 -- Both arms are read out of the single branch that selects between them. A
