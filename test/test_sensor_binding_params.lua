@@ -182,8 +182,8 @@ end
 T.section("temperature inputs use the tolerant parse")
 --------------------------------------------------------------------------------
 
--- A provider may send CELSIUS, FAHRENHEIT, or VALUE with a SCALE; YoLink sends
--- CELSIUS and FAHRENHEIT and no VALUE at all. Humidity carries no scale to
+-- A provider may send CELSIUS, FAHRENHEIT, or VALUE with a SCALE, and some send
+-- CELSIUS and FAHRENHEIT with no VALUE at all. Humidity carries no scale to
 -- convert, so its arm must keep reading VALUE directly.
 --
 -- Both arms are read out of the single branch that selects between them. A
