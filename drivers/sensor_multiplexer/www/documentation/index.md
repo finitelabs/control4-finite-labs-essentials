@@ -369,7 +369,7 @@ In the Connections tab:
 ### Step 4: Connect Multiplexer Output to Thermostat
 
 Connect the **Sensor Multiplexer** → Output Temperature to the thermostat's
-temperature input binding (C4-THERM).
+remote temperature input.
 
 ### Step 5: Program Mode Switching
 
