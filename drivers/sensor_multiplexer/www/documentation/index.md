@@ -254,6 +254,12 @@ the first. Useful for testing or manual cycling through input groups.
 Resets the driver state, clearing all cached input values, bindings, events, and
 conditionals.
 
+<!-- #ifdef DRIVERCENTRAL -->
+
+It also turns Cloud Monitoring back on, as a fresh install has it.
+
+<!-- #endif -->
+
 **Parameters:**
 
 - **Are You Sure?** \[ **_No_** | Yes \] - Confirmation to reset the driver.

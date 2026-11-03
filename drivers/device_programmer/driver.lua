@@ -1122,6 +1122,9 @@ function EC.Reset_Driver(params)
   for propName, defaultValue in pairs(resetValues) do
     UpdateProperty(propName, defaultValue, true)
   end
+  --#ifdef DRIVERCENTRAL
+  UpdateProperty("Cloud Monitoring", "Enabled", true)
+  --#endif
 end
 
 --#ifndef DRIVERCENTRAL
