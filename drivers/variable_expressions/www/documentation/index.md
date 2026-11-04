@@ -19,11 +19,7 @@ ______________________________________________________________________
 
 # <span style="color:#109EFF">Overview</span>
 
-<!-- #ifndef DRIVERCENTRAL -->
-
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
-
-<!-- #endif -->
 
 Control4 programming offers only basic operations on variables: set a value,
 randomize, increment, decrement, or copy from another variable. Variable

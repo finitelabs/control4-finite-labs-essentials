@@ -19,11 +19,7 @@ ______________________________________________________________________
 
 # <span style="color:#109EFF">Overview</span>
 
-<!-- #ifndef DRIVERCENTRAL -->
-
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
-
-<!-- #endif -->
 
 Network Requests sends HTTP, raw TCP, UDP, and Wake-on-LAN commands to devices
 and services that have no Control4 driver. Requests are defined once, by name,

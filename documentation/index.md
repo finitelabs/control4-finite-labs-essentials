@@ -19,11 +19,7 @@ ______________________________________________________________________
 
 # <span style="color:#109EFF">Overview</span>
 
-<!-- #ifndef DRIVERCENTRAL -->
-
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
-
-<!-- #endif -->
 
 Finite Labs Essentials is a collection of independent Control4 drivers that
 extend your system with advanced management capabilities. Each driver operates

@@ -19,11 +19,7 @@ ______________________________________________________________________
 
 # <span style="color:#109EFF">Overview</span>
 
-<!-- #ifndef DRIVERCENTRAL -->
-
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
-
-<!-- #endif -->
 
 Create virtual sensors and relays controllable via Control4 programming. Enter
 comma-delimited names per type (temperature, humidity, contact, relay) and the

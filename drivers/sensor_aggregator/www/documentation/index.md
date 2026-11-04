@@ -19,11 +19,7 @@ ______________________________________________________________________
 
 # <span style="color:#109EFF">Overview</span>
 
-<!-- #ifndef DRIVERCENTRAL -->
-
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
-
-<!-- #endif -->
 
 Aggregate multiple sensor inputs into single outputs using configurable
 aggregation functions. This driver receives TEMPERATURE_VALUE, HUMIDITY_VALUE,
