@@ -19,11 +19,7 @@ ______________________________________________________________________
 
 # <span style="color:#109EFF">Overview</span>
 
-<!-- #ifndef DRIVERCENTRAL -->
-
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
-
-<!-- #endif -->
 
 Switch between named groups of sensor inputs, passing the selected group's
 values to output bindings. Unlike the Sensor Aggregator which combines N inputs
