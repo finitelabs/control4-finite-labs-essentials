@@ -16,6 +16,7 @@ local values = require("lib.values")
 local events = require("lib.events")
 local ExpressionEngine = require("lib.expressions")
 local updateSettings = require("lib.update-settings")
+local tabProperties = require("lib.tab-properties")
 --#ifdef DRIVERCENTRAL
 local drivercentral = require("lib.drivercentral")
 local supportCode = require("lib.support-code")
@@ -443,6 +444,7 @@ function OnDriverLateInit()
 
   gInitialized = true
   UpdateProperty("Driver Status", "Ready")
+  tabProperties:follow(UIR._GET_CONFIG)
 
   --#ifdef DRIVERCENTRAL
   drivercentral:startGate(function(active)
@@ -611,7 +613,22 @@ function UIR._GET_CONFIG()
   table.sort(expressions, function(a, b)
     return (a.name or "") < (b.name or "")
   end)
-  return uiRespond("CONFIG_DATA", { expressions = JSON:encode(expressions) })
+  return uiRespond("CONFIG_DATA", {
+    expressions = JSON:encode(expressions),
+    properties = JSON:encode(tabProperties:list()),
+  })
+end
+
+--- Set one of the driver's properties, as Composer's Properties tab would.
+--- @param tParams table
+function UIR._SET_PROPERTY(tParams)
+  log:trace("UIR._SET_PROPERTY()")
+  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local err = tabProperties:set(params.property, params.value)
+  if err then
+    return uiRespond("PROPERTY_ERROR", { error = err })
+  end
+  return UIR._GET_CONFIG()
 end
 
 --- Create or update a named expression.
