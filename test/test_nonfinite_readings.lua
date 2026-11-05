@@ -298,6 +298,9 @@ local function driveProgrammer(which, valueStr, mutate)
   local stubs = {
     EC = {},
     log = LOG_STUB,
+    licensed = function()
+      return true
+    end,
     getTemperatureNames = function()
       return { "Outside" }
     end,

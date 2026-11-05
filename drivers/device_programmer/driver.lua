@@ -1,9 +1,5 @@
 --- Device Programmer Driver
---#ifdef DRIVERCENTRAL
-DC_PID = nil
-DC_X = nil
-DC_FILENAME = "device_programmer.c4z"
---#else
+--#ifndef DRIVERCENTRAL
 DRIVER_GITHUB_REPO = "finitelabs/control4-finite-labs-essentials"
 --#endif
 require("lib.utils")
@@ -18,12 +14,23 @@ local bindings = require("lib.bindings")
 local persist = require("lib.persist")
 local updateSettings = require("lib.update-settings")
 --#ifdef DRIVERCENTRAL
+local drivercentral = require("lib.drivercentral")
 local supportCode = require("lib.support-code")
 local diagnostics = require("lib.diagnostics")
 --#endif
 --#ifndef DRIVERCENTRAL
 local githubUpdater = require("lib.github-updater")
 --#endif
+
+--- Whether the driver may act: a DriverCentral build stops while it has no license, and an OSS build never does.
+--- @return boolean
+local function licensed()
+  local ok = true
+  --#ifdef DRIVERCENTRAL
+  ok = drivercentral:licensed()
+  --#endif
+  return ok
+end
 
 --------------------------------------------------------------------------------
 -- Constants
@@ -221,7 +228,7 @@ local function registerTemperatureOutputHandlers(binding, name)
   -- RFP handler: respond to GET_VALUE
   RFP[binding.bindingId] = function(idBinding, strCommand, _tParams, _args)
     log:trace("RFP[%s](%s, %s)", binding.bindingId, idBinding, strCommand)
-    if strCommand == "GET_VALUE" then
+    if strCommand == "GET_VALUE" and licensed() then
       local value = getTemperatureValues()[name]
       if value then
         SendToProxy(idBinding, "VALUE_CHANGED", SensorValueParams(value, getTemperatureScale()))
@@ -232,7 +239,7 @@ local function registerTemperatureOutputHandlers(binding, name)
   -- OBC handler: send current value when consumer connects
   OBC[binding.bindingId] = function(idBinding, _strClass, bIsBound, _otherDeviceId, _otherBindingId)
     log:trace("OBC[%s](%s, %s, %s)", binding.bindingId, idBinding, _strClass, bIsBound)
-    if bIsBound then
+    if bIsBound and licensed() then
       local value = getTemperatureValues()[name]
       if value then
         SendToProxy(idBinding, "VALUE_CHANGED", SensorValueParams(value, getTemperatureScale()))
@@ -248,7 +255,7 @@ local function registerHumidityOutputHandlers(binding, name)
   -- RFP handler: respond to GET_VALUE
   RFP[binding.bindingId] = function(idBinding, strCommand, _tParams, _args)
     log:trace("RFP[%s](%s, %s)", binding.bindingId, idBinding, strCommand)
-    if strCommand == "GET_VALUE" then
+    if strCommand == "GET_VALUE" and licensed() then
       local value = getHumidityValues()[name]
       if value then
         SendToProxy(idBinding, "VALUE_CHANGED", SensorValueParams(value, "PERCENT"))
@@ -259,7 +266,7 @@ local function registerHumidityOutputHandlers(binding, name)
   -- OBC handler: send current value when consumer connects
   OBC[binding.bindingId] = function(idBinding, _strClass, bIsBound, _otherDeviceId, _otherBindingId)
     log:trace("OBC[%s](%s, %s, %s)", binding.bindingId, idBinding, _strClass, bIsBound)
-    if bIsBound then
+    if bIsBound and licensed() then
       local value = getHumidityValues()[name]
       if value then
         SendToProxy(idBinding, "VALUE_CHANGED", SensorValueParams(value, "PERCENT"))
@@ -277,7 +284,7 @@ local function registerContactOutputHandlers(binding, name)
   -- OBC handler: send current state when consumer connects
   OBC[binding.bindingId] = function(idBinding, _strClass, bIsBound, _otherDeviceId, _otherBindingId)
     log:trace("OBC[%s](%s, %s, %s)", binding.bindingId, idBinding, _strClass, bIsBound)
-    if bIsBound then
+    if bIsBound and licensed() then
       local closed = getContactValues()[name]
       if closed ~= nil then
         -- Use STATE_ prefix on bind to set state without triggering programming events
@@ -306,7 +313,7 @@ local function registerRelayOutputHandlers(binding, name)
   -- OBC handler: send current state when consumer connects
   OBC[binding.bindingId] = function(idBinding, _strClass, bIsBound, _otherDeviceId, _otherBindingId)
     log:trace("OBC[%s](%s, %s, %s)", binding.bindingId, idBinding, _strClass, bIsBound)
-    if bIsBound then
+    if bIsBound and licensed() then
       local closed = getRelayValues()[name]
       if closed ~= nil then
         -- Use STATE_ prefix on bind to set state without triggering programming events
@@ -431,8 +438,7 @@ end
 
 function OnDriverInit()
   --#ifdef DRIVERCENTRAL
-  require("cloud-client-byte")
-  C4:AllowExecute(false)
+  drivercentral:startClient()
   --#else
   C4:AllowExecute(true)
   --#endif
@@ -477,6 +483,17 @@ function OnDriverLateInit()
 
   gInitialized = true
   UpdateProperty("Driver Status", "Ready")
+
+  --#ifdef DRIVERCENTRAL
+  drivercentral:startGate(function(active)
+    if not active then
+      UpdateProperty("Driver Status", drivercentral.UNLICENSED_STATUS)
+      return
+    end
+    UpdateProperty("Driver Status", "Ready")
+    restorePersistedValues()
+  end)
+  --#endif
 end
 
 --#ifdef DRIVERCENTRAL
@@ -670,7 +687,7 @@ end
 
 function OPC.Hide_Devices(propertyValue)
   log:trace("OPC.Hide_Devices('%s')", propertyValue)
-  if IsEmpty(propertyValue) then
+  if IsEmpty(propertyValue) or not licensed() then
     return
   end
 
@@ -726,6 +743,9 @@ end
 --- @param params table Command parameters: Name, Value, Scale.
 function EC.Set_Temperature(params)
   log:trace("EC.Set_Temperature(%s)", params)
+  if not licensed() then
+    return
+  end
   local name = Select(params, "Name")
   local valueStr = Select(params, "Value")
   local scale = normalizeScale(Select(params, "Scale"))
@@ -771,6 +791,9 @@ end
 --- @param params table Command parameters: Name, Value.
 function EC.Set_Humidity(params)
   log:trace("EC.Set_Humidity(%s)", params)
+  if not licensed() then
+    return
+  end
   local name = Select(params, "Name")
   local valueStr = Select(params, "Value")
 
@@ -812,6 +835,9 @@ end
 --- @param params table Command parameters: Name, State.
 function EC.Set_Contact(params)
   log:trace("EC.Set_Contact(%s)", params)
+  if not licensed() then
+    return
+  end
   local name = Select(params, "Name")
   local state = Select(params, "State")
 
@@ -912,6 +938,9 @@ end
 --- @param params table Command parameters: Name.
 function EC.Open_Relay(params)
   log:trace("EC.Open_Relay(%s)", params)
+  if not licensed() then
+    return
+  end
   local name = Select(params, "Name")
 
   if IsEmpty(name) then
@@ -932,6 +961,9 @@ end
 --- @param params table Command parameters: Name.
 function EC.Close_Relay(params)
   log:trace("EC.Close_Relay(%s)", params)
+  if not licensed() then
+    return
+  end
   local name = Select(params, "Name")
 
   if IsEmpty(name) then
@@ -952,6 +984,9 @@ end
 --- @param params table Command parameters: Name.
 function EC.Toggle_Relay(params)
   log:trace("EC.Toggle_Relay(%s)", params)
+  if not licensed() then
+    return
+  end
   local name = Select(params, "Name")
 
   if IsEmpty(name) then

@@ -32,6 +32,11 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   `Diagnostics Snapshot` action to every driver. Cloud Monitoring sends Finite
   Labs an hourly report of the driver's memory use and a report of each error it
   hits; the documentation says what they hold.
+- Added a license check to every driver. Without an active DriverCentral license
+  or trial, a driver stops five minutes after it loads and shows
+  `No active license` in Driver Status: it sends nothing to its devices,
+  proxies, events, variables or the network, and answers a webhook with 503. A
+  license starts it again at once.
 
 <!-- #endif -->
 
