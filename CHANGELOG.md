@@ -54,6 +54,9 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   webhook server was listening on the new port.
 - Fixed Sensor Multiplexer's Selection Changed event leaving the device's name
   out of its script title in Composer Pro. The title now names the multiplexer.
+- Fixed long names and values running past the edge of the Network Requests and
+  Variable Expressions tabs. They now wrap inside the page, and the Mode column
+  shows NUMBER in full.
 
 ### Changed
 
