@@ -8,6 +8,7 @@
 require("c4_shim")
 local T = require("testlib")
 local H = require("license_harness")
+local cloud = require("dc_cloud")
 
 local function upstairsTemperature()
   for key, binding in pairs(require("lib.bindings"):getDynamicBindings("In:Upstairs")) do
@@ -46,5 +47,17 @@ H.standardChecks(
     ReceivedFromProxy(upstairsTemperature(), "VALUE_CHANGED", { CELSIUS = "20" })
   end
 )
+
+T.section("sensor_multiplexer: an input list edited while stopped still selects a valid input after a purchase")
+H.load("sensor_multiplexer", H.INVALID, { ["Input Names"] = "Upstairs,Downstairs" })
+ExecuteCommand("Select Input", { Input = "Upstairs" })
+H.reads(30)
+local edit = H.run(function()
+  Properties["Input Names"] = "Downstairs,Attic"
+  OnPropertyChanged("Input Names")
+end)
+T.eq("the edit while stopped sends nothing", edit, "")
+cloud.say(H.LICENSED)
+T.eq("the purchase leaves a listed input selected", Properties["Active Input Name"], "Downstairs")
 
 T.finish()

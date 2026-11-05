@@ -883,9 +883,6 @@ end
 --- @param params table Command parameters: Name, Variable, Scale.
 function EC.Set_Temperature_from_Variable(params)
   log:trace("EC.Set_Temperature_from_Variable(%s)", params)
-  if not licensed() then
-    return
-  end
   EC.Set_Temperature({
     Name = Select(params, "Name"),
     Value = Select(params, "Variable"),
@@ -898,9 +895,6 @@ end
 --- @param params table Command parameters: Name, Variable.
 function EC.Set_Humidity_from_Variable(params)
   log:trace("EC.Set_Humidity_from_Variable(%s)", params)
-  if not licensed() then
-    return
-  end
   EC.Set_Humidity({
     Name = Select(params, "Name"),
     Value = Select(params, "Variable"),
@@ -912,9 +906,6 @@ end
 --- @param params table Command parameters: Name, Variable.
 function EC.Set_Contact_from_Variable(params)
   log:trace("EC.Set_Contact_from_Variable(%s)", params)
-  if not licensed() then
-    return
-  end
   EC.Set_Contact({
     Name = Select(params, "Name"),
     State = toboolean(Select(params, "Variable")) and "Closed" or "Open",
@@ -1023,9 +1014,6 @@ end
 --- @param params table Command parameters: Name, Variable.
 function EC.Set_Relay_from_Variable(params)
   log:trace("EC.Set_Relay_from_Variable(%s)", params)
-  if not licensed() then
-    return
-  end
   local closed = toboolean(Select(params, "Variable"))
   if closed then
     EC.Close_Relay({ Name = Select(params, "Name") })

@@ -307,9 +307,6 @@ end
 --- @param name string|nil The name to select, or nil to deselect.
 local function setActiveInput(name)
   log:info("setActiveInput(%s)", name)
-  if not licensed() then
-    return
-  end
   local names = getParsedNames()
 
   -- Validate name exists in parsed names
@@ -332,7 +329,7 @@ local function setActiveInput(name)
   UpdateProperty("Active Input Name", name or "", true)
 
   -- Fire selection changed event if actually changed
-  if previousName ~= name and gInitialized then
+  if previousName ~= name and gInitialized and licensed() then
     events:fire(NS_EVENTS, EVENT_SELECTION_CHANGED)
   end
 

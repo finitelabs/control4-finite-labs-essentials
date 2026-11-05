@@ -291,6 +291,7 @@ function OPC.Convert_Lights_To_Relays(propertyValue)
     local isInitial = true
     RegisterVariableListener(lightDeviceId, 1000, function(_, _, strValue)
       if not licensed() then
+        isInitial = false
         return
       end
       if toboolean(strValue) then

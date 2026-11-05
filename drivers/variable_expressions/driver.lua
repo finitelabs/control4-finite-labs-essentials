@@ -380,6 +380,18 @@ function OnDriverInit()
   values:restoreValues()
 end
 
+--- Recomputes every auto expression, so outputs catch up on changes the driver missed while down or stopped.
+local function recomputeAutoExpressions()
+  for name, config in pairs(getExpressions()) do
+    if toboolean(config.auto) then
+      local ok, err = pcall(recomputeExpression, name)
+      if not ok then
+        log:error("Recompute of '%s' failed: %s", name, err)
+      end
+    end
+  end
+end
+
 function OnDriverLateInit()
   log:trace("OnDriverLateInit()")
 
@@ -414,15 +426,10 @@ function OnDriverLateInit()
   -- Restore variable watches and recompute auto expressions once at boot so
   -- outputs reflect changes missed while the driver was down.
   engine:resubscribeAll()
-  for name, config in pairs(getExpressions()) do
+  for name in pairs(getExpressions()) do
     ensureExpressionEvent(name)
-    if toboolean(config.auto) then
-      local ok, err = pcall(recomputeExpression, name)
-      if not ok then
-        log:error("Initial recompute of '%s' failed: %s", name, err)
-      end
-    end
   end
+  recomputeAutoExpressions()
 
   --#ifndef DRIVERCENTRAL
   SetTimer("UpdateCheck", 30 * ONE_MINUTE, function()
@@ -445,15 +452,7 @@ function OnDriverLateInit()
       return
     end
     UpdateProperty("Driver Status", "Ready")
-    -- As at boot: auto expressions catch up on what changed while the driver was stopped.
-    for name, config in pairs(getExpressions()) do
-      if toboolean(config.auto) then
-        local ok, err = pcall(recomputeExpression, name)
-        if not ok then
-          log:error("Recompute of '%s' failed: %s", name, err)
-        end
-      end
-    end
+    recomputeAutoExpressions()
   end)
   --#endif
 end
