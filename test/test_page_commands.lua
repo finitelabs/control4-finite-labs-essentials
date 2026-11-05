@@ -30,16 +30,10 @@ local LONG = string.rep("A long request body. ", 500)
 T.section("Each page breaks its base64, and each driver reads only through its helper")
 for _, driver in ipairs({ "network_requests", "variable_expressions" }) do
   local page = readFile("drivers/" .. driver .. "/www/html/index.html")
-  T.contains(
-    driver .. "'s page wraps every 76 characters",
-    page,
-    "btoa(JSON.stringify(params || {})).replace(/(.{76})/g, '$1\\n')"
-  )
-  T.excludes(
-    driver .. "'s driver has no decode that keeps the newlines",
-    readFile("drivers/" .. driver .. "/driver.lua"),
-    "C4:Base64Decode(tParams.DATA"
-  )
+  local wraps = "btoa(JSON.stringify(params || {})).replace(/(.{76})/g, '$1\\n')"
+  T.check(driver .. "'s page wraps every 76 characters", page:find(wraps, 1, true) ~= nil)
+  local source = readFile("drivers/" .. driver .. "/driver.lua")
+  T.check(driver .. "'s driver reads through its helper", not source:find("C4:Base64Decode(tParams.DATA", 1, true))
 end
 
 T.section("What the page sends has no long unbroken run")
