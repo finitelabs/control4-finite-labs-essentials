@@ -10,6 +10,7 @@ require("drivers-common-public.global.timer")
 JSON = require("JSON")
 
 local log = require("lib.logging")
+local pageParams = require("lib.page-params")
 local persist = require("lib.persist")
 local transform = require("lib.transform")
 local values = require("lib.values")
@@ -572,15 +573,6 @@ end
 --------------------------------------------------------------------------------
 -- Web UI Request Handlers (UIR)
 --------------------------------------------------------------------------------
-
---- A web tab command's parameters. The page breaks its base64 with newlines, since the broker's cost
---- grows with the square of an unbroken run; only OS 4.3's decoder is known to take them.
---- @param tParams table
---- @return table
-local function pageParams(tParams)
-  local encoded = (tParams.DATA or "e30="):gsub("%s", "")
-  return JSON:decode(C4:Base64Decode(encoded))
-end
 
 --- Send a response to the web UI via both return value (for REST) and
 --- SendDataToUI (for socket push). Returns JSON for REST callers.

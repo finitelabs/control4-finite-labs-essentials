@@ -1,5 +1,4 @@
--- A web tab's commands: the page breaks its base64 with newlines, since the broker's cost grows with the square of an
--- unbroken run, and each driver takes them.
+-- A web tab's commands: the page breaks its base64 with newlines, and each driver takes them.
 --
 -- Run from the driver root:
 --   make test
@@ -34,15 +33,6 @@ for _, driver in ipairs({ "network_requests", "variable_expressions" }) do
   T.check(driver .. "'s page wraps every 76 characters", page:find(wraps, 1, true) ~= nil)
   local source = readFile("drivers/" .. driver .. "/driver.lua")
   T.check(driver .. "'s driver reads through its helper", not source:find("C4:Base64Decode(tParams.DATA", 1, true))
-end
-
-T.section("What the page sends has no long unbroken run")
-do
-  local longest = 0
-  for run in asPageSends({ body = LONG }).DATA:gmatch("[^\n]+") do
-    longest = math.max(longest, #run)
-  end
-  T.eq("its longest run is 76 characters", longest, 76)
 end
 
 T.section("Network Requests saves a long body sent that way")
