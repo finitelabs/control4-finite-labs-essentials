@@ -423,8 +423,7 @@ function OnDriverLateInit()
     end
   end
 
-  -- Restore variable watches and recompute auto expressions once at boot so
-  -- outputs reflect changes missed while the driver was down.
+  -- Restore variable watches and recompute auto expressions once at boot.
   engine:resubscribeAll()
   for name in pairs(getExpressions()) do
     ensureExpressionEvent(name)
