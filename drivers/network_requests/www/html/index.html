@@ -62,7 +62,8 @@
 
     .pgroup { font-size: 11px; font-weight: 600; color: var(--text); margin: 14px 0 6px; }
     .pgroup:first-child { margin-top: 0; }
-    .pfields { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    .pfields { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+    .pdesc { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
     .perror { color: var(--danger); font-size: 11px; margin-top: 3px; }
     input[type="text"]:disabled { background: var(--bg); color: var(--text-muted); }
 
@@ -1240,10 +1241,9 @@ function propControl(p, id, failed) {
 function propCell(p, i) {
   var id = 'prop-' + i;
   var failed = gPropertyErrors[p.name];
-  // A long read-only value, which can't be scrolled, takes two columns.
-  var wide = p.readonly && String(p.value).length > 24 ? ' style="grid-column: span 2"' : '';
-  return '<div' + wide + (p.description ? ' title="' + esc(p.description) + '"' : '') + '><label for="' + id + '">' + esc(p.name) + '</label>' + propControl(p, id, failed) +
-    (failed ? '<div class="perror">' + esc(failed) + '</div>' : '') + '</div>';
+  return '<div><label for="' + id + '">' + esc(p.name) + '</label>' + propControl(p, id, failed) +
+    (failed ? '<div class="perror">' + esc(failed) + '</div>' : '') +
+    (p.description ? '<div class="pdesc">' + esc(p.description) + '</div>' : '') + '</div>';
 }
 
 function renderProps() {

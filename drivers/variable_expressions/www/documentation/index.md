@@ -139,8 +139,7 @@ the primary way to create and manage standing calculations.
 1. **Driver Status** - grayed out, as every read-only property is: the driver
    sets it.
 1. **Log Level** - a change applies at once, and shows in Composer's
-   "Properties" tab too. A change made there shows here. Hovering a property
-   shows its description.
+   "Properties" tab too. A change made there shows here.
 
 <!-- #ifdef DRIVERCENTRAL -->
 
