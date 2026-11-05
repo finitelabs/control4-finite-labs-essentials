@@ -17,7 +17,7 @@
 
 ______________________________________________________________________
 
-# <span style="color:#109EFF">Overview</span>
+# <span style="color:#059669">Overview</span>
 
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
 
@@ -28,7 +28,7 @@ Request command. Request URLs, bodies, headers, and payloads can reference any
 Control4 variable, so the same named request can carry live values from the
 project.
 
-# <span style="color:#109EFF">Index</span>
+# <span style="color:#059669">Index</span>
 
 <div style="font-size: small">
 
@@ -61,11 +61,11 @@ project.
 
 </div>
 
-# <span style="color:#109EFF">System Requirements</span>
+# <span style="color:#059669">System Requirements</span>
 
 - Control4 OS 3.3+
 
-# <span style="color:#109EFF">Features</span>
+# <span style="color:#059669">Features</span>
 
 - Named requests managed from a dedicated Requests tab in Composer, with a
   searchable variable browser, insert at cursor, and per-request send history
@@ -86,7 +86,7 @@ project.
   to a `<Name> Payload` variable and an optional shared key
 - Requests, webhooks, and last results persist across driver restarts
 
-# <span style="color:#109EFF">Installer Setup</span>
+# <span style="color:#059669">Installer Setup</span>
 
 <!-- #ifdef DRIVERCENTRAL -->
 
@@ -394,7 +394,7 @@ Monitoring is Enabled.
 
 <!-- #endif -->
 
-# <span style="color:#109EFF">Programming</span>
+# <span style="color:#059669">Programming</span>
 
 ## Request Types
 
@@ -503,7 +503,7 @@ it from any scene or schedule.
 
 <!-- #ifdef DRIVERCENTRAL -->
 
-# <span style="color:#109EFF">Developer Information</span>
+# <span style="color:#059669">Developer Information</span>
 
 <p align="center">
 <img alt="Finite Labs" src="./images/finite-labs-logo.png" width="400"/>
@@ -522,7 +522,7 @@ https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
 
 <!-- #endif -->
 
-# <span style="color:#109EFF">Support</span>
+# <span style="color:#059669">Support</span>
 
 <!-- #ifdef DRIVERCENTRAL -->
 

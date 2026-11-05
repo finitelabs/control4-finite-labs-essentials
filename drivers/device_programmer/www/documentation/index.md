@@ -17,7 +17,7 @@
 
 ______________________________________________________________________
 
-# <span style="color:#109EFF">Overview</span>
+# <span style="color:#059669">Overview</span>
 
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
 
@@ -27,7 +27,7 @@ driver exposes those as output bindings. Programming commands allow setting each
 sensor's value or state, and opening, closing, or toggling relays. Values are
 persisted and restored on boot.
 
-# <span style="color:#109EFF">Index</span>
+# <span style="color:#059669">Index</span>
 
 <div style="font-size: small">
 
@@ -56,11 +56,11 @@ persisted and restored on boot.
 
 </div>
 
-# <span style="color:#109EFF">System Requirements</span>
+# <span style="color:#059669">System Requirements</span>
 
 - Control4 OS 3.3+
 
-# <span style="color:#109EFF">Features</span>
+# <span style="color:#059669">Features</span>
 
 - Create virtual temperature, humidity, and contact sensors
 - Create virtual relays that accept Open, Close, and Toggle commands
@@ -68,7 +68,7 @@ persisted and restored on boot.
 - Dynamic output bindings based on configured names
 - Persistent values survive driver restarts
 
-# <span style="color:#109EFF">Installer Setup</span>
+# <span style="color:#059669">Installer Setup</span>
 
 <!-- #ifdef DRIVERCENTRAL -->
 
@@ -233,7 +233,7 @@ Monitoring is Enabled.
 
 <!-- #endif -->
 
-# <span style="color:#109EFF">Programming</span>
+# <span style="color:#059669">Programming</span>
 
 ## Connections
 
@@ -378,7 +378,7 @@ Sets a virtual relay state from a boolean variable's current value.
 
 <!-- #ifdef DRIVERCENTRAL -->
 
-# <span style="color:#109EFF">Developer Information</span>
+# <span style="color:#059669">Developer Information</span>
 
 <p align="center">
 <img alt="Finite Labs" src="./images/finite-labs-logo.png" width="400"/>
@@ -397,7 +397,7 @@ https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
 
 <!-- #endif -->
 
-# <span style="color:#109EFF">Support</span>
+# <span style="color:#059669">Support</span>
 
 <!-- #ifdef DRIVERCENTRAL -->
 

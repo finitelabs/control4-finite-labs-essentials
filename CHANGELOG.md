@@ -1,4 +1,4 @@
-# <span style="color:#109EFF">Changelog</span>
+# <span style="color:#059669">Changelog</span>
 
 <!--
 Template for a new release entry (copy below the heading, fill in, uncomment):
@@ -54,6 +54,8 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Changed
 
+- Changed the drivers' icons and documentation header to a new Finite Labs
+  Essentials mark.
 - Removed the bar that held a single tab from the top of the Network Requests
   and Variable Expressions tabs. It returns if a driver gains a second tab.
 
