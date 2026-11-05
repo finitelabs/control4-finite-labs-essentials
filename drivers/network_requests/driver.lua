@@ -1,9 +1,5 @@
 --- Network Requests Driver
---#ifdef DRIVERCENTRAL
-DC_PID = nil
-DC_X = nil
-DC_FILENAME = "network_requests.c4z"
---#else
+--#ifndef DRIVERCENTRAL
 DRIVER_GITHUB_REPO = "finitelabs/control4-finite-labs-essentials"
 --#endif
 require("lib.utils")
@@ -21,12 +17,23 @@ local events = require("lib.events")
 local http = require("lib.http")
 local updateSettings = require("lib.update-settings")
 --#ifdef DRIVERCENTRAL
+local drivercentral = require("lib.drivercentral")
 local supportCode = require("lib.support-code")
 local diagnostics = require("lib.diagnostics")
 --#endif
 --#ifndef DRIVERCENTRAL
 local githubUpdater = require("lib.github-updater")
 --#endif
+
+--- Whether the driver may act: a DriverCentral build stops while it has no license, and an OSS build never does.
+--- @return boolean
+local function licensed()
+  local ok = true
+  --#ifdef DRIVERCENTRAL
+  ok = drivercentral:licensed()
+  --#endif
+  return ok
+end
 
 --------------------------------------------------------------------------------
 -- Constants
@@ -559,6 +566,10 @@ end
 --- @return Deferred|nil d Resolves the stored result entry, or nil if not configured.
 local function sendRequest(name)
   log:trace("sendRequest('%s')", name)
+  if not licensed() then
+    log:warn("Send Request '%s': no active license", tostring(name))
+    return nil
+  end
   local config = getRequests()[name]
   if not config then
     log:warn("Send Request: unknown request '%s'", tostring(name))
@@ -739,6 +750,9 @@ local function handleWebhookRequest(nHandle, method, rawPath, body, clientAddres
   local path, query = rawPath:match("^([^?]*)%??(.*)$")
   local name = urlDecode(tostring(path or ""):gsub("^/", ""):gsub("/$", ""))
   log:debug("Webhook call: %s '%s' from %s", method, name, clientAddress)
+  if not licensed() then
+    return webhookRespond(nHandle, 503, "Service Unavailable", { ok = false, error = "no active license" })
+  end
 
   local config = getWebhooks()[name]
   if not config then
@@ -857,8 +871,7 @@ end
 
 function OnDriverInit()
   --#ifdef DRIVERCENTRAL
-  require("cloud-client-byte")
-  C4:AllowExecute(false)
+  drivercentral:startClient()
   --#else
   C4:AllowExecute(true)
   --#endif
@@ -924,6 +937,12 @@ function OnDriverLateInit()
 
   gInitialized = true
   UpdateProperty("Driver Status", "Ready")
+
+  --#ifdef DRIVERCENTRAL
+  drivercentral:startGate(function(active)
+    UpdateProperty("Driver Status", active and "Ready" or drivercentral.UNLICENSED_STATUS)
+  end)
+  --#endif
 end
 
 --#ifdef DRIVERCENTRAL

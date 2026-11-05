@@ -1,9 +1,5 @@
 --- Variable Expressions Driver
---#ifdef DRIVERCENTRAL
-DC_PID = nil
-DC_X = nil
-DC_FILENAME = "variable_expressions.c4z"
---#else
+--#ifndef DRIVERCENTRAL
 DRIVER_GITHUB_REPO = "finitelabs/control4-finite-labs-essentials"
 --#endif
 require("lib.utils")
@@ -21,12 +17,23 @@ local events = require("lib.events")
 local ExpressionEngine = require("lib.expressions")
 local updateSettings = require("lib.update-settings")
 --#ifdef DRIVERCENTRAL
+local drivercentral = require("lib.drivercentral")
 local supportCode = require("lib.support-code")
 local diagnostics = require("lib.diagnostics")
 --#endif
 --#ifndef DRIVERCENTRAL
 local githubUpdater = require("lib.github-updater")
 --#endif
+
+--- Whether the driver may act: a DriverCentral build stops while it has no license, and an OSS build never does.
+--- @return boolean
+local function licensed()
+  local ok = true
+  --#ifdef DRIVERCENTRAL
+  ok = drivercentral:licensed()
+  --#endif
+  return ok
+end
 
 --------------------------------------------------------------------------------
 -- Constants
@@ -280,7 +287,7 @@ local notifyOwnVariableChanged
 local function recomputeExpression(name)
   log:trace("recomputeExpression('%s')", name)
   local config = getExpressions()[name]
-  if not config then
+  if not config or not licensed() then
     return nil
   end
 
@@ -358,8 +365,7 @@ end
 
 function OnDriverInit()
   --#ifdef DRIVERCENTRAL
-  require("cloud-client-byte")
-  C4:AllowExecute(false)
+  drivercentral:startClient()
   --#else
   C4:AllowExecute(true)
   --#endif
@@ -431,6 +437,25 @@ function OnDriverLateInit()
 
   gInitialized = true
   UpdateProperty("Driver Status", "Ready")
+
+  --#ifdef DRIVERCENTRAL
+  drivercentral:startGate(function(active)
+    if not active then
+      UpdateProperty("Driver Status", drivercentral.UNLICENSED_STATUS)
+      return
+    end
+    UpdateProperty("Driver Status", "Ready")
+    -- As at boot: auto expressions catch up on what changed while the driver was stopped.
+    for name, config in pairs(getExpressions()) do
+      if toboolean(config.auto) then
+        local ok, err = pcall(recomputeExpression, name)
+        if not ok then
+          log:error("Recompute of '%s' failed: %s", name, err)
+        end
+      end
+    end
+  end)
+  --#endif
 end
 
 --#ifdef DRIVERCENTRAL

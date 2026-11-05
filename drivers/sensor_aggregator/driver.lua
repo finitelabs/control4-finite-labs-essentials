@@ -1,9 +1,5 @@
 --- Sensor Aggregator Driver
---#ifdef DRIVERCENTRAL
-DC_PID = nil
-DC_X = nil
-DC_FILENAME = "sensor_aggregator.c4z"
---#else
+--#ifndef DRIVERCENTRAL
 DRIVER_GITHUB_REPO = "finitelabs/control4-finite-labs-essentials"
 --#endif
 require("lib.utils")
@@ -20,12 +16,23 @@ local persist = require("lib.persist")
 local constants = require("constants")
 local updateSettings = require("lib.update-settings")
 --#ifdef DRIVERCENTRAL
+local drivercentral = require("lib.drivercentral")
 local supportCode = require("lib.support-code")
 local diagnostics = require("lib.diagnostics")
 --#endif
 --#ifndef DRIVERCENTRAL
 local githubUpdater = require("lib.github-updater")
 --#endif
+
+--- Whether the driver may act: a DriverCentral build stops while it has no license, and an OSS build never does.
+--- @return boolean
+local function licensed()
+  local ok = true
+  --#ifdef DRIVERCENTRAL
+  ok = drivercentral:licensed()
+  --#endif
+  return ok
+end
 
 --------------------------------------------------------------------------------
 -- Constants
@@ -379,6 +386,9 @@ end
 --- Recalculate the aggregated temperature and update outputs/properties.
 local function recalcTemperature()
   log:trace("recalcTemperature()")
+  if not licensed() then
+    return
+  end
   local vals = getActiveValues(PERSIST_TEMP_VALUES)
   local aggFunc = AGG_FUNCTIONS[tempAggregationFunction] or calcMean
   local result = aggFunc(vals)
@@ -402,6 +412,9 @@ end
 --- Recalculate the aggregated humidity and update outputs/properties.
 local function recalcHumidity()
   log:trace("recalcHumidity()")
+  if not licensed() then
+    return
+  end
   local vals = getActiveValues(PERSIST_HUM_VALUES)
   local aggFunc = AGG_FUNCTIONS[humAggregationFunction] or calcMean
   local result = aggFunc(vals)
@@ -421,8 +434,12 @@ local function recalcHumidity()
 end
 
 --- Recalculate the aggregated contact state and update outputs/properties.
-local function recalcContact()
+--- @param asState? boolean Send a change without a programming event, as at a load.
+local function recalcContact(asState)
   log:trace("recalcContact()")
+  if not licensed() then
+    return
+  end
   local vals = getActiveBoolValues(PERSIST_CONTACT_VALUES)
   local aggFunc = BOOL_AGG_FUNCTIONS[contactAggregationFunction] or calcAny
   local result = aggFunc(vals)
@@ -433,7 +450,7 @@ local function recalcContact()
     UpdateProperty("Aggregated Contact", result and "Closed" or "Open", true)
     if result ~= lastContactOutputState then
       lastContactOutputState = result
-      if gInitialized then
+      if gInitialized and not asState then
         sendContactOutput(OUTPUT_CONTACT, result)
       else
         sendContactState(OUTPUT_CONTACT, result)
@@ -503,7 +520,7 @@ local function registerOutputHandlers(binding, outputKey, scale, persistKey)
   -- RFP handler: respond to GET_VALUE
   RFP[binding.bindingId] = function(idBinding, strCommand, _tParams, _args)
     log:trace("RFP[%s](%s, %s)", binding.bindingId, idBinding, strCommand)
-    if strCommand == "GET_VALUE" then
+    if strCommand == "GET_VALUE" and licensed() then
       local vals = getActiveValues(persistKey)
       local aggFuncName = outputKey == OUTPUT_TEMP and tempAggregationFunction or humAggregationFunction
       local aggFunc = AGG_FUNCTIONS[aggFuncName] or calcMean
@@ -517,7 +534,7 @@ local function registerOutputHandlers(binding, outputKey, scale, persistKey)
   -- OBC handler: send current aggregate when consumer connects
   OBC[binding.bindingId] = function(idBinding, _strClass, bIsBound, _otherDeviceId, _otherBindingId)
     log:trace("OBC[%s](%s, %s, %s)", binding.bindingId, idBinding, _strClass, bIsBound)
-    if bIsBound then
+    if bIsBound and licensed() then
       local vals = getActiveValues(persistKey)
       local aggFuncName = outputKey == OUTPUT_TEMP and tempAggregationFunction or humAggregationFunction
       local aggFunc = AGG_FUNCTIONS[aggFuncName] or calcMean
@@ -575,7 +592,7 @@ local function registerContactOutputHandlers(binding, outputKey, persistKey, get
   -- OBC handler: send current state when consumer connects
   OBC[binding.bindingId] = function(idBinding, _strClass, bIsBound, _otherDeviceId, _otherBindingId)
     log:trace("OBC[%s](%s, %s, %s)", binding.bindingId, idBinding, _strClass, bIsBound)
-    if bIsBound then
+    if bIsBound and licensed() then
       local vals = getActiveBoolValues(persistKey)
       local aggFuncName = getAggFn()
       local aggFunc = BOOL_AGG_FUNCTIONS[aggFuncName] or calcAny
@@ -668,8 +685,7 @@ end
 
 function OnDriverInit()
   --#ifdef DRIVERCENTRAL
-  require("cloud-client-byte")
-  C4:AllowExecute(false)
+  drivercentral:startClient()
   --#else
   C4:AllowExecute(true)
   --#endif
@@ -712,6 +728,19 @@ function OnDriverLateInit()
 
   gInitialized = true
   UpdateProperty("Driver Status", "Ready")
+
+  --#ifdef DRIVERCENTRAL
+  drivercentral:startGate(function(active)
+    if not active then
+      UpdateProperty("Driver Status", drivercentral.UNLICENSED_STATUS)
+      return
+    end
+    UpdateProperty("Driver Status", "Ready")
+    recalcTemperature()
+    recalcHumidity()
+    recalcContact(true)
+  end)
+  --#endif
 end
 
 --#ifdef DRIVERCENTRAL
