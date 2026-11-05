@@ -467,7 +467,8 @@ function api(method, path, body) {
 function sendCommand(cmd, params) {
   return api('POST', '/api/v1/items/' + gDriverId + '/commands', {
     command: cmd,
-    tParams: { DATA: btoa(JSON.stringify(params || {})) },
+    // Why the newlines: lib/page-params.lua.
+    tParams: { DATA: btoa(JSON.stringify(params || {})).replace(/(.{76})/g, '$1\n') },
     async: false
   });
 }

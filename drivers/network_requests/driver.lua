@@ -11,6 +11,7 @@ JSON = require("JSON")
 
 local deferred = require("deferred")
 local log = require("lib.logging")
+local pageParams = require("lib.page-params")
 local persist = require("lib.persist")
 local values = require("lib.values")
 local events = require("lib.events")
@@ -1140,7 +1141,7 @@ end
 --- @param tParams table
 function UIR._SET_PROPERTY(tParams)
   log:trace("UIR._SET_PROPERTY()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   local err = tabProperties:set(params.property, params.value)
   if err then
     return uiRespond("PROPERTY_ERROR", { property = params.property, error = err })
@@ -1152,7 +1153,7 @@ end
 --- @param tParams table
 function UIR._SAVE_WEBHOOK(tParams)
   log:trace("UIR.SAVE_WEBHOOK()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   local name = tostring(params.name or ""):match("^%s*(.-)%s*$")
   if IsEmpty(name) then
     return uiRespond("SAVE_RESULT", { ok = false, error = "Name is required" })
@@ -1168,7 +1169,7 @@ end
 --- @param tParams table
 function UIR._DELETE_WEBHOOK(tParams)
   log:trace("UIR.DELETE_WEBHOOK()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   local name = tostring(params.name or "")
   local webhooks = getWebhooks()
   if webhooks[name] then
@@ -1183,7 +1184,7 @@ end
 --- @param tParams table
 function UIR._SAVE_REQUEST(tParams)
   log:trace("UIR.SAVE_REQUEST()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   local name = tostring(params.name or ""):match("^%s*(.-)%s*$")
   local originalName = tostring(params.originalName or ""):match("^%s*(.-)%s*$")
 
@@ -1249,7 +1250,7 @@ end
 --- @param tParams table
 function UIR._DELETE_REQUEST(tParams)
   log:trace("UIR.DELETE_REQUEST()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   local name = tostring(params.name or "")
   local requests = getRequests()
   if requests[name] then
@@ -1265,7 +1266,7 @@ end
 --- @param tParams table
 function UIR._RUN_REQUEST(tParams)
   log:trace("UIR.RUN_REQUEST()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   sendRequest(tostring(params.name or ""))
   return UIR._GET_CONFIG()
 end
@@ -1370,7 +1371,7 @@ end
 --- @param tParams table
 function UIR._GET_DEVICE_VARIABLES(tParams)
   log:trace("UIR.GET_DEVICE_VARIABLES()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   local devId = tonumber(params.deviceId)
   if not devId then
     return

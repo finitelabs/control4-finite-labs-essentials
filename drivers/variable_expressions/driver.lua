@@ -10,6 +10,7 @@ require("drivers-common-public.global.timer")
 JSON = require("JSON")
 
 local log = require("lib.logging")
+local pageParams = require("lib.page-params")
 local persist = require("lib.persist")
 local transform = require("lib.transform")
 local values = require("lib.values")
@@ -623,7 +624,7 @@ end
 --- @param tParams table
 function UIR._SET_PROPERTY(tParams)
   log:trace("UIR._SET_PROPERTY()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   local err = tabProperties:set(params.property, params.value)
   if err then
     return uiRespond("PROPERTY_ERROR", { property = params.property, error = err })
@@ -635,7 +636,7 @@ end
 --- @param tParams table
 function UIR._SAVE_EXPRESSION(tParams)
   log:trace("UIR.SAVE_EXPRESSION()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   local name = tostring(params.name or ""):match("^%s*(.-)%s*$")
   local originalName = tostring(params.originalName or ""):match("^%s*(.-)%s*$")
   local mode = params.mode == "string" and "string" or "equation"
@@ -673,7 +674,7 @@ end
 --- @param tParams table
 function UIR._DELETE_EXPRESSION(tParams)
   log:trace("UIR.DELETE_EXPRESSION()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   local name = tostring(params.name or "")
   local expressions = getExpressions()
   if expressions[name] then
@@ -693,7 +694,7 @@ end
 --- @param tParams table
 function UIR._RUN_EXPRESSION(tParams)
   log:trace("UIR.RUN_EXPRESSION()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   recomputeExpression(tostring(params.name or ""))
   return UIR._GET_CONFIG()
 end
@@ -703,7 +704,7 @@ end
 --- @param tParams table
 function UIR._EVAL_EXPRESSION(tParams)
   log:trace("UIR.EVAL_EXPRESSION()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   local mode = params.mode == "string" and "string" or "equation"
   local eval = evaluateTemplate(mode, tostring(params.template or ""))
   return uiRespond("EVAL_RESULT", {
@@ -815,7 +816,7 @@ end
 --- @param tParams table
 function UIR._GET_DEVICE_VARIABLES(tParams)
   log:trace("UIR.GET_DEVICE_VARIABLES()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   local devId = tonumber(params.deviceId)
   if not devId then
     return
