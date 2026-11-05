@@ -112,6 +112,7 @@ for driver, extra in pairs({ network_requests = { "Webhook Port", "Webhook URL" 
   reply = set("Log Mode", "Loud")
   T.eq("a value the list lacks is refused", reply._command, "PROPERTY_ERROR")
   T.truthy("and says why", reply.error:find("Log Mode", 1, true))
+  T.eq("naming the field it belongs under", reply.property, "Log Mode")
   T.eq("leaving the property as it was", Properties["Log Mode"], "Off")
   T.eq("a read-only property is refused", set("Driver Version", "1")._command, "PROPERTY_ERROR")
   T.neq("and keeps its value", Properties["Driver Version"], "1")
@@ -150,6 +151,23 @@ for _, bad in ipairs({ "70000", "-1", "12.5", "abc", "" }) do
 end
 T.eq("Webhook URL is read-only", set("Webhook URL", "http://x/")._command, "PROPERTY_ERROR")
 
+T.section("network_requests: the webhook server's status, in the order Director reports a port change")
+local listening = "http://198.51.100.2:49301/<Webhook Name>"
+pushes = {}
+OnServerStatusChanged(49300, "OFFLINE")
+T.eq("the port just closed going offline is no failure", Properties["Webhook URL"], listening)
+OnServerStatusChanged(49301, "ONLINE")
+T.eq("and the new port coming online keeps the URL", Properties["Webhook URL"], listening)
+T.eq("which reaches the tab", pushedValue("Webhook URL"), listening)
+OnServerStatusChanged(49301, "OFFLINE")
+T.truthy(
+  "the port in use going offline is a failure",
+  Properties["Webhook URL"]:find("Failed to listen on port 49301", 1, true)
+)
+T.truthy("which reaches the tab too", pushedValue("Webhook URL"):find("Failed to listen", 1, true))
+OnServerStatusChanged(49301, "ONLINE")
+T.eq("and coming back online restores the URL", Properties["Webhook URL"], listening)
+
 for driver, panel in pairs({ network_requests = "panel-list", variable_expressions = "panel-list" }) do
   T.section(driver .. ": the tab bar")
   local page = readFile("drivers/" .. driver .. "/www/html/index.html"):gsub("%s+", "")
@@ -162,6 +180,10 @@ for driver, panel in pairs({ network_requests = "panel-list", variable_expressio
   T.truthy("which exists", page:find('id="' .. panel .. '"', 1, true))
   T.truthy("the count sets the class", page:find("classList.toggle('multi',tabs.length>1)", 1, true))
   T.truthy("and a click shows a tab's panel", page:find("showTab(tab)", 1, true))
+  T.truthy(
+    "the Properties card comes first in the panel",
+    page:find('id="props-card"', 1, true) < page:find('<tableid="', 1, true)
+  )
 end
 
 T.finish()

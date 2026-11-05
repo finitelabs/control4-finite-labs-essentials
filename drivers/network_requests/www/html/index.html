@@ -64,7 +64,7 @@
     .pgroup:first-child { margin-top: 0; }
     .pfields { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
     .pdesc { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
-    .perror { color: var(--danger); font-size: 12px; margin-bottom: 8px; display: none; }
+    .perror { color: var(--danger); font-size: 11px; margin-top: 3px; }
     input[type="text"]:disabled { background: var(--bg); color: var(--text-muted); }
 
     .panel { display: none; padding: 16px; }
@@ -313,6 +313,11 @@
 <!-- ── List panel ─────────────────────────────────────────────── -->
 <div class="panel active" id="panel-list">
   <div class="conn-warn" id="conn-warn">Not connected to the controller API. Open this tab from Composer.</div>
+  <div class="card" id="props-card" style="display:none;">
+    <h3>Properties</h3>
+    <div id="props"></div>
+  </div>
+
   <div class="card">
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
       <h3 style="margin:0;">Requests</h3>
@@ -377,12 +382,6 @@
     <code>&lt;Name&gt; Received</code> event. The request body (or query string) is published to the
     <code>&lt;Name&gt; Payload</code> variable before the event fires. The listen port is set by the
     <code>Webhook Port</code> driver property.</p>
-  </div>
-
-  <div class="card" id="props-card" style="display:none;">
-    <h3>Properties</h3>
-    <div class="perror" id="props-error"></div>
-    <div id="props"></div>
   </div>
 </div>
 
@@ -641,7 +640,7 @@ function handleDriverData(cmd, params) {
     else if (cmd === 'WEBHOOK_RESULT') onWebhookResult(params);
     else if (cmd === 'DEVICES_DATA') onDevices(JSON.parse(params.devices || '[]'));
     else if (cmd === 'DEVICE_VARIABLES_DATA') onDeviceVariables(params.deviceId, JSON.parse(params.variables || '[]'));
-    else if (cmd === 'PROPERTY_ERROR') onPropertyError(params.error || '');
+    else if (cmd === 'PROPERTY_ERROR') onPropertyError(params.property, params.error || '');
     else if (cmd === 'SAVE_RESULT') onSaveResult(params);
   } catch (e) { console.error('handleDriverData error:', cmd, e); }
 }
@@ -1218,14 +1217,15 @@ document.addEventListener('focusin', function(e) {
 // Properties
 // ============================================================
 var gProperties = [];
+var gPropertyError = null;         // { name, message } under the field the driver refused
 
 function onProperties(properties) {
   gProperties = properties;
   renderProps();
 }
 
-function propControl(p, id) {
-  var attrs = ' id="' + id + '" data-prop="' + esc(p.name) + '"';
+function propControl(p, id, failed) {
+  var attrs = ' id="' + id + '" data-prop="' + esc(p.name) + '"' + (failed ? ' class="input-error"' : '');
   if (p.readonly) return '<input type="text"' + attrs + ' value="' + esc(p.value) + '" title="' + esc(p.value) + '" disabled>';
   if (p.choices) {
     return '<select' + attrs + '>' + p.choices.map(function(c) {
@@ -1247,7 +1247,9 @@ function renderProps() {
     var g = groups[groups.length - 1];
     if (!g || g.name !== p.group) groups.push(g = { name: p.group, html: [] });
     var id = 'prop-' + i;
-    g.html.push('<div><label for="' + id + '">' + esc(p.name) + '</label>' + propControl(p, id) +
+    var failed = gPropertyError && gPropertyError.name === p.name;
+    g.html.push('<div><label for="' + id + '">' + esc(p.name) + '</label>' + propControl(p, id, failed) +
+      (failed ? '<div class="perror">' + esc(gPropertyError.message) + '</div>' : '') +
       (p.description ? '<div class="pdesc">' + esc(p.description) + '</div>' : '') + '</div>');
   });
   document.getElementById('props-card').style.display = groups.length ? '' : 'none';
@@ -1256,14 +1258,8 @@ function renderProps() {
   }).join('');
 }
 
-function showPropertyError(message) {
-  var el = document.getElementById('props-error');
-  el.textContent = message;
-  el.style.display = message ? 'block' : 'none';
-}
-
-function onPropertyError(message) {
-  showPropertyError(message);
+function onPropertyError(name, message) {
+  gPropertyError = { name: name, message: message };
   renderProps();
 }
 
@@ -1272,7 +1268,7 @@ document.getElementById('props').addEventListener('change', function(e) {
   if (!name) return;
   var value = e.target.value;
   e.target.blur();
-  showPropertyError('');
+  gPropertyError = null;
   sendCommand('_SET_PROPERTY', { property: name, value: value });
 });
 

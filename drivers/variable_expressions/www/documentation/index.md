@@ -125,6 +125,28 @@ for setting it up.
 The Expressions tab in Composer (select the driver, then the Expressions tab) is
 the primary way to create and manage standing calculations.
 
+### Properties
+
+<!-- #ifdef DRIVERCENTRAL -->
+
+<img alt="Expressions tab - Properties" src="./images/ui-properties-drivercentral.png" width="640"/>
+<!-- #else -->
+<img alt="Expressions tab - Properties" src="./images/ui-properties.png" width="640"/>
+<!-- #endif -->
+
+1. **Cloud Settings** - the driver's [properties](#driver-properties) under the
+   same headings as Composer's "Properties" tab.
+1. **Driver Status** - grayed out, as every read-only property is: the driver
+   sets it.
+1. **Log Level** - a change applies at once, and shows in Composer's
+   "Properties" tab too. A change made there shows here.
+
+<!-- #ifdef DRIVERCENTRAL -->
+
+The Support Code is entered in Composer's "Properties" tab only.
+
+<!-- #endif -->
+
 ### Expression List
 
 Every named expression appears as a row with its mode, a rendered view of what

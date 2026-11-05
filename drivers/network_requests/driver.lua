@@ -794,12 +794,19 @@ end
 
 function OnServerStatusChanged(nPort, strStatus)
   log:debug("OnServerStatusChanged(%s, %s)", nPort, strStatus)
-  if strStatus ~= "ONLINE" then
+  -- Closing the previous port reports OFFLINE after the new one is opened.
+  if tointeger(nPort) ~= tointeger(Properties["Webhook Port"]) then
+    return
+  end
+  if strStatus == "ONLINE" then
+    UpdateProperty("Webhook URL", webhookBaseUrl() .. "<Webhook Name>")
+  else
     UpdateProperty(
       "Webhook URL",
       string.format("Failed to listen on port %s (%s)", tostring(nPort), tostring(strStatus))
     )
   end
+  UIR._GET_CONFIG()
 end
 
 function OnServerConnectionStatusChanged(nHandle, nPort, strStatus)
@@ -1136,7 +1143,7 @@ function UIR._SET_PROPERTY(tParams)
   local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
   local err = tabProperties:set(params.property, params.value)
   if err then
-    return uiRespond("PROPERTY_ERROR", { error = err })
+    return uiRespond("PROPERTY_ERROR", { property = params.property, error = err })
   end
   return UIR._GET_CONFIG()
 end
