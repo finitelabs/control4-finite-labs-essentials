@@ -1238,10 +1238,12 @@ function propControl(p, id, failed) {
   return '<input type="text"' + attrs + ' value="' + esc(p.value) + '">';
 }
 
-function renderProps() {
+function renderProps(refused) {
   var el = document.getElementById('props');
   // A push must not swap a control out from under the one being edited; the next push catches up.
-  if (el.contains(document.activeElement)) return;
+  // A refusal can't wait, so it draws and gives the focus back.
+  var editing = el.contains(document.activeElement) ? document.activeElement.dataset.prop : null;
+  if (editing && !refused) return;
   var groups = [];
   gProperties.forEach(function(p, i) {
     var g = groups[groups.length - 1];
@@ -1256,11 +1258,12 @@ function renderProps() {
   el.innerHTML = groups.map(function(g) {
     return (g.name ? '<div class="pgroup">' + esc(g.name) + '</div>' : '') + '<div class="pfields">' + g.html.join('') + '</div>';
   }).join('');
+  if (editing) el.querySelector('[data-prop="' + editing + '"]').focus();
 }
 
 function onPropertyError(name, message) {
   gPropertyError = { name: name, message: message };
-  renderProps();
+  renderProps(true);
 }
 
 document.getElementById('props').addEventListener('change', function(e) {
@@ -1268,7 +1271,7 @@ document.getElementById('props').addEventListener('change', function(e) {
   if (!name) return;
   var value = e.target.value;
   e.target.blur();
-  gPropertyError = null;
+  if (gPropertyError && gPropertyError.name === name) gPropertyError = null;
   sendCommand('_SET_PROPERTY', { property: name, value: value });
 });
 

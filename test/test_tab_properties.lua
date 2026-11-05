@@ -180,6 +180,7 @@ for driver, panel in pairs({ network_requests = "panel-list", variable_expressio
   T.truthy("which exists", page:find('id="' .. panel .. '"', 1, true))
   T.truthy("the count sets the class", page:find("classList.toggle('multi',tabs.length>1)", 1, true))
   T.truthy("and a click shows a tab's panel", page:find("showTab(tab)", 1, true))
+  T.truthy("a refusal draws even when the focus has moved on", page:find("renderProps(true)", 1, true))
   T.truthy(
     "the Properties card comes first in the panel",
     page:find('id="props-card"', 1, true) < page:find('<tableid="', 1, true)
