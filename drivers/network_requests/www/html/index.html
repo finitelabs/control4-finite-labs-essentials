@@ -1238,32 +1238,36 @@ function propControl(p, id, failed) {
   return '<input type="text"' + attrs + ' value="' + esc(p.value) + '">';
 }
 
-function renderProps(refused) {
+function propCell(p, i) {
+  var id = 'prop-' + i;
+  var failed = gPropertyError && gPropertyError.name === p.name;
+  return '<div><label for="' + id + '">' + esc(p.name) + '</label>' + propControl(p, id, failed) +
+    (failed ? '<div class="perror">' + esc(gPropertyError.message) + '</div>' : '') +
+    (p.description ? '<div class="pdesc">' + esc(p.description) + '</div>' : '') + '</div>';
+}
+
+function renderProps() {
   var el = document.getElementById('props');
   // A push must not swap a control out from under the one being edited; the next push catches up.
-  // A refusal can't wait, so it draws and gives the focus back.
-  var editing = el.contains(document.activeElement) ? document.activeElement.dataset.prop : null;
-  if (editing && !refused) return;
+  if (el.contains(document.activeElement)) return;
   var groups = [];
   gProperties.forEach(function(p, i) {
     var g = groups[groups.length - 1];
     if (!g || g.name !== p.group) groups.push(g = { name: p.group, html: [] });
-    var id = 'prop-' + i;
-    var failed = gPropertyError && gPropertyError.name === p.name;
-    g.html.push('<div><label for="' + id + '">' + esc(p.name) + '</label>' + propControl(p, id, failed) +
-      (failed ? '<div class="perror">' + esc(gPropertyError.message) + '</div>' : '') +
-      (p.description ? '<div class="pdesc">' + esc(p.description) + '</div>' : '') + '</div>');
+    g.html.push(propCell(p, i));
   });
   document.getElementById('props-card').style.display = groups.length ? '' : 'none';
   el.innerHTML = groups.map(function(g) {
     return (g.name ? '<div class="pgroup">' + esc(g.name) + '</div>' : '') + '<div class="pfields">' + g.html.join('') + '</div>';
   }).join('');
-  if (editing) el.querySelector('[data-prop="' + editing + '"]').focus();
 }
 
 function onPropertyError(name, message) {
   gPropertyError = { name: name, message: message };
-  renderProps(true);
+  // Only its own field redraws: another may be being edited.
+  gProperties.forEach(function(p, i) {
+    if (p.name === name) document.getElementById('prop-' + i).parentNode.outerHTML = propCell(p, i);
+  });
 }
 
 document.getElementById('props').addEventListener('change', function(e) {
