@@ -211,6 +211,9 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Fixed
 
+- Fixed saving a long request or expression in the Network Requests and Variable
+  Expressions tabs slowing the controller. The tabs now send long commands in a
+  form the controller handles quickly.
 - Fixed Network Requests' Webhook URL property reading
   `Failed to listen on port` after a port change or a driver update, while the
   webhook server was listening on the new port.

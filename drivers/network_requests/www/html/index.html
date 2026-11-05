@@ -579,7 +579,8 @@ function api(method, path, body) {
 function sendCommand(cmd, params) {
   return api('POST', '/api/v1/items/' + gDriverId + '/commands', {
     command: cmd,
-    tParams: { DATA: btoa(JSON.stringify(params || {})) },
+    // A newline every 76 characters: the broker's cost grows with the square of an unbroken run.
+    tParams: { DATA: btoa(JSON.stringify(params || {})).replace(/(.{76})/g, '$1\n') },
     async: false
   });
 }
