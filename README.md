@@ -4,7 +4,7 @@
 
 ______________________________________________________________________
 
-# <span style="color:#109EFF">Overview</span>
+# <span style="color:#059669">Overview</span>
 
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
 
@@ -12,7 +12,7 @@ Finite Labs Essentials is a collection of independent Control4 drivers that
 extend your system with advanced management capabilities. Each driver operates
 standalone and can be installed individually or together.
 
-# <span style="color:#109EFF">Index</span>
+# <span style="color:#059669">Index</span>
 
 <div style="font-size: small">
 
@@ -37,11 +37,11 @@ standalone and can be installed individually or together.
 
 </div>
 
-# <span style="color:#109EFF">System Requirements</span>
+# <span style="color:#059669">System Requirements</span>
 
 - Control4 OS 3.3+
 
-# <span style="color:#109EFF">Included Drivers</span>
+# <span style="color:#059669">Included Drivers</span>
 
 ## Sensor Aggregator
 
@@ -158,7 +158,7 @@ tab, then fire them from programming with a single Send Request command.
   `<Name> Payload` variable, guarded by an optional key
 - Requests, webhooks, and last results persist across driver restarts
 
-# <span style="color:#109EFF">Installation</span>
+# <span style="color:#059669">Installation</span>
 
 ## Installing the Drivers
 
@@ -172,7 +172,7 @@ Each driver includes its own documentation accessible from within Composer Pro.
 Refer to the individual driver documentation for detailed property descriptions,
 programming reference, and configuration guides.
 
-# <span style="color:#109EFF">Support</span>
+# <span style="color:#059669">Support</span>
 
 If you have any questions or issues integrating these drivers with Control4, you
 can file an issue on GitHub:
@@ -181,7 +181,7 @@ https://github.com/finitelabs/control4-finite-labs-essentials/issues/new
 
 <a href="https://www.buymeacoffee.com/derek.miller" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
-# <span style="color:#109EFF">Changelog</span>
+# <span style="color:#059669">Changelog</span>
 
 <!--
 Template for a new release entry (copy below the heading, fill in, uncomment):
@@ -222,6 +222,8 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Changed
 
+- Changed the drivers' icons and documentation header to a new Finite Labs
+  Essentials mark.
 - Removed the bar that held a single tab from the top of the Network Requests
   and Variable Expressions tabs. It returns if a driver gains a second tab.
 

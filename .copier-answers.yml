@@ -7,7 +7,7 @@ extra_build_secrets: ''
 extra_required_checks: ''
 github_org: finitelabs
 icon_style: shaped
-primary_color: '#109EFF'
+primary_color: '#059669'
 project_description: Finite Labs Essentials — a collection of independent Control4
     drivers that extend your system with advanced management capabilities.
 project_name: control4-finite-labs-essentials
