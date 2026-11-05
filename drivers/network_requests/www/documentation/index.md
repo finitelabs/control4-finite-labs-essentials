@@ -141,7 +141,8 @@ primary way to create and manage named requests.
 1. **Driver Status** - grayed out, as every read-only property is: the driver
    sets it.
 1. **Log Level** - a change applies at once, and shows in Composer's
-   "Properties" tab too. A change made there shows here.
+   "Properties" tab too. A change made there shows here. Hovering a property
+   shows its description.
 1. **Webhook Port** - applies when you leave the field. A value the driver can't
    use is refused, with the reason under the field, and the port stays as it
    was.
