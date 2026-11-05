@@ -8,7 +8,9 @@ Marketing images for the Finite Labs Essentials DriverCentral listing (no produc
 | `banners/launch-post-2400x1200` | 2400x1200 | Launch posts (c4forums, Reddit, Discord) |
 | `banners/facts-strip-2400x200` | 2400x200 | The first image in the listing's description: four facts in a row |
 
-`assets/` holds what the pages share: the Finite Labs logo, and the Finite Labs mark in white as `brand-mark.png`, exported from this repo's `resources/Driver Icons.sketch` (the art its icons use).
+`assets/` holds what the pages share: the Finite Labs logo, `scene.js`, which draws the banners' art, and the Finite Labs mark in white as `brand-mark.png`, exported from this repo's `resources/Driver Icons.sketch` (the art its icons use).
+
+The banners' art is `tiles`: the six utilities as labeled tiles, set on each banner's `<svg class="scene">`. The template's DriverCentral README lists the styles, and the headline, chips and subtitle shrink until they end clear of the art.
 
 ## Rendering
 
