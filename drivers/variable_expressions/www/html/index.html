@@ -987,7 +987,7 @@ function insertToken(deviceId, variableId) {
 // Properties
 // ============================================================
 var gProperties = [];
-var gPropertyError = null;         // { name, message } under the field the driver refused
+var gPropertyErrors = {};          // property name -> the reason the driver refused its value
 
 function onProperties(properties) {
   gProperties = properties;
@@ -1010,9 +1010,9 @@ function propControl(p, id, failed) {
 
 function propCell(p, i) {
   var id = 'prop-' + i;
-  var failed = gPropertyError && gPropertyError.name === p.name;
+  var failed = gPropertyErrors[p.name];
   return '<div><label for="' + id + '">' + esc(p.name) + '</label>' + propControl(p, id, failed) +
-    (failed ? '<div class="perror">' + esc(gPropertyError.message) + '</div>' : '') +
+    (failed ? '<div class="perror">' + esc(failed) + '</div>' : '') +
     (p.description ? '<div class="pdesc">' + esc(p.description) + '</div>' : '') + '</div>';
 }
 
@@ -1033,7 +1033,7 @@ function renderProps() {
 }
 
 function onPropertyError(name, message) {
-  gPropertyError = { name: name, message: message };
+  gPropertyErrors[name] = message;
   // Only its own field redraws: another may be being edited.
   gProperties.forEach(function(p, i) {
     if (p.name === name) document.getElementById('prop-' + i).parentNode.outerHTML = propCell(p, i);
@@ -1045,8 +1045,8 @@ document.getElementById('props').addEventListener('change', function(e) {
   if (!name) return;
   var value = e.target.value;
   e.target.blur();
-  if (gPropertyError && gPropertyError.name === name) {
-    gPropertyError = null;
+  if (gPropertyErrors[name]) {
+    delete gPropertyErrors[name];
     e.target.classList.remove('input-error');
     e.target.parentNode.removeChild(e.target.parentNode.querySelector('.perror'));
   }
