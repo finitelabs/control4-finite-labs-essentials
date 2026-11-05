@@ -55,7 +55,9 @@ local function properties(xmlPath, overrides)
     version = xml:match("<version>(.-)</version>") or "20261104",
     minimum_os_version = xml:match("<minimum_os_version>(.-)</minimum_os_version>") or "3.3.0",
     model = xml:match("<model>(.-)</model>") or "model",
+    config = xml,
   }
+  PropertyConfig = nil
   function C4:GetDriverConfigInfo(section)
     return config[section]
   end

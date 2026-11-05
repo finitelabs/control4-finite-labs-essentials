@@ -20,9 +20,13 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ## Unreleased
 
-<!-- #ifdef DRIVERCENTRAL -->
-
 ### Added
+
+- Added a Properties card at the top of the Network Requests and Variable
+  Expressions tabs. It shows the driver's properties and sets them as Composer's
+  Properties tab does, and a change made in either place shows in the other.
+
+<!-- #ifdef DRIVERCENTRAL -->
 
 - Added a `Support Code` property to the Device Programmer, Light Relay, Network
   Requests, Sensor Aggregator, Sensor Multiplexer and Variable Expressions
@@ -42,8 +46,16 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Fixed
 
+- Fixed Network Requests' Webhook URL property reading
+  `Failed to listen on port` after a port change or a driver update, while the
+  webhook server was listening on the new port.
 - Fixed Sensor Multiplexer's Selection Changed event leaving the device's name
   out of its script title in Composer Pro. The title now names the multiplexer.
+
+### Changed
+
+- Removed the bar that held a single tab from the top of the Network Requests
+  and Variable Expressions tabs. It returns if a driver gains a second tab.
 
 ## v20260816 - 2026-08-16
 

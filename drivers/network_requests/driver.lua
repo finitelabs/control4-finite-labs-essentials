@@ -16,6 +16,7 @@ local values = require("lib.values")
 local events = require("lib.events")
 local http = require("lib.http")
 local updateSettings = require("lib.update-settings")
+local tabProperties = require("lib.tab-properties")
 --#ifdef DRIVERCENTRAL
 local drivercentral = require("lib.drivercentral")
 local supportCode = require("lib.support-code")
@@ -793,12 +794,19 @@ end
 
 function OnServerStatusChanged(nPort, strStatus)
   log:debug("OnServerStatusChanged(%s, %s)", nPort, strStatus)
-  if strStatus ~= "ONLINE" then
+  -- Closing the previous port reports OFFLINE after the new one is opened.
+  if tointeger(nPort) ~= tointeger(Properties["Webhook Port"]) then
+    return
+  end
+  if strStatus == "ONLINE" then
+    UpdateProperty("Webhook URL", webhookBaseUrl() .. "<Webhook Name>")
+  else
     UpdateProperty(
       "Webhook URL",
       string.format("Failed to listen on port %s (%s)", tostring(nPort), tostring(strStatus))
     )
   end
+  UIR._GET_CONFIG()
 end
 
 function OnServerConnectionStatusChanged(nHandle, nPort, strStatus)
@@ -937,6 +945,7 @@ function OnDriverLateInit()
 
   gInitialized = true
   UpdateProperty("Driver Status", "Ready")
+  tabProperties:follow(UIR._GET_CONFIG)
 
   --#ifdef DRIVERCENTRAL
   drivercentral:startGate(function(active)
@@ -1123,7 +1132,20 @@ function UIR._GET_CONFIG()
     requests = JSON:encode(requests),
     webhooks = JSON:encode(webhooks),
     webhookBase = webhookBaseUrl() or "",
+    properties = JSON:encode(tabProperties:list()),
   })
+end
+
+--- Set one of the driver's properties, as Composer's Properties tab would.
+--- @param tParams table
+function UIR._SET_PROPERTY(tParams)
+  log:trace("UIR._SET_PROPERTY()")
+  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local err = tabProperties:set(params.property, params.value)
+  if err then
+    return uiRespond("PROPERTY_ERROR", { property = params.property, error = err })
+  end
+  return UIR._GET_CONFIG()
 end
 
 --- Create or update a named webhook.

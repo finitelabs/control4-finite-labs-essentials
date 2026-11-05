@@ -43,6 +43,7 @@ project.
   - [Driver Properties](#driver-properties)
     - [Cloud Settings](#cloud-settings)
     - [Driver Settings](#driver-settings)
+    - [Webhook Settings](#webhook-settings)
   - [Driver Actions](#driver-actions)
 - [Programming](#programming)
   - [Request Types](#request-types)
@@ -125,6 +126,31 @@ for setting it up.
 
 The Requests tab in Composer (select the driver, then the Requests tab) is the
 primary way to create and manage named requests.
+
+### Properties
+
+<!-- #ifdef DRIVERCENTRAL -->
+
+<img alt="Requests tab - Properties" src="./images/ui-properties-drivercentral.png" width="640"/>
+<!-- #else -->
+<img alt="Requests tab - Properties" src="./images/ui-properties.png" width="640"/>
+<!-- #endif -->
+
+1. **Cloud Settings** - the driver's [properties](#driver-properties) under the
+   same headings as Composer's "Properties" tab.
+1. **Driver Status** - grayed out, as every read-only property is: the driver
+   sets it.
+1. **Log Level** - a change applies at once, and shows in Composer's
+   "Properties" tab too. A change made there shows here.
+1. **Webhook Port** - applies when you leave the field. A value the driver can't
+   use is refused, with the reason under the field, and the port stays as it
+   was.
+
+<!-- #ifdef DRIVERCENTRAL -->
+
+The Support Code is entered in Composer's "Properties" tab only.
+
+<!-- #endif -->
 
 ### Request List
 
@@ -320,6 +346,18 @@ anything in it that looks like a password, token, key, network address or email
 address is removed.
 
 <!-- #endif -->
+
+### Webhook Settings
+
+#### Webhook Port [ 0 - 65535 ]
+
+Sets the port the webhook server listens on. Default is `49300`. `0` disables
+webhooks.
+
+#### Webhook URL (read-only)
+
+Displays the base URL external systems call to fire webhook events, `Disabled`
+when the port is `0`, or the reason the server can't listen on the port.
 
 ## Driver Actions
 
