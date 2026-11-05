@@ -181,6 +181,7 @@ for driver, panel in pairs({ network_requests = "panel-list", variable_expressio
   T.truthy("the count sets the class", page:find("classList.toggle('multi',tabs.length>1)", 1, true))
   T.truthy("and a click shows a tab's panel", page:find("showTab(tab)", 1, true))
   T.truthy("a refusal redraws only its own field", page:find("parentNode.outerHTML=propCell(p,i)", 1, true))
+  T.truthy("and changing that field clears the reason", page:find("e.target.classList.remove('input-error')", 1, true))
   T.truthy(
     "the Properties card comes first in the panel",
     page:find('id="props-card"', 1, true) < page:find('<tableid="', 1, true)

@@ -1275,7 +1275,11 @@ document.getElementById('props').addEventListener('change', function(e) {
   if (!name) return;
   var value = e.target.value;
   e.target.blur();
-  if (gPropertyError && gPropertyError.name === name) gPropertyError = null;
+  if (gPropertyError && gPropertyError.name === name) {
+    gPropertyError = null;
+    e.target.classList.remove('input-error');
+    e.target.parentNode.removeChild(e.target.parentNode.querySelector('.perror'));
+  }
   sendCommand('_SET_PROPERTY', { property: name, value: value });
 });
 
