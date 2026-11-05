@@ -17,7 +17,7 @@
 
 ______________________________________________________________________
 
-# <span style="color:#109EFF">Overview</span>
+# <span style="color:#059669">Overview</span>
 
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
 
@@ -25,7 +25,7 @@ Finite Labs Essentials is a collection of independent Control4 drivers that
 extend your system with advanced management capabilities. Each driver operates
 standalone and can be installed individually or together.
 
-# <span style="color:#109EFF">Index</span>
+# <span style="color:#059669">Index</span>
 
 <div style="font-size: small">
 
@@ -52,11 +52,11 @@ standalone and can be installed individually or together.
 
 </div>
 
-# <span style="color:#109EFF">System Requirements</span>
+# <span style="color:#059669">System Requirements</span>
 
 - Control4 OS 3.3+
 
-# <span style="color:#109EFF">Included Drivers</span>
+# <span style="color:#059669">Included Drivers</span>
 
 ## Sensor Aggregator
 
@@ -173,7 +173,7 @@ tab, then fire them from programming with a single Send Request command.
   `<Name> Payload` variable, guarded by an optional key
 - Requests, webhooks, and last results persist across driver restarts
 
-# <span style="color:#109EFF">Installation</span>
+# <span style="color:#059669">Installation</span>
 
 <!-- #ifdef DRIVERCENTRAL -->
 
@@ -217,7 +217,7 @@ programming reference, and configuration guides.
 
 <!-- #ifdef DRIVERCENTRAL -->
 
-# <span style="color:#109EFF">Developer Information</span>
+# <span style="color:#059669">Developer Information</span>
 
 <p align="center">
 <img alt="Finite Labs" src="./images/finite-labs-logo.png" width="400"/>
@@ -236,7 +236,7 @@ https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
 
 <!-- #endif -->
 
-# <span style="color:#109EFF">Support</span>
+# <span style="color:#059669">Support</span>
 
 <!-- #ifdef DRIVERCENTRAL -->
 

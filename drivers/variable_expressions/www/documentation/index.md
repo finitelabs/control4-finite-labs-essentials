@@ -17,7 +17,7 @@
 
 ______________________________________________________________________
 
-# <span style="color:#109EFF">Overview</span>
+# <span style="color:#059669">Overview</span>
 
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
 
@@ -29,7 +29,7 @@ variables. Each expression publishes its own result variable and event for use
 elsewhere in programming, and can recalculate automatically when the variables
 it references change.
 
-# <span style="color:#109EFF">Index</span>
+# <span style="color:#059669">Index</span>
 
 <div style="font-size: small">
 
@@ -61,11 +61,11 @@ it references change.
 
 </div>
 
-# <span style="color:#109EFF">System Requirements</span>
+# <span style="color:#059669">System Requirements</span>
 
 - Control4 OS 3.3+
 
-# <span style="color:#109EFF">Features</span>
+# <span style="color:#059669">Features</span>
 
 - Named expressions managed from a dedicated Expressions tab in Composer, with a
   searchable variable browser, insert at cursor, syntax highlighting, and a live
@@ -82,7 +82,7 @@ it references change.
 - Rendered expression shows each reference as `[Room > Device > Variable]`
 - Expressions and last results persist across driver restarts
 
-# <span style="color:#109EFF">Installer Setup</span>
+# <span style="color:#059669">Installer Setup</span>
 
 <!-- #ifdef DRIVERCENTRAL -->
 
@@ -322,7 +322,7 @@ Monitoring is Enabled.
 
 <!-- #endif -->
 
-# <span style="color:#109EFF">Programming</span>
+# <span style="color:#059669">Programming</span>
 
 ## Referencing Variables
 
@@ -408,7 +408,7 @@ Pool PARAM{120,2001}F / Spa PARAM{120,2002}F
 
 <!-- #ifdef DRIVERCENTRAL -->
 
-# <span style="color:#109EFF">Developer Information</span>
+# <span style="color:#059669">Developer Information</span>
 
 <p align="center">
 <img alt="Finite Labs" src="./images/finite-labs-logo.png" width="400"/>
@@ -427,7 +427,7 @@ https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
 
 <!-- #endif -->
 
-# <span style="color:#109EFF">Support</span>
+# <span style="color:#059669">Support</span>
 
 <!-- #ifdef DRIVERCENTRAL -->
 

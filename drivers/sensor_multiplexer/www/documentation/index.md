@@ -17,7 +17,7 @@
 
 ______________________________________________________________________
 
-# <span style="color:#109EFF">Overview</span>
+# <span style="color:#059669">Overview</span>
 
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
 
@@ -26,7 +26,7 @@ values to output bindings. Unlike the Sensor Aggregator which combines N inputs
 into 1 via math, the Sensor Multiplexer selects 1-of-N named groups to pass
 through.
 
-# <span style="color:#109EFF">Index</span>
+# <span style="color:#059669">Index</span>
 
 <div style="font-size: small">
 
@@ -59,11 +59,11 @@ through.
 
 </div>
 
-# <span style="color:#109EFF">System Requirements</span>
+# <span style="color:#059669">System Requirements</span>
 
 - Control4 OS 3.3+
 
-# <span style="color:#109EFF">Features</span>
+# <span style="color:#059669">Features</span>
 
 - Switch between named groups of sensor inputs
 - Support for temperature, humidity, and contact sensor types
@@ -73,7 +73,7 @@ through.
 - Per-name conditionals for programming logic
 - Persistent state survives driver restarts
 
-# <span style="color:#109EFF">Installer Setup</span>
+# <span style="color:#059669">Installer Setup</span>
 
 <!-- #ifdef DRIVERCENTRAL -->
 
@@ -269,7 +269,7 @@ Monitoring is Enabled.
 
 <!-- #endif -->
 
-# <span style="color:#109EFF">Programming</span>
+# <span style="color:#059669">Programming</span>
 
 ## Connections
 
@@ -329,7 +329,7 @@ A conditional is created for each name in the "Input Names" property:
 For example, with names "Away,Home,Sleep", three conditionals are created:
 "Away", "Home", and "Sleep".
 
-# <span style="color:#109EFF">Use Case: Thermostat Temperature Source</span>
+# <span style="color:#059669">Use Case: Thermostat Temperature Source</span>
 
 This walkthrough demonstrates how to use the Sensor Multiplexer with Sensor
 Aggregators to feed different temperature readings to a thermostat based on
@@ -387,7 +387,7 @@ active and branch logic accordingly.
 
 <!-- #ifdef DRIVERCENTRAL -->
 
-# <span style="color:#109EFF">Developer Information</span>
+# <span style="color:#059669">Developer Information</span>
 
 <p align="center">
 <img alt="Finite Labs" src="./images/finite-labs-logo.png" width="400"/>
@@ -406,7 +406,7 @@ https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
 
 <!-- #endif -->
 
-# <span style="color:#109EFF">Support</span>
+# <span style="color:#059669">Support</span>
 
 <!-- #ifdef DRIVERCENTRAL -->
 

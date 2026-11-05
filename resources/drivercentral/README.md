@@ -9,7 +9,7 @@ Marketing images for the Finite Labs Essentials DriverCentral listing (no produc
 | `banners/facts-strip-2400x136` | 2400x136 | The first image in the listing's description: four facts in a row, three-quarters of the width, on a transparent background. Put it in a plain paragraph in the description, not a heading, which adds its own spacing |
 | `product-card-300x300.png` | 300x300 | The listing's product card, written by `make icons` from `resources/Driver Icons.sketch` |
 
-`assets/` holds what the pages share: the Finite Labs logo, `scene.js`, which draws the banners' art, and the Finite Labs mark in white as `brand-mark.png`, exported from this repo's `resources/Driver Icons.sketch` (the art its icons use).
+`assets/` holds what the pages share: the Finite Labs logo, `scene.js`, which draws the banners' art, and the Essentials mark in white as `brand-mark.png`, the same art as this repo's `resources/Driver Icons.sketch` (a rounded cell with Es cut out, in Helvetica Neue Bold outlines).
 
 The banners' art is `tiles`: the six utilities as labeled tiles, set on each banner's `<svg class="scene">`. The template's DriverCentral README lists the styles, and the headline, chips and subtitle shrink until they end clear of the art.
 
