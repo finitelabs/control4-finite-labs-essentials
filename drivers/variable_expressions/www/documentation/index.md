@@ -203,9 +203,10 @@ Add Expression and Edit both open the editor in place of the list.
 1. **Recalculate when referenced variables change** - when enabled, the driver
    watches every variable the expression references and recalculates on change,
    debounced by 1 second so rapidly updating sources coalesce into a single
-   recalculation. The count of watched references is shown alongside. When
-   disabled, the expression only recalculates from the Calculate Expression
-   programming command or the Run button.
+   recalculation, at least every 11 seconds or so while they keep changing. The
+   count of watched references is shown alongside. When disabled, the expression
+   only recalculates from the Calculate Expression programming command or the
+   Run button.
 1. **Cancel / Run Once / Save Expression** - discard the changes, evaluate the
    expression without saving it, or save it.
 
