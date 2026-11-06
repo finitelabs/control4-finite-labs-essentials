@@ -469,7 +469,7 @@ function sendCommand(cmd, params) {
   return api('POST', '/api/v1/items/' + gDriverId + '/commands', {
     command: cmd,
     // Why the newlines: lib/page-params.lua.
-    tParams: { DATA: btoa(JSON.stringify(params || {})).replace(/(.{76})/g, '$1\n') },
+    tParams: { DATA: btoa(unescape(encodeURIComponent(JSON.stringify(params || {})))).replace(/(.{76})/g, '$1\n') },
     async: false
   });
 }
@@ -526,8 +526,8 @@ function handleDriverData(cmd, params) {
       onProperties(JSON.parse(params.properties || '[]'));
     }
     else if (cmd === 'PROPERTY_ERROR') onPropertyError(params.property, params.error || '');
-    else if (cmd === 'EXPRESSION_RESULT') onExpressionResult(params);
-    else if (cmd === 'EVAL_RESULT') onEvalResult(params);
+    else if (cmd === 'EXPRESSION_RESULT') onExpressionResult(JSON.parse(params.data));
+    else if (cmd === 'EVAL_RESULT') onEvalResult(JSON.parse(params.data));
     else if (cmd === 'DEVICES_DATA') onDevices(JSON.parse(params.devices || '[]'));
     else if (cmd === 'DEVICE_VARIABLES_DATA') onDeviceVariables(params.deviceId, JSON.parse(params.variables || '[]'));
     else if (cmd === 'SAVE_RESULT') onSaveResult(params);
