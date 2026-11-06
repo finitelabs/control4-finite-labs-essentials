@@ -58,6 +58,9 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   variable holding a quote no longer breaks it and no value can run as code.
 - Fixed comparing a text variable in a Variable Expressions equation:
   `PARAM{96,Mode} == "On"` now compares the text. It was always false before.
+- Fixed a variable that keeps changing holding off a Variable Expressions
+  recalculation indefinitely. An expression now recalculates at least every 11
+  seconds or so while its variables keep changing.
 - Fixed saving a long request or expression in the Network Requests and Variable
   Expressions tabs slowing the controller. The tabs now send long commands in a
   form the controller handles quickly.

@@ -54,6 +54,7 @@ local removedDevices = {}
 --- @field _missing table<string, integer> expression name -> references last found missing
 --- @field _retries table<string, integer> expression name -> retries used
 --- @field _debounceMs number
+--- @field _waitingSince table<string, number> expression name -> when its pending recompute was first armed
 --- @field _getExpressions fun(): table<string, table>
 --- @field _recompute fun(name: string)
 local Expressions = {}
@@ -63,6 +64,10 @@ Expressions.__index = Expressions
 --- ten minutes covers a Director restart, when each driver adds its variables again.
 Expressions.RETRY_MS = 30000
 Expressions.RETRY_ATTEMPTS = 20
+
+--- How long changes can keep pushing a recompute out, in seconds. It runs one debounce window
+--- after the last push.
+Expressions.MAX_WAIT_SECONDS = 10
 
 ---------------------------------------------------------------------------
 -- Tokens
@@ -273,7 +278,7 @@ function Expressions.substitute(template, mode)
     local value = readVariable(device, variable)
     if value == nil then
       local reason = missingReason(device, variable)
-      log:warn("Expression reference not found: %s", reason)
+      log:debug("Expression reference not found: %s", reason)
       problem = problem or reason
       out[#out + 1] = ERROR_VARIABLE_NOT_FOUND
     else
@@ -606,6 +611,7 @@ function Expressions:new(opts)
   instance._missing = {}
   instance._retries = {}
   instance._debounceMs = opts.debounceMs or 1000
+  instance._waitingSince = {}
   instance._getExpressions = assert(opts.getExpressions, "getExpressions is required")
   instance._recompute = assert(opts.recompute, "recompute is required")
   return instance
@@ -627,11 +633,18 @@ function Expressions:_onVariableChanged(deviceId, variableId)
 end
 
 --- Arm (or re-arm) the trailing-edge debounce timer for an expression. SetTimer
---- cancels any existing timer with the same name, so every change pushes the
---- recompute out by the debounce window.
+--- cancels any existing timer with the same name, so a change pushes the recompute
+--- out by the debounce window, up to `MAX_WAIT_SECONDS` from the first change.
 --- @param name string
 function Expressions:_scheduleRecompute(name)
+  local now = os.time()
+  local since = self._waitingSince[name]
+  if since and now - since >= Expressions.MAX_WAIT_SECONDS then
+    return
+  end
+  self._waitingSince[name] = since and since <= now and since or now
   SetTimer(debounceTimerName(name), self._debounceMs, function()
+    self._waitingSince[name] = nil
     local ok, err = pcall(self._recompute, name)
     if not ok then
       log:error("Debounced recompute of '%s' failed: %s", name, err)
@@ -758,6 +771,7 @@ function Expressions:unsubscribeExpression(name)
   self._byExpression[name] = nil
   self._missing[name] = nil
   self._retries[name] = nil
+  self._waitingSince[name] = nil
   CancelTimer(debounceTimerName(name))
   CancelTimer(retryTimerName(name))
 end
