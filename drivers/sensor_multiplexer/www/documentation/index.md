@@ -17,20 +17,16 @@
 
 ______________________________________________________________________
 
-# <span style="color:#109EFF">Overview</span>
-
-<!-- #ifndef DRIVERCENTRAL -->
+# <span style="color:#059669">Overview</span>
 
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
-
-<!-- #endif -->
 
 Switch between named groups of sensor inputs, passing the selected group's
 values to output bindings. Unlike the Sensor Aggregator which combines N inputs
 into 1 via math, the Sensor Multiplexer selects 1-of-N named groups to pass
 through.
 
-# <span style="color:#109EFF">Index</span>
+# <span style="color:#059669">Index</span>
 
 <div style="font-size: small">
 
@@ -64,11 +60,11 @@ through.
 
 </div>
 
-# <span style="color:#109EFF">System Requirements</span>
+# <span style="color:#059669">System Requirements</span>
 
 - Control4 OS 3.3+
 
-# <span style="color:#109EFF">Features</span>
+# <span style="color:#059669">Features</span>
 
 - Switch between named groups of sensor inputs
 - Support for temperature, humidity, and contact sensor types
@@ -80,7 +76,7 @@ through.
   input in an order that avoids short-cycling the equipment
 - Persistent state survives driver restarts
 
-# <span style="color:#109EFF">Installer Setup</span>
+# <span style="color:#059669">Installer Setup</span>
 
 <!-- #ifdef DRIVERCENTRAL -->
 
@@ -289,6 +285,12 @@ linked thermostat it switches the preset too, as Select Input does.
 Resets the driver state, clearing all cached input values, bindings, events, and
 conditionals.
 
+<!-- #ifdef DRIVERCENTRAL -->
+
+It also turns Cloud Monitoring back on, as a fresh install has it.
+
+<!-- #endif -->
+
 **Parameters:**
 
 - **Are You Sure?** \[ **_No_** | Yes \] - Confirmation to reset the driver.
@@ -302,7 +304,7 @@ Monitoring is Enabled.
 
 <!-- #endif -->
 
-# <span style="color:#109EFF">Programming</span>
+# <span style="color:#059669">Programming</span>
 
 ## Connections
 
@@ -368,7 +370,7 @@ A conditional is created for each name in the "Input Names" property:
 For example, with names "Away,Home,Sleep", three conditionals are created:
 "Away", "Home", and "Sleep".
 
-# <span style="color:#109EFF">Use Case: Thermostat Temperature Source</span>
+# <span style="color:#059669">Use Case: Thermostat Temperature Source</span>
 
 This walkthrough demonstrates how to use the Sensor Multiplexer with Sensor
 Aggregators to feed different temperature readings to a thermostat based on
@@ -410,8 +412,7 @@ In the Connections tab:
 ### Step 4: Connect Multiplexer Output to Thermostat
 
 Connect the **Sensor Multiplexer** → Output Temperature to the thermostat's
-remote temperature input, and set the thermostat to control from that remote
-sensor.
+remote temperature input.
 
 ### Step 5: Link the Thermostat
 
@@ -468,7 +469,7 @@ thermostat. Run mode changes through Select Input to avoid it entirely.
 
 <!-- #ifdef DRIVERCENTRAL -->
 
-# <span style="color:#109EFF">Developer Information</span>
+# <span style="color:#059669">Developer Information</span>
 
 <p align="center">
 <img alt="Finite Labs" src="./images/finite-labs-logo.png" width="400"/>
@@ -487,7 +488,7 @@ https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
 
 <!-- #endif -->
 
-# <span style="color:#109EFF">Support</span>
+# <span style="color:#059669">Support</span>
 
 <!-- #ifdef DRIVERCENTRAL -->
 

@@ -1,9 +1,5 @@
 --- Light Relay Driver
---#ifdef DRIVERCENTRAL
-DC_PID = nil
-DC_X = nil
-DC_FILENAME = "light_relay.c4z"
---#else
+--#ifndef DRIVERCENTRAL
 DRIVER_GITHUB_REPO = "finitelabs/control4-finite-labs-essentials"
 --#endif
 require("lib.utils")
@@ -19,12 +15,23 @@ local persist = require("lib.persist")
 local constants = require("constants")
 local updateSettings = require("lib.update-settings")
 --#ifdef DRIVERCENTRAL
+local drivercentral = require("lib.drivercentral")
 local supportCode = require("lib.support-code")
 local diagnostics = require("lib.diagnostics")
 --#endif
 --#ifndef DRIVERCENTRAL
 local githubUpdater = require("lib.github-updater")
 --#endif
+
+--- Whether the driver may act: a DriverCentral build stops while it has no license, and an OSS build never does.
+--- @return boolean
+local function licensed()
+  local ok = true
+  --#ifdef DRIVERCENTRAL
+  ok = drivercentral:licensed()
+  --#endif
+  return ok
+end
 
 --------------------------------------------------------------------------------
 -- Constants
@@ -56,8 +63,7 @@ end
 
 function OnDriverInit()
   --#ifdef DRIVERCENTRAL
-  require("cloud-client-byte")
-  C4:AllowExecute(false)
+  drivercentral:startClient()
   --#else
   C4:AllowExecute(true)
   --#endif
@@ -99,6 +105,24 @@ function OnDriverLateInit()
 
   gInitialized = true
   UpdateProperty("Driver Status", "Ready")
+
+  --#ifdef DRIVERCENTRAL
+  drivercentral:startGate(function(active)
+    if not active then
+      UpdateProperty("Driver Status", drivercentral.UNLICENSED_STATUS)
+      return
+    end
+    UpdateProperty("Driver Status", "Ready")
+    -- Each relay takes its light's state as it is now, with no programming event.
+    for lightDeviceId in pairs(ParseDeviceIdPropertyList("Convert Lights To Relays")) do
+      local relayBinding = bindings:getDynamicBinding(NS_RELAY, lightDeviceId)
+      if relayBinding then
+        local on = toboolean(C4:GetDeviceVariable(lightDeviceId, 1000))
+        SendToProxy(relayBinding.bindingId, on and "STATE_CLOSED" or "STATE_OPENED", {}, "NOTIFY")
+      end
+    end
+  end)
+  --#endif
 end
 
 --#ifdef DRIVERCENTRAL
@@ -241,6 +265,9 @@ function OPC.Convert_Lights_To_Relays(propertyValue)
     local relayBinding =
       bindings:getOrAddDynamicBinding(NS_RELAY, lightDeviceId, "CONTROL", true, lightDevice.displayName, "RELAY")
     RFP[relayBinding.bindingId] = function(_, strCommand)
+      if not licensed() then
+        return
+      end
       if strCommand == "OPEN" then
         if toboolean(C4:GetDeviceVariable(lightDeviceId, 1000)) then
           log:info("Relay open; triggering light %s state to OFF", lightDevice.displayName)
@@ -263,6 +290,10 @@ function OPC.Convert_Lights_To_Relays(propertyValue)
     end
     local isInitial = true
     RegisterVariableListener(lightDeviceId, 1000, function(_, _, strValue)
+      if not licensed() then
+        isInitial = false
+        return
+      end
       if toboolean(strValue) then
         if not isInitial then
           log:info("Light %s state changed to ON", lightDevice.displayName)
@@ -289,6 +320,9 @@ end
 
 function EC.Hide_Lights_In_All_Rooms()
   log:trace("EC.Hide_Lights_In_All_Rooms()")
+  if not licensed() then
+    return
+  end
 
   local lightDevices = ParseDeviceIdPropertyList("Convert Lights To Relays")
   if IsEmpty(lightDevices) then
@@ -319,6 +353,9 @@ function EC.Reset_Driver(params)
   for propName, defaultValue in pairs(resetValues) do
     UpdateProperty(propName, defaultValue, true)
   end
+  --#ifdef DRIVERCENTRAL
+  UpdateProperty("Cloud Monitoring", "Enabled", true)
+  --#endif
 end
 
 --#ifndef DRIVERCENTRAL

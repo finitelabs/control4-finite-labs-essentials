@@ -17,13 +17,9 @@
 
 ______________________________________________________________________
 
-# <span style="color:#109EFF">Overview</span>
-
-<!-- #ifndef DRIVERCENTRAL -->
+# <span style="color:#059669">Overview</span>
 
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
-
-<!-- #endif -->
 
 Control4 programming offers only basic operations on variables: set a value,
 randomize, increment, decrement, or copy from another variable. Variable
@@ -33,7 +29,7 @@ variables. Each expression publishes its own result variable and event for use
 elsewhere in programming, and can recalculate automatically when the variables
 it references change.
 
-# <span style="color:#109EFF">Index</span>
+# <span style="color:#059669">Index</span>
 
 <div style="font-size: small">
 
@@ -65,11 +61,11 @@ it references change.
 
 </div>
 
-# <span style="color:#109EFF">System Requirements</span>
+# <span style="color:#059669">System Requirements</span>
 
 - Control4 OS 3.3+
 
-# <span style="color:#109EFF">Features</span>
+# <span style="color:#059669">Features</span>
 
 - Named expressions managed from a dedicated Expressions tab in Composer, with a
   searchable variable browser, insert at cursor, syntax highlighting, and a live
@@ -86,7 +82,7 @@ it references change.
 - Rendered expression shows each reference as `[Room > Device > Variable]`
 - Expressions and last results persist across driver restarts
 
-# <span style="color:#109EFF">Installer Setup</span>
+# <span style="color:#059669">Installer Setup</span>
 
 <!-- #ifdef DRIVERCENTRAL -->
 
@@ -129,6 +125,28 @@ for setting it up.
 The Expressions tab in Composer (select the driver, then the Expressions tab) is
 the primary way to create and manage standing calculations.
 
+### Properties
+
+<!-- #ifdef DRIVERCENTRAL -->
+
+<img alt="Expressions tab - Properties" src="./images/ui-properties-drivercentral.png" width="640"/>
+<!-- #else -->
+<img alt="Expressions tab - Properties" src="./images/ui-properties.png" width="640"/>
+<!-- #endif -->
+
+1. **Cloud Settings** - the driver's [properties](#driver-properties) under the
+   same headings as Composer's "Properties" tab.
+1. **Driver Status** - grayed out, as every read-only property is: the driver
+   sets it.
+1. **Log Level** - a change applies at once, and shows in Composer's
+   "Properties" tab too. A change made there shows here.
+
+<!-- #ifdef DRIVERCENTRAL -->
+
+The Support Code is entered in Composer's "Properties" tab only.
+
+<!-- #endif -->
+
 ### Expression List
 
 Every named expression appears as a row with its mode, a rendered view of what
@@ -166,8 +184,9 @@ Add Expression and Edit both open the editor in place of the list.
    green check marks variables the expression already references.
 1. **Name** - names the `<Name> Result` variable and the `<Name> Calculated`
    event. Renaming an expression renames both.
-1. **Mode** - `Equation` evaluates the substituted template as math and
-   publishes a NUMBER. `String` publishes the substituted text as a STRING.
+1. **Mode** - `Equation` evaluates the template as math, reading each token as
+   its variable's current value, and publishes a NUMBER. `String` publishes the
+   text with each token's value in place as a STRING.
 1. **Expression** - the template. Tokens, functions, numbers, and strings are
    highlighted as you type.
 1. **Syntax help** - the reference for tokens, operators, and functions, without
@@ -176,8 +195,9 @@ Add Expression and Edit both open the editor in place of the list.
    `[Room > Device > Variable]`, which is the quickest way to confirm a token
    points where you meant it to.
 1. **With current values** - the same template with the variables' current
-   values substituted, exactly as it will be evaluated (Equation mode only).
-1. **Result** - the value the controller computed for that substitution. Errors
+   values in place, to show what it reads (Equation mode only). A value is read
+   as data, so this is a view of the values and not the text that runs.
+1. **Result** - the value the controller computed with those values. Errors
    appear here in red, before anything is saved.
 1. **Publish line** - the variable and event this expression owns once saved.
 1. **Recalculate when referenced variables change** - when enabled, the driver
@@ -285,6 +305,12 @@ the current version.
 Deletes every expression along with its output variable and event, and clears
 all persisted state.
 
+<!-- #ifdef DRIVERCENTRAL -->
+
+It also turns Cloud Monitoring back on, as a fresh install has it.
+
+<!-- #endif -->
+
 **Parameters:**
 
 - **Are You Sure?** \[ **_No_** | Yes \] - Confirmation to reset the driver.
@@ -298,7 +324,7 @@ Monitoring is Enabled.
 
 <!-- #endif -->
 
-# <span style="color:#109EFF">Programming</span>
+# <span style="color:#059669">Programming</span>
 
 ## Referencing Variables
 
@@ -312,6 +338,11 @@ PARAM{DEVICE_ID,VARIABLE_ID}
 `VARIABLE_ID` is either the numeric id of the variable or its name (matched
 exactly, case-sensitive), for example `PARAM{96,1002}` or `PARAM{96,Humidity}`.
 Any variable type may be referenced, including strings, numbers, and booleans.
+
+In an equation a token reads its variable as a value: a number as a number,
+`true` and `false` as booleans, and anything else as text, so
+`PARAM{96,Mode} == "On"` compares the text. A value is only ever data: it can't
+break an expression or run as part of one.
 
 You rarely need to build a token by hand: click a variable in the Expressions
 tab browser and its token is inserted at the cursor. If a referenced variable
@@ -384,7 +415,7 @@ Pool PARAM{120,2001}F / Spa PARAM{120,2002}F
 
 <!-- #ifdef DRIVERCENTRAL -->
 
-# <span style="color:#109EFF">Developer Information</span>
+# <span style="color:#059669">Developer Information</span>
 
 <p align="center">
 <img alt="Finite Labs" src="./images/finite-labs-logo.png" width="400"/>
@@ -403,7 +434,7 @@ https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
 
 <!-- #endif -->
 
-# <span style="color:#109EFF">Support</span>
+# <span style="color:#059669">Support</span>
 
 <!-- #ifdef DRIVERCENTRAL -->
 

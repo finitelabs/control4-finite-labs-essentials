@@ -1,4 +1,4 @@
-# <span style="color:#109EFF">Changelog</span>
+# <span style="color:#059669">Changelog</span>
 
 <!--
 Template for a new release entry (copy below the heading, fill in, uncomment):
@@ -22,6 +22,10 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Added
 
+- Added a Properties card at the top of the Network Requests and Variable
+  Expressions tabs. It shows the driver's properties and sets them as Composer's
+  Properties tab does, and a change made in either place shows in the other.
+
 <!-- #ifdef DRIVERCENTRAL -->
 
 - Added a `Support Code` property to the Device Programmer, Light Relay, Network
@@ -32,6 +36,11 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   `Diagnostics Snapshot` action to every driver. Cloud Monitoring sends Finite
   Labs an hourly report of the driver's memory use and a report of each error it
   hits; the documentation says what they hold.
+- Added a license check to every driver. Without an active DriverCentral license
+  or trial, a driver stops five minutes after it loads and shows
+  `No active license` in Driver Status: it sends nothing to its devices,
+  proxies, events, variables or the network, and answers a webhook with 503. A
+  license starts it again at once.
 
 <!-- #endif -->
 
@@ -47,8 +56,29 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Fixed
 
+- Fixed a variable's value being able to break or run as part of a Variable
+  Expressions expression. An equation now reads each value as data, so a text
+  variable holding a quote no longer breaks it and no value can run as code.
+- Fixed comparing a text variable in a Variable Expressions equation:
+  `PARAM{96,Mode} == "On"` now compares the text. It was always false before.
+- Fixed saving a long request or expression in the Network Requests and Variable
+  Expressions tabs slowing the controller. The tabs now send long commands in a
+  form the controller handles quickly.
+- Fixed Network Requests' Webhook URL property reading
+  `Failed to listen on port` after a port change or a driver update, while the
+  webhook server was listening on the new port.
 - Fixed Sensor Multiplexer's Selection Changed event leaving the device's name
   out of its script title in Composer Pro. The title now names the multiplexer.
+- Fixed long names and values running past the edge of the Network Requests and
+  Variable Expressions tabs. They now wrap inside the page, and the Mode column
+  shows NUMBER in full.
+
+### Changed
+
+- Changed the drivers' icons and documentation header to a new Finite Labs
+  Essentials mark.
+- Removed the bar that held a single tab from the top of the Network Requests
+  and Variable Expressions tabs. It returns if a driver gains a second tab.
 
 ## v20260816 - 2026-08-16
 

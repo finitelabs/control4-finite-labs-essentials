@@ -1,9 +1,5 @@
 --- Network Requests Driver
---#ifdef DRIVERCENTRAL
-DC_PID = nil
-DC_X = nil
-DC_FILENAME = "network_requests.c4z"
---#else
+--#ifndef DRIVERCENTRAL
 DRIVER_GITHUB_REPO = "finitelabs/control4-finite-labs-essentials"
 --#endif
 require("lib.utils")
@@ -15,18 +11,31 @@ JSON = require("JSON")
 
 local deferred = require("deferred")
 local log = require("lib.logging")
+local pageParams = require("lib.page-params")
 local persist = require("lib.persist")
 local values = require("lib.values")
 local events = require("lib.events")
 local http = require("lib.http")
 local updateSettings = require("lib.update-settings")
+local tabProperties = require("lib.tab-properties")
 --#ifdef DRIVERCENTRAL
+local drivercentral = require("lib.drivercentral")
 local supportCode = require("lib.support-code")
 local diagnostics = require("lib.diagnostics")
 --#endif
 --#ifndef DRIVERCENTRAL
 local githubUpdater = require("lib.github-updater")
 --#endif
+
+--- Whether the driver may act: a DriverCentral build stops while it has no license, and an OSS build never does.
+--- @return boolean
+local function licensed()
+  local ok = true
+  --#ifdef DRIVERCENTRAL
+  ok = drivercentral:licensed()
+  --#endif
+  return ok
+end
 
 --------------------------------------------------------------------------------
 -- Constants
@@ -559,6 +568,10 @@ end
 --- @return Deferred|nil d Resolves the stored result entry, or nil if not configured.
 local function sendRequest(name)
   log:trace("sendRequest('%s')", name)
+  if not licensed() then
+    log:warn("Send Request '%s': no active license", tostring(name))
+    return nil
+  end
   local config = getRequests()[name]
   if not config then
     log:warn("Send Request: unknown request '%s'", tostring(name))
@@ -739,6 +752,9 @@ local function handleWebhookRequest(nHandle, method, rawPath, body, clientAddres
   local path, query = rawPath:match("^([^?]*)%??(.*)$")
   local name = urlDecode(tostring(path or ""):gsub("^/", ""):gsub("/$", ""))
   log:debug("Webhook call: %s '%s' from %s", method, name, clientAddress)
+  if not licensed() then
+    return webhookRespond(nHandle, 503, "Service Unavailable", { ok = false, error = "no active license" })
+  end
 
   local config = getWebhooks()[name]
   if not config then
@@ -779,12 +795,19 @@ end
 
 function OnServerStatusChanged(nPort, strStatus)
   log:debug("OnServerStatusChanged(%s, %s)", nPort, strStatus)
-  if strStatus ~= "ONLINE" then
+  -- Closing the previous port reports OFFLINE after the new one is opened.
+  if tointeger(nPort) ~= tointeger(Properties["Webhook Port"]) then
+    return
+  end
+  if strStatus == "ONLINE" then
+    UpdateProperty("Webhook URL", webhookBaseUrl() .. "<Webhook Name>")
+  else
     UpdateProperty(
       "Webhook URL",
       string.format("Failed to listen on port %s (%s)", tostring(nPort), tostring(strStatus))
     )
   end
+  UIR._GET_CONFIG()
 end
 
 function OnServerConnectionStatusChanged(nHandle, nPort, strStatus)
@@ -857,8 +880,7 @@ end
 
 function OnDriverInit()
   --#ifdef DRIVERCENTRAL
-  require("cloud-client-byte")
-  C4:AllowExecute(false)
+  drivercentral:startClient()
   --#else
   C4:AllowExecute(true)
   --#endif
@@ -924,6 +946,13 @@ function OnDriverLateInit()
 
   gInitialized = true
   UpdateProperty("Driver Status", "Ready")
+  tabProperties:follow(UIR._GET_CONFIG)
+
+  --#ifdef DRIVERCENTRAL
+  drivercentral:startGate(function(active)
+    UpdateProperty("Driver Status", active and "Ready" or drivercentral.UNLICENSED_STATUS)
+  end)
+  --#endif
 end
 
 --#ifdef DRIVERCENTRAL
@@ -1104,14 +1133,27 @@ function UIR._GET_CONFIG()
     requests = JSON:encode(requests),
     webhooks = JSON:encode(webhooks),
     webhookBase = webhookBaseUrl() or "",
+    properties = JSON:encode(tabProperties:list()),
   })
+end
+
+--- Set one of the driver's properties, as Composer's Properties tab would.
+--- @param tParams table
+function UIR._SET_PROPERTY(tParams)
+  log:trace("UIR._SET_PROPERTY()")
+  local params = pageParams(tParams)
+  local err = tabProperties:set(params.property, params.value)
+  if err then
+    return uiRespond("PROPERTY_ERROR", { property = params.property, error = err })
+  end
+  return UIR._GET_CONFIG()
 end
 
 --- Create or update a named webhook.
 --- @param tParams table
 function UIR._SAVE_WEBHOOK(tParams)
   log:trace("UIR.SAVE_WEBHOOK()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   local name = tostring(params.name or ""):match("^%s*(.-)%s*$")
   if IsEmpty(name) then
     return uiRespond("SAVE_RESULT", { ok = false, error = "Name is required" })
@@ -1127,7 +1169,7 @@ end
 --- @param tParams table
 function UIR._DELETE_WEBHOOK(tParams)
   log:trace("UIR.DELETE_WEBHOOK()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   local name = tostring(params.name or "")
   local webhooks = getWebhooks()
   if webhooks[name] then
@@ -1142,7 +1184,7 @@ end
 --- @param tParams table
 function UIR._SAVE_REQUEST(tParams)
   log:trace("UIR.SAVE_REQUEST()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   local name = tostring(params.name or ""):match("^%s*(.-)%s*$")
   local originalName = tostring(params.originalName or ""):match("^%s*(.-)%s*$")
 
@@ -1208,7 +1250,7 @@ end
 --- @param tParams table
 function UIR._DELETE_REQUEST(tParams)
   log:trace("UIR.DELETE_REQUEST()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   local name = tostring(params.name or "")
   local requests = getRequests()
   if requests[name] then
@@ -1224,7 +1266,7 @@ end
 --- @param tParams table
 function UIR._RUN_REQUEST(tParams)
   log:trace("UIR.RUN_REQUEST()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   sendRequest(tostring(params.name or ""))
   return UIR._GET_CONFIG()
 end
@@ -1329,7 +1371,7 @@ end
 --- @param tParams table
 function UIR._GET_DEVICE_VARIABLES(tParams)
   log:trace("UIR.GET_DEVICE_VARIABLES()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   local devId = tonumber(params.deviceId)
   if not devId then
     return
@@ -1446,6 +1488,9 @@ function EC.Reset_Driver(params)
   for propName, defaultValue in pairs(resetValues) do
     UpdateProperty(propName, defaultValue, true)
   end
+  --#ifdef DRIVERCENTRAL
+  UpdateProperty("Cloud Monitoring", "Enabled", true)
+  --#endif
   startWebhookServer()
 end
 

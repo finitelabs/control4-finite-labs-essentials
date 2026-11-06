@@ -17,20 +17,16 @@
 
 ______________________________________________________________________
 
-# <span style="color:#109EFF">Overview</span>
-
-<!-- #ifndef DRIVERCENTRAL -->
+# <span style="color:#059669">Overview</span>
 
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
-
-<!-- #endif -->
 
 Dynamically creates relay connections for one or more selected light devices
 using a single driver instance. This enables controlling devices that use relay
 drivers (e.g., fans, fireplaces) from a light switch, with bidirectional state
 synchronization.
 
-# <span style="color:#109EFF">Index</span>
+# <span style="color:#059669">Index</span>
 
 <div style="font-size: small">
 
@@ -59,24 +55,24 @@ synchronization.
 
 </div>
 
-# <span style="color:#109EFF">System Requirements</span>
+# <span style="color:#059669">System Requirements</span>
 
 - Control4 OS 3.3+
 
-# <span style="color:#109EFF">Features</span>
+# <span style="color:#059669">Features</span>
 
 - Single driver instance supports all your project's lights
 - Dynamic relay bindings created per selected light
 - Bidirectional state synchronization between light and relay
 - Bulk hide all converted lights from navigators
 
-# <span style="color:#109EFF">Supported Light Proxies</span>
+# <span style="color:#059669">Supported Light Proxies</span>
 
 - `light.c4i`
 - `light_v2.c4i`
 - `outlet_light.c4i`
 
-# <span style="color:#109EFF">Installer Setup</span>
+# <span style="color:#059669">Installer Setup</span>
 
 > Only a **_single_** driver instance is needed since you can multiselect lights
 > in the properties and the relay bindings will be created dynamically. Adding
@@ -209,6 +205,12 @@ the current version.
 
 Resets the driver state, clearing all persisted values and bindings.
 
+<!-- #ifdef DRIVERCENTRAL -->
+
+It also turns Cloud Monitoring back on, as a fresh install has it.
+
+<!-- #endif -->
+
 **Parameters:**
 
 - **Are You Sure?** \[ **_No_** | Yes \] - Confirmation to reset the driver.
@@ -229,7 +231,7 @@ Monitoring is Enabled.
 
 <!-- #endif -->
 
-# <span style="color:#109EFF">Programming</span>
+# <span style="color:#059669">Programming</span>
 
 ## Connections
 
@@ -255,7 +257,7 @@ on the relay binding.
 
 <!-- #ifdef DRIVERCENTRAL -->
 
-# <span style="color:#109EFF">Developer Information</span>
+# <span style="color:#059669">Developer Information</span>
 
 <p align="center">
 <img alt="Finite Labs" src="./images/finite-labs-logo.png" width="400"/>
@@ -274,7 +276,7 @@ https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
 
 <!-- #endif -->
 
-# <span style="color:#109EFF">Support</span>
+# <span style="color:#059669">Support</span>
 
 <!-- #ifdef DRIVERCENTRAL -->
 

@@ -1,9 +1,5 @@
 --- Variable Expressions Driver
---#ifdef DRIVERCENTRAL
-DC_PID = nil
-DC_X = nil
-DC_FILENAME = "variable_expressions.c4z"
---#else
+--#ifndef DRIVERCENTRAL
 DRIVER_GITHUB_REPO = "finitelabs/control4-finite-labs-essentials"
 --#endif
 require("lib.utils")
@@ -14,19 +10,31 @@ require("drivers-common-public.global.timer")
 JSON = require("JSON")
 
 local log = require("lib.logging")
+local pageParams = require("lib.page-params")
 local persist = require("lib.persist")
-local transform = require("lib.transform")
 local values = require("lib.values")
 local events = require("lib.events")
-local ExpressionEngine = require("lib.expressions")
+local Expressions = require("lib.expressions")
 local updateSettings = require("lib.update-settings")
+local tabProperties = require("lib.tab-properties")
 --#ifdef DRIVERCENTRAL
+local drivercentral = require("lib.drivercentral")
 local supportCode = require("lib.support-code")
 local diagnostics = require("lib.diagnostics")
 --#endif
 --#ifndef DRIVERCENTRAL
 local githubUpdater = require("lib.github-updater")
 --#endif
+
+--- Whether the driver may act: a DriverCentral build stops while it has no license, and an OSS build never does.
+--- @return boolean
+local function licensed()
+  local ok = true
+  --#ifdef DRIVERCENTRAL
+  ok = drivercentral:licensed()
+  --#endif
+  return ok
+end
 
 --------------------------------------------------------------------------------
 -- Constants
@@ -44,173 +52,6 @@ local RECALC_DEBOUNCE_MS = 1000
 --- Persist keys for named expressions and their last results.
 local PERSIST_EXPRESSIONS = "Expressions"
 local PERSIST_RESULTS = "ExpressionResults"
-
---- Placeholder emitted when a PARAM{} token references a missing variable.
-local ERROR_VARIABLE_NOT_FOUND = "ERROR_VARIABLE_NOT_FOUND"
-
---------------------------------------------------------------------------------
--- Token Substitution
---------------------------------------------------------------------------------
-
---- Lua pattern matching a PARAM{device,variable} token, capturing the two ids
---- with surrounding whitespace trimmed.
-local PARAM_PATTERN = "PARAM%s*{%s*(.-)%s*,%s*(.-)%s*}"
-
---- Resolve a variable reference on a device to its numeric id and name.
---- C4:GetVariable requires a numeric variable id, so a name is looked up against
---- the device's variables. A numeric reference is mapped back to its name for
---- display purposes.
---- @param deviceId integer The numeric device id.
---- @param variable string The variable id or name.
---- @return integer|nil variableId The numeric id, or nil if it cannot be resolved.
---- @return string name The variable name, falling back to the raw reference.
-local function resolveVariable(deviceId, variable)
-  local ok, vars = pcall(function()
-    return C4:GetDeviceVariables(deviceId)
-  end)
-  vars = (ok and type(vars) == "table") and vars or {}
-  local asId = tonumber(variable)
-  if asId then
-    for id, v in pairs(vars) do
-      if tonumber(id) == asId and type(v) == "table" then
-        return asId, v.name or variable
-      end
-    end
-    return asId, variable
-  end
-  for id, v in pairs(vars) do
-    if type(v) == "table" and v.name == variable then
-      return tonumber(id), variable
-    end
-  end
-  return nil, variable
-end
-
---- Read a Control4 variable referenced by a PARAM{} token. The device must be a
---- numeric id; the variable may be a numeric id or a name. Wrapped in pcall so a
---- malformed reference yields nil rather than aborting the whole command.
---- @param device string The device id.
---- @param variable string The variable id or name.
---- @return any|nil value
-local function readVariable(device, variable)
-  local deviceId = tonumber(device)
-  if not deviceId then
-    return nil
-  end
-  local variableId = resolveVariable(deviceId, variable)
-  if not variableId then
-    return nil
-  end
-  local ok, value = pcall(function()
-    return C4:GetVariable(deviceId, variableId)
-  end)
-  if not ok then
-    return nil
-  end
-  return value
-end
-
---- Replace every `PARAM{device,variable}` token with the referenced variable's
---- current value. Whitespace around the ids is tolerated. Missing references are
---- replaced with ERROR_VARIABLE_NOT_FOUND and flagged.
---- @param template string The template string or equation.
---- @return string result The substituted string.
---- @return boolean missing True if any referenced variable was not found.
-local function substituteTokens(template)
-  local missing = false
-  local result = template:gsub(PARAM_PATTERN, function(device, variable)
-    local value = readVariable(device, variable)
-    if value == nil then
-      log:warn("Variable not found: device='%s' variable='%s'", device, variable)
-      missing = true
-      return ERROR_VARIABLE_NOT_FOUND
-    end
-    return tostring(value)
-  end)
-  return result, missing
-end
-
---- Render a template into a human-readable form by replacing each PARAM{} token
---- with `[Room > Device > Variable]`. Used to show what an expression references
---- at a glance.
---- @param template string The template string or equation.
---- @return string rendered
-local function renderTemplate(template)
-  return (
-    template:gsub(PARAM_PATTERN, function(device, variable)
-      local deviceId = tonumber(device)
-      local deviceLabel = "Device " .. device
-      local variableLabel = variable
-      if deviceId then
-        local dev = GetDevice(deviceId)
-        if dev and not IsEmpty(dev.displayName) then
-          deviceLabel = dev.displayName
-        end
-        local _, name = resolveVariable(deviceId, variable)
-        variableLabel = name
-      end
-      return string.format("[%s > %s]", deviceLabel, variableLabel)
-    end)
-  )
-end
-
---- Extract the resolvable variable references from a template.
---- Unresolvable tokens are skipped; they surface as evaluation errors instead.
---- @param template string The template string or equation.
---- @return { deviceId: integer, variableId: integer }[] refs
-local function extractReferences(template)
-  local refs = {}
-  for device, variable in template:gmatch(PARAM_PATTERN) do
-    local deviceId = tonumber(device)
-    if deviceId then
-      local variableId = resolveVariable(deviceId, variable)
-      if variableId then
-        refs[#refs + 1] = { deviceId = deviceId, variableId = variableId }
-      end
-    end
-  end
-  return refs
-end
-
---------------------------------------------------------------------------------
--- Evaluation
---------------------------------------------------------------------------------
-
---- Evaluate a substituted equation string as a numeric expression in the
---- shared sandbox.
---- @param expression string The equation with tokens already substituted.
---- @return number|nil result The numeric result, or nil on failure.
---- @return string? err The compile or runtime error, when result is nil.
-local function evaluateEquation(expression)
-  local result, err = transform.eval(expression)
-  if err then
-    return nil, err
-  end
-  if type(result) ~= "number" then
-    return nil, string.format("result is not a number (got %s)", type(result))
-  end
-  return result
-end
-
---- Evaluate a template in either mode without touching any outputs.
---- @param mode string "equation" or "string".
---- @param template string The template with PARAM{} tokens.
---- @return table eval { rendered, substituted, result?, error? }
-local function evaluateTemplate(mode, template)
-  local substituted, missing = substituteTokens(template or "")
-  local rendered = renderTemplate(template or "")
-  if missing then
-    return { rendered = rendered, substituted = substituted, error = "unresolved variable reference" }
-  end
-  if mode == "string" then
-    return { rendered = rendered, substituted = substituted, result = substituted }
-  end
-  local result, err = evaluateEquation(substituted)
-  if result == nil then
-    return { rendered = rendered, substituted = substituted, error = err or "unknown error" }
-  end
-  return { rendered = rendered, substituted = substituted, result = result }
-end
 
 --------------------------------------------------------------------------------
 -- Named Expressions
@@ -280,11 +121,11 @@ local notifyOwnVariableChanged
 local function recomputeExpression(name)
   log:trace("recomputeExpression('%s')", name)
   local config = getExpressions()[name]
-  if not config then
+  if not config or not licensed() then
     return nil
   end
 
-  local eval = evaluateTemplate(config.mode, config.template)
+  local eval = Expressions.evaluate(config.mode, config.template)
   local entry = {
     rendered = eval.rendered,
     ts = os.time(),
@@ -311,9 +152,8 @@ local function recomputeExpression(name)
 end
 
 --- The variable watch engine driving auto recompute with debounce.
-local engine = ExpressionEngine:new({
+local engine = Expressions:new({
   getExpressions = getExpressions,
-  extractRefs = extractReferences,
   recompute = function(name)
     recomputeExpression(name)
   end,
@@ -328,9 +168,11 @@ local engine = ExpressionEngine:new({
 --- @param varName string The output variable name that was just written.
 --- @param excludeName string? Expression name to skip.
 function notifyOwnVariableChanged(varName, excludeName)
-  local variableId = resolveVariable(C4:GetDeviceID(), varName)
-  if variableId then
-    engine:notifyVariableChanged(C4:GetDeviceID(), variableId, excludeName)
+  for id, variable in pairs(C4:GetDeviceVariables(C4:GetDeviceID()) or {}) do
+    if variable.name == varName then
+      engine:notifyVariableChanged(C4:GetDeviceID(), tonumber(id), excludeName)
+      return
+    end
   end
 end
 
@@ -358,8 +200,7 @@ end
 
 function OnDriverInit()
   --#ifdef DRIVERCENTRAL
-  require("cloud-client-byte")
-  C4:AllowExecute(false)
+  drivercentral:startClient()
   --#else
   C4:AllowExecute(true)
   --#endif
@@ -372,6 +213,18 @@ function OnDriverInit()
   -- Restore per-expression output variables here: programming attached to
   -- variables added after OnDriverInit may not work after a Director restart.
   values:restoreValues()
+end
+
+--- Recomputes every auto expression, so outputs catch up on changes the driver missed while down or stopped.
+local function recomputeAutoExpressions()
+  for name, config in pairs(getExpressions()) do
+    if toboolean(config.auto) then
+      local ok, err = pcall(recomputeExpression, name)
+      if not ok then
+        log:error("Recompute of '%s' failed: %s", name, err)
+      end
+    end
+  end
 end
 
 function OnDriverLateInit()
@@ -405,18 +258,12 @@ function OnDriverLateInit()
     end
   end
 
-  -- Restore variable watches and recompute auto expressions once at boot so
-  -- outputs reflect changes missed while the driver was down.
+  -- Restore variable watches and recompute auto expressions once at boot.
   engine:resubscribeAll()
-  for name, config in pairs(getExpressions()) do
+  for name in pairs(getExpressions()) do
     ensureExpressionEvent(name)
-    if toboolean(config.auto) then
-      local ok, err = pcall(recomputeExpression, name)
-      if not ok then
-        log:error("Initial recompute of '%s' failed: %s", name, err)
-      end
-    end
   end
+  recomputeAutoExpressions()
 
   --#ifndef DRIVERCENTRAL
   SetTimer("UpdateCheck", 30 * ONE_MINUTE, function()
@@ -431,24 +278,30 @@ function OnDriverLateInit()
 
   gInitialized = true
   UpdateProperty("Driver Status", "Ready")
+  tabProperties:follow(UIR._GET_CONFIG)
+
+  --#ifdef DRIVERCENTRAL
+  drivercentral:startGate(function(active)
+    if not active then
+      UpdateProperty("Driver Status", drivercentral.UNLICENSED_STATUS)
+      return
+    end
+    UpdateProperty("Driver Status", "Ready")
+    recomputeAutoExpressions()
+  end)
+  --#endif
 end
 
 --#ifdef DRIVERCENTRAL
 OnDriverLateInit = diagnostics:wrapLateInit(OnDriverLateInit)
 --#endif
 
---- Clean up watches and flag expressions when a referenced device is removed.
+--- Stop watching a removed device. Its expressions recompute, and their rows show why they failed.
 --- @param deviceId number
 function OnDeviceRemovedFromProject(deviceId)
   log:trace("OnDeviceRemovedFromProject(%s)", deviceId)
   DeviceUpdated(deviceId)
-  local affected = engine:handleDeviceRemoved(tonumber(deviceId) or -1)
-  for _, name in ipairs(affected) do
-    local entry = getResults()[name] or {}
-    entry.error = "referenced device removed"
-    entry.ts = os.time()
-    setResult(name, entry)
-  end
+  engine:handleDeviceRemoved(tonumber(deviceId) or -1)
 end
 
 --------------------------------------------------------------------------------
@@ -588,14 +441,29 @@ function UIR._GET_CONFIG()
   table.sort(expressions, function(a, b)
     return (a.name or "") < (b.name or "")
   end)
-  return uiRespond("CONFIG_DATA", { expressions = JSON:encode(expressions) })
+  return uiRespond("CONFIG_DATA", {
+    expressions = JSON:encode(expressions),
+    properties = JSON:encode(tabProperties:list()),
+  })
+end
+
+--- Set one of the driver's properties, as Composer's Properties tab would.
+--- @param tParams table
+function UIR._SET_PROPERTY(tParams)
+  log:trace("UIR._SET_PROPERTY()")
+  local params = pageParams(tParams)
+  local err = tabProperties:set(params.property, params.value)
+  if err then
+    return uiRespond("PROPERTY_ERROR", { property = params.property, error = err })
+  end
+  return UIR._GET_CONFIG()
 end
 
 --- Create or update a named expression.
 --- @param tParams table
 function UIR._SAVE_EXPRESSION(tParams)
   log:trace("UIR.SAVE_EXPRESSION()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   local name = tostring(params.name or ""):match("^%s*(.-)%s*$")
   local originalName = tostring(params.originalName or ""):match("^%s*(.-)%s*$")
   local mode = params.mode == "string" and "string" or "equation"
@@ -633,7 +501,7 @@ end
 --- @param tParams table
 function UIR._DELETE_EXPRESSION(tParams)
   log:trace("UIR.DELETE_EXPRESSION()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   local name = tostring(params.name or "")
   local expressions = getExpressions()
   if expressions[name] then
@@ -653,7 +521,7 @@ end
 --- @param tParams table
 function UIR._RUN_EXPRESSION(tParams)
   log:trace("UIR.RUN_EXPRESSION()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   recomputeExpression(tostring(params.name or ""))
   return UIR._GET_CONFIG()
 end
@@ -663,9 +531,9 @@ end
 --- @param tParams table
 function UIR._EVAL_EXPRESSION(tParams)
   log:trace("UIR.EVAL_EXPRESSION()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
+  local params = pageParams(tParams)
   local mode = params.mode == "string" and "string" or "equation"
-  local eval = evaluateTemplate(mode, tostring(params.template or ""))
+  local eval = Expressions.evaluate(mode, tostring(params.template or ""))
   return uiRespond("EVAL_RESULT", {
     id = params.id or "",
     rendered = eval.rendered or "",
@@ -675,164 +543,24 @@ function UIR._EVAL_EXPRESSION(tParams)
   })
 end
 
---- Whether a proxy merely restates the device that declares it. A proxy named
---- for itself -- a security panel's areas, a receiver's tuner -- must stay its
---- own entry or it vanishes from the browser.
---- @param proxy table|nil
---- @param owner table
---- @return boolean
-local function isRestatedProxy(proxy, owner)
-  return proxy ~= nil and tostring(proxy.deviceName) == tostring(owner.deviceName)
-end
-
---- Section heading for a member of a merged entry, taken from the proxy's .c4i.
---- @param dev table
---- @param isOwner boolean
---- @return string
-local function proxySectionLabel(dev, isOwner)
-  if isOwner then
-    return "Device"
-  end
-  local file = tostring((dev or {}).driverFileName or "")
-  local base = file:match("^(.*)%.c4i$") or file:match("^(.*)%.c4z$")
-  return IsEmpty(base) and "Proxy" or base
-end
-
---- Send the device list to the web UI with display names (Room > Device).
----
---- A driver and the proxy it declares are separate project items sharing a room
---- and name, so the browser listed the same device twice, one half expanding to
---- "no variables". Those are dropped. Survivors can still collide -- a project
---- may hold many instances of one driver -- so they get the device id appended.
+--- Send the device browser's list to the web UI.
 function UIR._GET_DEVICES()
   log:trace("UIR.GET_DEVICES()")
-  local devices = {}
-  local allDevices = C4:GetDevices() or {}
-
-  -- Proxy id -> owning driver id, for proxies that only restate their owner.
-  local ownerOf = {}
-  for id, dev in pairs(allDevices) do
-    for proxyId in pairs(dev.proxies or {}) do
-      local pid = tonumber(proxyId) or proxyId
-      if isRestatedProxy(allDevices[pid], dev) then
-        ownerOf[pid] = id
-      end
-    end
-  end
-
-  -- Collapse chains so a proxy of a proxy still lands in an entry.
-  local rootOf, membersOf = {}, {}
-  for id in pairs(allDevices) do
-    local root, seen = id, { [id] = true }
-    while ownerOf[root] ~= nil and not seen[ownerOf[root]] do
-      root = ownerOf[root]
-      seen[root] = true
-    end
-    rootOf[id] = root
-    membersOf[root] = membersOf[root] or {}
-    table.insert(membersOf[root], id)
-  end
-
-  for id, dev in pairs(allDevices) do
-    if rootOf[id] == id then
-      local hasVariables = false
-      for _, mid in ipairs(membersOf[id]) do
-        local ok, memberVars = pcall(C4.GetDeviceVariables, C4, mid)
-        if ok and memberVars ~= nil and next(memberVars) ~= nil then
-          hasVariables = true
-          break
-        end
-      end
-      if hasVariables then
-        devices[#devices + 1] = {
-          id = id,
-          name = dev.deviceName or ("Device " .. id),
-          roomName = dev.roomName or "",
-        }
-      end
-    end
-  end
-  local labelCounts = {}
-  for _, d in ipairs(devices) do
-    local label = d.roomName .. " > " .. d.name
-    labelCounts[label] = (labelCounts[label] or 0) + 1
-  end
-  for _, d in ipairs(devices) do
-    if labelCounts[d.roomName .. " > " .. d.name] > 1 then
-      d.name = string.format("%s (%s)", d.name, d.id)
-    end
-  end
-  table.sort(devices, function(a, b)
-    if (a.roomName or "") ~= (b.roomName or "") then
-      return (a.roomName or "") < (b.roomName or "")
-    end
-    return (a.name or "") < (b.name or "")
-  end)
-  return uiRespond("DEVICES_DATA", { devices = JSON:encode(devices) })
+  return uiRespond("DEVICES_DATA", { devices = JSON:encode(Expressions.devices()) })
 end
 
---- Send variables for a specific device to the web UI.
+--- Send a device's variables to the web UI.
 --- @param tParams table
 function UIR._GET_DEVICE_VARIABLES(tParams)
   log:trace("UIR.GET_DEVICE_VARIABLES()")
-  local params = JSON:decode(C4:Base64Decode(tParams.DATA or "e30="))
-  local devId = tonumber(params.deviceId)
-  if not devId then
+  local params = pageParams(tParams)
+  local variables = Expressions.deviceVariables(params.deviceId)
+  if not variables then
     return
   end
-
-  local entry = C4:GetDevices({ DeviceIds = tostring(devId) })[devId] or {}
-  local members = { { id = devId, section = proxySectionLabel(entry, true), order = 1 } }
-  local queue, seen = { { id = devId, dev = entry } }, { [devId] = true }
-  while #queue > 0 do
-    local cur = table.remove(queue, 1)
-    -- pairs() over proxies has no defined order, so walk them by id: section
-    -- order would otherwise vary between calls.
-    local childIds = {}
-    for proxyId in pairs((cur.dev or {}).proxies or {}) do
-      childIds[#childIds + 1] = tonumber(proxyId) or proxyId
-    end
-    table.sort(childIds)
-    for _, pid in ipairs(childIds) do
-      local proxy = C4:GetDevices({ DeviceIds = tostring(pid) })[pid]
-      if not seen[pid] and isRestatedProxy(proxy, cur.dev) then
-        seen[pid] = true
-        members[#members + 1] = { id = pid, section = proxySectionLabel(proxy, false), order = #members + 1 }
-        queue[#queue + 1] = { id = pid, dev = proxy }
-      end
-    end
-  end
-
-  local vars = {}
-  for _, member in ipairs(members) do
-    local ok, deviceVars = pcall(C4.GetDeviceVariables, C4, member.id)
-    if ok and deviceVars then
-      for varId, varInfo in pairs(deviceVars) do
-        vars[#vars + 1] = {
-          id = tonumber(varId),
-          deviceId = member.id,
-          section = member.section,
-          order = member.order,
-          name = varInfo.name or ("var" .. varId),
-          type = varInfo.type or "STRING",
-          value = varInfo.value,
-        }
-      end
-    end
-  end
-  -- Order on the member's position, not its label: comparing label strings ties
-  -- when a proxy's .c4i is named Device, and the owner-first rule contradicts
-  -- that tie. LuaJIT's table.sort does not reject the resulting cycle, it just
-  -- silently stops putting the device's own variables first.
-  table.sort(vars, function(a, b)
-    if a.order ~= b.order then
-      return a.order < b.order
-    end
-    return (a.name or "") < (b.name or "")
-  end)
   return uiRespond("DEVICE_VARIABLES_DATA", {
-    deviceId = tostring(devId),
-    variables = JSON:encode(vars),
+    deviceId = tostring(params.deviceId),
+    variables = JSON:encode(variables),
   })
 end
 
@@ -895,6 +623,9 @@ function EC.Reset_Driver(params)
   for propName, defaultValue in pairs(resetValues) do
     UpdateProperty(propName, defaultValue, true)
   end
+  --#ifdef DRIVERCENTRAL
+  UpdateProperty("Cloud Monitoring", "Enabled", true)
+  --#endif
 end
 
 --#ifndef DRIVERCENTRAL

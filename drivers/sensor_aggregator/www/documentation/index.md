@@ -17,20 +17,16 @@
 
 ______________________________________________________________________
 
-# <span style="color:#109EFF">Overview</span>
-
-<!-- #ifndef DRIVERCENTRAL -->
+# <span style="color:#059669">Overview</span>
 
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
-
-<!-- #endif -->
 
 Aggregate multiple sensor inputs into single outputs using configurable
 aggregation functions. This driver receives TEMPERATURE_VALUE, HUMIDITY_VALUE,
 and CONTACT_SENSOR inputs from other Control4 drivers and produces aggregated
 output bindings.
 
-# <span style="color:#109EFF">Index</span>
+# <span style="color:#059669">Index</span>
 
 <div style="font-size: small">
 
@@ -59,11 +55,11 @@ output bindings.
 
 </div>
 
-# <span style="color:#109EFF">System Requirements</span>
+# <span style="color:#059669">System Requirements</span>
 
 - Control4 OS 3.3+
 
-# <span style="color:#109EFF">Features</span>
+# <span style="color:#059669">Features</span>
 
 - Aggregate up to 20 temperature and 20 humidity inputs
 - Aggregate up to 20 contact sensor inputs
@@ -74,7 +70,7 @@ output bindings.
 - Dynamic input and output bindings
 - Real-time recalculation when inputs change
 
-# <span style="color:#109EFF">Installer Setup</span>
+# <span style="color:#059669">Installer Setup</span>
 
 <!-- #ifdef DRIVERCENTRAL -->
 
@@ -262,6 +258,12 @@ the current version.
 Resets the driver state, clearing all cached input values and re-creating
 bindings.
 
+<!-- #ifdef DRIVERCENTRAL -->
+
+It also turns Cloud Monitoring back on, as a fresh install has it.
+
+<!-- #endif -->
+
 **Parameters:**
 
 - **Are You Sure?** \[ **_No_** | Yes \] - Confirmation to reset the driver.
@@ -282,7 +284,7 @@ Monitoring is Enabled.
 
 <!-- #endif -->
 
-# <span style="color:#109EFF">Programming</span>
+# <span style="color:#059669">Programming</span>
 
 ## Connections
 
@@ -309,7 +311,7 @@ temperature, humidity, or contact sensor values.
 
 <!-- #ifdef DRIVERCENTRAL -->
 
-# <span style="color:#109EFF">Developer Information</span>
+# <span style="color:#059669">Developer Information</span>
 
 <p align="center">
 <img alt="Finite Labs" src="./images/finite-labs-logo.png" width="400"/>
@@ -328,7 +330,7 @@ https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
 
 <!-- #endif -->
 
-# <span style="color:#109EFF">Support</span>
+# <span style="color:#059669">Support</span>
 
 <!-- #ifdef DRIVERCENTRAL -->
 

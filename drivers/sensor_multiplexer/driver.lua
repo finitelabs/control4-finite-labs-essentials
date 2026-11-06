@@ -1,9 +1,5 @@
 --- Sensor Multiplexer Driver
---#ifdef DRIVERCENTRAL
-DC_PID = nil
-DC_X = nil
-DC_FILENAME = "sensor_multiplexer.c4z"
---#else
+--#ifndef DRIVERCENTRAL
 DRIVER_GITHUB_REPO = "finitelabs/control4-finite-labs-essentials"
 --#endif
 require("lib.utils")
@@ -22,12 +18,23 @@ local conditionals = require("lib.conditionals")
 local constants = require("constants")
 local updateSettings = require("lib.update-settings")
 --#ifdef DRIVERCENTRAL
+local drivercentral = require("lib.drivercentral")
 local supportCode = require("lib.support-code")
 local diagnostics = require("lib.diagnostics")
 --#endif
 --#ifndef DRIVERCENTRAL
 local githubUpdater = require("lib.github-updater")
 --#endif
+
+--- Whether the driver may act: a DriverCentral build stops while it has no license, and an OSS build never does.
+--- @return boolean
+local function licensed()
+  local ok = true
+  --#ifdef DRIVERCENTRAL
+  ok = drivercentral:licensed()
+  --#endif
+  return ok
+end
 
 --------------------------------------------------------------------------------
 -- Constants
@@ -269,8 +276,12 @@ end
 --------------------------------------------------------------------------------
 
 --- Update all output display properties and send values from the active group.
-local function updateOutputs()
+--- @param asState? boolean Send a contact change without a programming event, as at a load.
+local function updateOutputs(asState)
   log:trace("updateOutputs()")
+  if not licensed() then
+    return
+  end
   local activeName = getActiveInput()
 
   -- Temperature
@@ -304,7 +315,7 @@ local function updateOutputs()
       UpdateProperty("Output Contact", contact and "Closed" or "Open", true)
       if contact ~= lastContactOutputState then
         lastContactOutputState = contact
-        if gInitialized then
+        if gInitialized and not asState then
           sendContactOutput(contact)
         else
           sendContactState(contact)
@@ -347,7 +358,7 @@ local function setActiveInput(name)
   UpdateProperty("Active Input Name", name or "", true)
 
   -- Fire selection changed event if actually changed
-  if previousName ~= name and gInitialized then
+  if previousName ~= name and gInitialized and licensed() then
     events:fire(NS_EVENTS, EVENT_SELECTION_CHANGED)
   end
 
@@ -890,7 +901,7 @@ local function registerNumericOutputHandlers(binding, sensorKey, scale)
   -- RFP handler: respond to GET_VALUE
   RFP[binding.bindingId] = function(idBinding, strCommand, _tParams, _args)
     log:trace("RFP[%s](%s, %s)", binding.bindingId, idBinding, strCommand)
-    if strCommand == "GET_VALUE" then
+    if strCommand == "GET_VALUE" and licensed() then
       local activeName = getActiveInput()
       if activeName then
         local value = getCachedInputValue(activeName, sensorKey)
@@ -904,7 +915,7 @@ local function registerNumericOutputHandlers(binding, sensorKey, scale)
   -- OBC handler: send current value when consumer connects
   OBC[binding.bindingId] = function(idBinding, _strClass, bIsBound, _otherDeviceId, _otherBindingId)
     log:trace("OBC[%s](%s, %s, %s)", binding.bindingId, idBinding, _strClass, bIsBound)
-    if bIsBound then
+    if bIsBound and licensed() then
       local activeName = getActiveInput()
       if activeName then
         local value = getCachedInputValue(activeName, sensorKey)
@@ -927,7 +938,7 @@ local function registerContactOutputHandlers(binding)
   -- OBC handler: send current state when consumer connects
   OBC[binding.bindingId] = function(idBinding, _strClass, bIsBound, _otherDeviceId, _otherBindingId)
     log:trace("OBC[%s](%s, %s, %s)", binding.bindingId, idBinding, _strClass, bIsBound)
-    if bIsBound then
+    if bIsBound and licensed() then
       local activeName = getActiveInput()
       if activeName then
         local value = getCachedInputValue(activeName, INPUT_CONTACT)
@@ -1153,8 +1164,7 @@ end
 
 function OnDriverInit()
   --#ifdef DRIVERCENTRAL
-  require("cloud-client-byte")
-  C4:AllowExecute(false)
+  drivercentral:startClient()
   --#else
   C4:AllowExecute(true)
   --#endif
@@ -1203,6 +1213,17 @@ function OnDriverLateInit()
 
   gInitialized = true
   UpdateProperty("Driver Status", "Ready")
+
+  --#ifdef DRIVERCENTRAL
+  drivercentral:startGate(function(active)
+    if not active then
+      UpdateProperty("Driver Status", drivercentral.UNLICENSED_STATUS)
+      return
+    end
+    UpdateProperty("Driver Status", "Ready")
+    updateOutputs(true)
+  end)
+  --#endif
 end
 
 --#ifdef DRIVERCENTRAL
@@ -1385,6 +1406,9 @@ end
 --- @param params table<string, any> Command parameters containing Input name.
 function EC.Select_Input(params)
   log:trace("EC.Select_Input(%s)", params)
+  if not licensed() then
+    return
+  end
   local inputName = Select(params, "Input")
   if IsEmpty(inputName) then
     log:warn("Select Input command called without input name")
@@ -1400,6 +1424,9 @@ end
 --- Cycle to the next input in the parsed names list, wrapping around.
 function EC.Cycle_Input()
   log:trace("EC.Cycle_Input()")
+  if not licensed() then
+    return
+  end
   local names = getParsedNames()
   if #names == 0 then
     return
@@ -1443,6 +1470,9 @@ function EC.Reset_Driver(params)
   for propName, defaultValue in pairs(resetValues) do
     UpdateProperty(propName, defaultValue, true)
   end
+  --#ifdef DRIVERCENTRAL
+  UpdateProperty("Cloud Monitoring", "Enabled", true)
+  --#endif
 
   -- Recreate output bindings
   ensureOutputBindings()

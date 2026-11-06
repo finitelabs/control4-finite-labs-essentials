@@ -32,29 +32,41 @@
       color: var(--text);
       font-size: 13px;
       line-height: 1.5;
+      overflow-wrap: break-word;
     }
 
+    /* Hidden until initTabs counts two or more tabs. */
     .nav {
-      display: flex;
+      display: none;
       align-items: center;
-      justify-content: space-between;
       background: var(--surface);
       border-bottom: 1px solid var(--border);
       padding: 0 16px;
       box-shadow: var(--shadow);
     }
-    .nav-title {
-      padding: 10px 2px;
-      color: var(--accent);
+    .nav.multi { display: flex; }
+    .nav-tab {
+      padding: 10px 14px;
+      color: var(--text-muted);
       font-weight: 600;
       font-size: 13px;
-      border-bottom: 2px solid var(--accent);
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
     }
+    .nav-tab:hover { color: var(--text); }
+    .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
     .nav-meta {
       font-size: 11px; color: var(--text-muted);
-      margin-left: 12px; min-width: 0;
+      margin-left: auto; min-width: 0;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
+
+    .pgroup { font-size: 11px; font-weight: 600; color: var(--text); margin: 14px 0 6px; }
+    .pgroup:first-child { margin-top: 0; }
+    .pfields { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+    .pdesc { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+    .perror { color: var(--danger); font-size: 11px; margin-top: 3px; }
+    input[type="text"]:disabled { background: var(--bg); color: var(--text-muted); }
 
     .panel { display: none; padding: 16px; }
     .panel.active { display: block; }
@@ -281,7 +293,7 @@
     .help code { font-family: var(--mono); font-size: 10.5px; color: #1e293b; background: #eef2f7; border-radius: 3px; padding: 0 3px; }
 
     .footbar { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
-    .save-error { color: var(--danger); font-size: 11.5px; margin-right: auto; }
+    .save-error { color: var(--danger); font-size: 11.5px; margin-right: auto; min-width: 0; }
     .checklabel { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: #374151; cursor: pointer; }
     .checklabel input { width: auto; }
 
@@ -294,14 +306,19 @@
 </head>
 <body>
 
-<div class="nav">
-  <span class="nav-title">Requests</span>
+<div class="nav" id="nav">
+  <div class="nav-tab active" data-panel="panel-list">Requests</div>
   <span class="nav-meta" id="nav-meta">Network Requests</span>
 </div>
 
 <!-- ── List panel ─────────────────────────────────────────────── -->
 <div class="panel active" id="panel-list">
   <div class="conn-warn" id="conn-warn">Not connected to the controller API. Open this tab from Composer.</div>
+  <div class="card" id="props-card" style="display:none;">
+    <h3>Properties</h3>
+    <div id="props"></div>
+  </div>
+
   <div class="card">
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
       <h3 style="margin:0;">Requests</h3>
@@ -563,7 +580,8 @@ function api(method, path, body) {
 function sendCommand(cmd, params) {
   return api('POST', '/api/v1/items/' + gDriverId + '/commands', {
     command: cmd,
-    tParams: { DATA: btoa(JSON.stringify(params || {})) },
+    // Why the newlines: lib/page-params.lua.
+    tParams: { DATA: btoa(JSON.stringify(params || {})).replace(/(.{76})/g, '$1\n') },
     async: false
   });
 }
@@ -618,11 +636,13 @@ function handleDriverData(cmd, params) {
     if (cmd === 'CONFIG_DATA') {
       onConfig(JSON.parse(params.requests || '[]'));
       onWebhooks(JSON.parse(params.webhooks || '[]'), params.webhookBase || '');
+      onProperties(JSON.parse(params.properties || '[]'));
     }
     else if (cmd === 'REQUEST_RESULT') onRequestResult(params);
     else if (cmd === 'WEBHOOK_RESULT') onWebhookResult(params);
     else if (cmd === 'DEVICES_DATA') onDevices(JSON.parse(params.devices || '[]'));
     else if (cmd === 'DEVICE_VARIABLES_DATA') onDeviceVariables(params.deviceId, JSON.parse(params.variables || '[]'));
+    else if (cmd === 'PROPERTY_ERROR') onPropertyError(params.property, params.error || '');
     else if (cmd === 'SAVE_RESULT') onSaveResult(params);
   } catch (e) { console.error('handleDriverData error:', cmd, e); }
 }
@@ -1196,9 +1216,96 @@ document.addEventListener('focusin', function(e) {
 });
 
 // ============================================================
+// Properties
+// ============================================================
+var gProperties = [];
+var gPropertyErrors = {};          // property name -> the reason the driver refused its value
+
+function onProperties(properties) {
+  gProperties = properties;
+  renderProps();
+}
+
+function propControl(p, id, failed) {
+  var attrs = ' id="' + id + '" data-prop="' + esc(p.name) + '"' + (failed ? ' class="input-error"' : '');
+  if (p.readonly) return '<input type="text"' + attrs + ' value="' + esc(p.value) + '" title="' + esc(p.value) + '" disabled>';
+  if (p.choices) {
+    return '<select' + attrs + '>' + p.choices.map(function(c) {
+      return '<option' + (c === p.value ? ' selected' : '') + '>' + esc(c) + '</option>';
+    }).join('') + '</select>';
+  }
+  if (p.minimum !== undefined) {
+    return '<input type="number"' + attrs + ' min="' + p.minimum + '" max="' + p.maximum + '" step="1" value="' + esc(p.value) + '">';
+  }
+  return '<input type="text"' + attrs + ' value="' + esc(p.value) + '">';
+}
+
+function propCell(p, i) {
+  var id = 'prop-' + i;
+  var failed = gPropertyErrors[p.name];
+  return '<div><label for="' + id + '">' + esc(p.name) + '</label>' + propControl(p, id, failed) +
+    (failed ? '<div class="perror">' + esc(failed) + '</div>' : '') +
+    (p.description ? '<div class="pdesc">' + esc(p.description) + '</div>' : '') + '</div>';
+}
+
+function renderProps() {
+  var el = document.getElementById('props');
+  // A push must not swap a control out from under the one being edited; the next push catches up.
+  if (el.contains(document.activeElement)) return;
+  var groups = [];
+  gProperties.forEach(function(p, i) {
+    var g = groups[groups.length - 1];
+    if (!g || g.name !== p.group) groups.push(g = { name: p.group, html: [] });
+    g.html.push(propCell(p, i));
+  });
+  document.getElementById('props-card').style.display = groups.length ? '' : 'none';
+  el.innerHTML = groups.map(function(g) {
+    return (g.name ? '<div class="pgroup">' + esc(g.name) + '</div>' : '') + '<div class="pfields">' + g.html.join('') + '</div>';
+  }).join('');
+}
+
+function onPropertyError(name, message) {
+  gPropertyErrors[name] = message;
+  // Only its own field redraws: another may be being edited.
+  gProperties.forEach(function(p, i) {
+    if (p.name === name) document.getElementById('prop-' + i).parentNode.outerHTML = propCell(p, i);
+  });
+}
+
+document.getElementById('props').addEventListener('change', function(e) {
+  var name = e.target.dataset.prop;
+  if (!name) return;
+  var value = e.target.value;
+  e.target.blur();
+  if (gPropertyErrors[name]) {
+    delete gPropertyErrors[name];
+    e.target.classList.remove('input-error');
+    e.target.parentNode.removeChild(e.target.parentNode.querySelector('.perror'));
+  }
+  sendCommand('_SET_PROPERTY', { property: name, value: value });
+});
+
+// ============================================================
+// Tabs
+// ============================================================
+// A new tab is one more .nav-tab naming its panel.
+function showTab(tab) {
+  closeEditor();
+  document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.toggle('active', t === tab); });
+  document.querySelectorAll('.panel').forEach(function(p) { p.classList.toggle('active', p.id === tab.dataset.panel); });
+}
+
+function initTabs() {
+  var tabs = document.querySelectorAll('.nav-tab');
+  document.getElementById('nav').classList.toggle('multi', tabs.length > 1);
+  tabs.forEach(function(tab) { tab.addEventListener('click', function() { showTab(tab); }); });
+}
+
+// ============================================================
 // Boot
 // ============================================================
 (async function boot() {
+  initTabs();
   document.getElementById('nav-meta').textContent = 'Network Requests' + (gDriverId ? ' · device ' + gDriverId : '');
   document.getElementById('req-wait').addEventListener('change', updatePublishLine);
   if (!gApiHost) {
@@ -1231,13 +1338,32 @@ document.addEventListener('focusin', function(e) {
       { name: 'Doorbell Motion', key: 'secret', from: '192.168.1.50', payload: 'zone=porch', ts: now - 120 },
       { name: 'Backup Finished', key: '', ts: 0 }
     ], 'http://192.168.1.2:49300/');
+    onProperties([
+      // #ifdef DRIVERCENTRAL
+      { group: 'Cloud Settings', name: 'Cloud Status', value: 'License Activated', readonly: true },
+      // #endif
+      { group: 'Cloud Settings', name: 'Automatic Updates', value: 'On', choices: ['Off', 'On'] },
+      // #ifndef DRIVERCENTRAL
+      { group: 'Cloud Settings', name: 'Update Channel', value: 'Production', choices: ['Production', 'Prerelease'] },
+      // #endif
+      { group: 'Driver Settings', name: 'Driver Status', value: 'Ready', readonly: true },
+      { group: 'Driver Settings', name: 'Driver Version', value: '20261105', readonly: true },
+      { group: 'Driver Settings', name: 'Log Level', value: '3 - Info', choices: ['0 - Fatal', '1 - Error', '2 - Warning', '3 - Info', '4 - Debug', '5 - Trace', '6 - Ultra'] },
+      { group: 'Driver Settings', name: 'Log Mode', value: 'Off', choices: ['Off', 'Print', 'Log', 'Print and Log'] },
+      // #ifdef DRIVERCENTRAL
+      { group: 'Driver Settings', name: 'Cloud Monitoring', value: 'Enabled', choices: ['Disabled', 'Enabled'], description: 'Sends memory and error reports to Finite Labs so we can fix driver problems.' },
+      // #endif
+      { group: 'Webhook Settings', name: 'Webhook Port', value: '49300', minimum: 0, maximum: 65535, description: 'Port for the inbound webhook HTTP server. 0 disables webhooks.' },
+      { group: 'Webhook Settings', name: 'Webhook URL', value: 'http://192.168.1.2:49300/<Webhook Name>', readonly: true, description: 'Base URL external systems call to fire webhook events.' },
+    ]);
     return;
   }
   await initSocket();
   sendCommand('_GET_CONFIG');
   sendCommand('_GET_DEVICES');
   // Keep relative timestamps fresh
-  setInterval(function() { if (!gEditor.open) renderList(); }, 30000);
+  // Keeps the read-only properties current too.
+  setInterval(function() { if (!gEditor.open) { sendCommand('_GET_CONFIG'); renderList(); } }, 30000);
 })();
 </script>
 </body>

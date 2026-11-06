@@ -14,7 +14,7 @@ local F = {}
 --- every global the reload touched back.
 ---
 --- The two branches of the shim define C4:SetTimer separately and CI has no
---- luasocket while a developer machine may, so behaviour that must hold on both
+--- luasocket while a developer machine may, so behavior that must hold on both
 --- has to be driven on both. When luasocket is faked present, body receives a
 --- clock whose advance() moves time forward and fires whatever came due.
 ---
@@ -158,6 +158,34 @@ function F.captureTcpClient(opts)
   end
 
   return capture
+end
+
+-- The conditions each build's preprocess.py run sets.
+local BUILDS = { drivercentral = { DRIVERCENTRAL = true }, oss = { OSS = true } }
+
+--- Run the Lua file at `path` as `build` ("drivercentral" or "oss") compiles it: a line its
+--- directives leave out is blanked, so line numbers stay the source's. Raw source runs every arm.
+--- @param path string
+--- @param build string
+--- @return any The file's return value.
+function F.dofileBuild(path, build)
+  local conditions = assert(BUILDS[build], build)
+  local f = assert(io.open(path))
+  local lines, stack, including = {}, {}, true
+  for line in f:lines() do
+    local ifdef, name = line:match("^%s*%-%-%s*#(ifn?def)%s+([%w_]+)%s*$")
+    if ifdef then
+      stack[#stack + 1] = including
+      including = including and (conditions[name] == true) == (ifdef == "ifdef")
+    elseif line:match("^%s*%-%-%s*#else%s*$") then
+      including = stack[#stack] and not including
+    elseif line:match("^%s*%-%-%s*#endif%s*$") then
+      including = table.remove(stack)
+    end
+    lines[#lines + 1] = including and line or ""
+  end
+  f:close()
+  return assert(load(table.concat(lines, "\n"), "@" .. path))()
 end
 
 return F

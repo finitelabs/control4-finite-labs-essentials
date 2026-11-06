@@ -17,13 +17,9 @@
 
 ______________________________________________________________________
 
-# <span style="color:#109EFF">Overview</span>
-
-<!-- #ifndef DRIVERCENTRAL -->
+# <span style="color:#059669">Overview</span>
 
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
-
-<!-- #endif -->
 
 Network Requests sends HTTP, raw TCP, UDP, and Wake-on-LAN commands to devices
 and services that have no Control4 driver. Requests are defined once, by name,
@@ -32,7 +28,7 @@ Request command. Request URLs, bodies, headers, and payloads can reference any
 Control4 variable, so the same named request can carry live values from the
 project.
 
-# <span style="color:#109EFF">Index</span>
+# <span style="color:#059669">Index</span>
 
 <div style="font-size: small">
 
@@ -47,6 +43,7 @@ project.
   - [Driver Properties](#driver-properties)
     - [Cloud Settings](#cloud-settings)
     - [Driver Settings](#driver-settings)
+    - [Webhook Settings](#webhook-settings)
   - [Driver Actions](#driver-actions)
 - [Programming](#programming)
   - [Request Types](#request-types)
@@ -64,11 +61,11 @@ project.
 
 </div>
 
-# <span style="color:#109EFF">System Requirements</span>
+# <span style="color:#059669">System Requirements</span>
 
 - Control4 OS 3.3+
 
-# <span style="color:#109EFF">Features</span>
+# <span style="color:#059669">Features</span>
 
 - Named requests managed from a dedicated Requests tab in Composer, with a
   searchable variable browser, insert at cursor, and per-request send history
@@ -89,7 +86,7 @@ project.
   to a `<Name> Payload` variable and an optional shared key
 - Requests, webhooks, and last results persist across driver restarts
 
-# <span style="color:#109EFF">Installer Setup</span>
+# <span style="color:#059669">Installer Setup</span>
 
 <!-- #ifdef DRIVERCENTRAL -->
 
@@ -129,6 +126,31 @@ for setting it up.
 
 The Requests tab in Composer (select the driver, then the Requests tab) is the
 primary way to create and manage named requests.
+
+### Properties
+
+<!-- #ifdef DRIVERCENTRAL -->
+
+<img alt="Requests tab - Properties" src="./images/ui-properties-drivercentral.png" width="640"/>
+<!-- #else -->
+<img alt="Requests tab - Properties" src="./images/ui-properties.png" width="640"/>
+<!-- #endif -->
+
+1. **Cloud Settings** - the driver's [properties](#driver-properties) under the
+   same headings as Composer's "Properties" tab.
+1. **Driver Status** - grayed out, as every read-only property is: the driver
+   sets it.
+1. **Log Level** - a change applies at once, and shows in Composer's
+   "Properties" tab too. A change made there shows here.
+1. **Webhook Port** - applies when you leave the field. A value the driver can't
+   use is refused, with the reason under the field, and the port stays as it
+   was.
+
+<!-- #ifdef DRIVERCENTRAL -->
+
+The Support Code is entered in Composer's "Properties" tab only.
+
+<!-- #endif -->
 
 ### Request List
 
@@ -325,6 +347,18 @@ address is removed.
 
 <!-- #endif -->
 
+### Webhook Settings
+
+#### Webhook Port [ 0 - 65535 ]
+
+Sets the port the webhook server listens on. Default is `49300`. `0` disables
+webhooks.
+
+#### Webhook URL (read-only)
+
+Displays the base URL external systems call to fire webhook events, `Disabled`
+when the port is `0`, or the reason the server can't listen on the port.
+
 ## Driver Actions
 
 <!-- #ifndef DRIVERCENTRAL -->
@@ -341,6 +375,12 @@ the current version.
 Deletes every request along with its events and response variable, and clears
 all persisted state.
 
+<!-- #ifdef DRIVERCENTRAL -->
+
+It also turns Cloud Monitoring back on, as a fresh install has it.
+
+<!-- #endif -->
+
 **Parameters:**
 
 - **Are You Sure?** \[ **_No_** | Yes \] - Confirmation to reset the driver.
@@ -354,7 +394,7 @@ Monitoring is Enabled.
 
 <!-- #endif -->
 
-# <span style="color:#109EFF">Programming</span>
+# <span style="color:#059669">Programming</span>
 
 ## Request Types
 
@@ -463,7 +503,7 @@ it from any scene or schedule.
 
 <!-- #ifdef DRIVERCENTRAL -->
 
-# <span style="color:#109EFF">Developer Information</span>
+# <span style="color:#059669">Developer Information</span>
 
 <p align="center">
 <img alt="Finite Labs" src="./images/finite-labs-logo.png" width="400"/>
@@ -482,7 +522,7 @@ https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
 
 <!-- #endif -->
 
-# <span style="color:#109EFF">Support</span>
+# <span style="color:#059669">Support</span>
 
 <!-- #ifdef DRIVERCENTRAL -->
 
