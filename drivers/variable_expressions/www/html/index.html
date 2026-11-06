@@ -32,6 +32,7 @@
       color: var(--text);
       font-size: 13px;
       line-height: 1.5;
+      overflow-wrap: break-word;
     }
 
     /* Hidden until initTabs counts two or more tabs. */
@@ -291,7 +292,7 @@
     .footbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
     .autolabel { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: #374151; cursor: pointer; }
     .autolabel input { width: auto; }
-    .save-error { color: var(--danger); font-size: 11.5px; margin-right: auto; }
+    .save-error { color: var(--danger); font-size: 11.5px; margin-right: auto; min-width: 0; }
 
     .conn-warn {
       background: #fef3c7; border: 1px solid #fcd34d; color: #92400e;
@@ -325,7 +326,7 @@
         <thead>
           <tr>
             <th style="width:22%;">Name</th>
-            <th class="col-mode" style="width:76px;">Mode</th>
+            <th class="col-mode" style="width:84px;">Mode</th>
             <th>Expression</th>
             <th style="width:16%;">Last Result</th>
             <th class="col-recompute" style="width:88px;">Recompute</th>
@@ -426,7 +427,7 @@
       <div class="footbar">
         <label class="autolabel"><input type="checkbox" id="expr-auto" checked/>
           Recalculate when referenced variables change <span class="hint" id="watch-count" style="margin:0;"></span></label>
-        <span style="display:flex; gap:8px; align-items:center;">
+        <span style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; min-width:0; margin-left:auto;">
           <span class="save-error" id="save-error"></span>
           <button class="btn btn-outline" onclick="closeEditor()">Cancel</button>
           <button class="btn btn-outline" title="Evaluate now without saving" onclick="requestPreviewNow()">Run Once</button>
