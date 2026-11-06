@@ -211,6 +211,9 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Fixed
 
+- Fixed saving text in the Network Requests and Variable Expressions tabs. A
+  character outside Western European alphabets made the save do nothing, and an
+  accented letter was stored wrongly.
 - Fixed a variable's value being able to break or run as part of a Variable
   Expressions expression. An equation now reads each value as data, so a text
   variable holding a quote no longer breaks it and no value can run as code.
