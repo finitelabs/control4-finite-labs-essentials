@@ -387,7 +387,7 @@
           </section>
           <section>
             <h4>Equation mode</h4>
-            <p>The substituted text is evaluated as math and must produce a number.</p>
+            <p>The expression is evaluated as math with each token's value and must produce a number.</p>
             <p>Operators: <code>+ - * / % ^ ( )</code></p>
             <p>Comparisons: <code>== ~= &lt; &lt;= &gt; &gt;=</code> with <code>and</code>,
             <code>or</code>, <code>not</code> for conditionals:
@@ -615,8 +615,8 @@ function renderList() {
 
 function shortError(err) {
   err = String(err || '');
-  if (err.indexOf('unresolved') !== -1) return 'Unresolved reference';
-  if (err.indexOf('device removed') !== -1) return 'Device removed';
+  if (/unresolved|not found/.test(err)) return 'Unresolved reference';
+  if (err.indexOf('removed') !== -1) return 'Device removed';
   return 'Error';
 }
 

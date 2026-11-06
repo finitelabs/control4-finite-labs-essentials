@@ -337,6 +337,11 @@ PARAM{DEVICE_ID,VARIABLE_ID}
 exactly, case-sensitive), for example `PARAM{96,1002}` or `PARAM{96,Humidity}`.
 Any variable type may be referenced, including strings, numbers, and booleans.
 
+In an equation a token reads its variable as a value: a number as a number,
+`true` and `false` as booleans, and anything else as text, so
+`PARAM{96,Mode} == "On"` compares the text. A value is only ever data: it can't
+break an expression or run as part of one.
+
 You rarely need to build a token by hand: click a variable in the Expressions
 tab browser and its token is inserted at the cursor. If a referenced variable
 cannot be found, the expression's row shows `Unresolved reference` and the
