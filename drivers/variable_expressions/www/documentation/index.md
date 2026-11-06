@@ -184,8 +184,9 @@ Add Expression and Edit both open the editor in place of the list.
    green check marks variables the expression already references.
 1. **Name** - names the `<Name> Result` variable and the `<Name> Calculated`
    event. Renaming an expression renames both.
-1. **Mode** - `Equation` evaluates the substituted template as math and
-   publishes a NUMBER. `String` publishes the substituted text as a STRING.
+1. **Mode** - `Equation` evaluates the template as math, reading each token as
+   its variable's current value, and publishes a NUMBER. `String` publishes the
+   text with each token's value in place as a STRING.
 1. **Expression** - the template. Tokens, functions, numbers, and strings are
    highlighted as you type.
 1. **Syntax help** - the reference for tokens, operators, and functions, without
@@ -194,8 +195,9 @@ Add Expression and Edit both open the editor in place of the list.
    `[Room > Device > Variable]`, which is the quickest way to confirm a token
    points where you meant it to.
 1. **With current values** - the same template with the variables' current
-   values substituted, exactly as it will be evaluated (Equation mode only).
-1. **Result** - the value the controller computed for that substitution. Errors
+   values in place, to show what it reads (Equation mode only). A value is read
+   as data, so this is a view of the values and not the text that runs.
+1. **Result** - the value the controller computed with those values. Errors
    appear here in red, before anything is saved.
 1. **Publish line** - the variable and event this expression owns once saved.
 1. **Recalculate when referenced variables change** - when enabled, the driver
