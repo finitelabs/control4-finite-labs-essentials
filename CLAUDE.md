@@ -74,8 +74,8 @@ current in a way a template pasted into this file is not.
 - **`utils.lua` exports `SerializeSafe`/`DeserializeSafe`.** Bare
   `Serialize`/`Deserialize` are different functions, from
   `vendor/drivers-common-public/global/lib.lua`.
-- **`lib/transform.lua` and `lib/expressions.lua` are adapted from
-  `control4-influxdb`.** Extend both sides together or they drift.
+- **`lib/expressions.lua` and `lib/expression-sandbox.lua` come from the
+  template** (`vendor_modules: expressions`). Change them there, not here.
 - **Do not assume a library is distribution-guarded because it looks optional.**
   In `network_requests`, `require("lib.http")` sits outside the
   `--#ifndef DRIVERCENTRAL` block that wraps `github-updater`, so `http.lua`

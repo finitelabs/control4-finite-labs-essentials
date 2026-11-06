@@ -57,6 +57,8 @@ then pull the change in with `copier update`.
 - `utils.lua`: general utilities (XML, device queries, table helpers, type
   coercion)
 - `values.lua`: value parsing, coercion, and formatting
+- `expressions.lua`, `expression-sandbox.lua`: expressions over device
+  variables: `PARAM{device,variable}` tokens, evaluation, and debounced watches
 - `github-updater.lua`: GitHub Releases self-updater (OSS builds)
 
 **Vendor libraries (`vendor/`):**
@@ -354,6 +356,9 @@ runs `fn` with `print` collected and returns `ok, err, output`, and
 - `F.captureTcpClient()` swaps in a `C4:CreateTCPClient` that records every
   write and completes the connect synchronously. Read `.writes`, then
   `.restore()`.
+- `F.dofileBuild(path, build)` runs a Lua file as the `"drivercentral"` or
+  `"oss"` build compiles it, with its `#ifdef` blocks applied. A driver loaded
+  raw runs every arm.
 
 ### Persisted values
 

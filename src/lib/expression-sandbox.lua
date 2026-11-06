@@ -1,11 +1,10 @@
---- Sandboxed Lua expression evaluator.
+--- Evaluates expressions in a sandbox: compiled with loadstring, with a cache keyed by
+--- their text, and run with setfenv in an environment holding only `math`, `string`,
+--- a few helpers, and the values an expression reads as `__p[n]`.
 ---
---- Provides safe evaluation of user-defined expressions. Uses Lua 5.1's
---- loadstring and setfenv for sandboxing, with a compile cache keyed by
---- expression string. Adapted from the control4-influxdb transform library;
---- the `value` binding is optional here so multi-variable expressions (tokens
---- substituted before evaluation) share the same engine as single-value
---- transforms.
+--- It limits what an expression can reach, not how long it runs: an expression the
+--- integrator writes can hold a function literal, and nothing stops a loop inside
+--- one. A variable's value is not an expression: it arrives as a binding, as data.
 
 local log = require("lib.logging")
 
@@ -15,8 +14,8 @@ require("lib.utils")
 -- Module
 ---------------------------------------------------------------------------
 
---- @class Transform
-local Transform = {}
+--- @class ExpressionSandbox
+local Sandbox = {}
 
 --- Cache of compiled expression functions keyed by expression string.
 --- @type table<string, function>
@@ -24,6 +23,30 @@ local _cache = {}
 
 --- Maximum number of cached expressions before eviction.
 local MAX_CACHE_SIZE = 500
+
+--- A table an expression can read but not change: an expression can hold a function
+--- literal, and so assignments, and the driver shares the real tables it copies.
+--- @param source table
+--- @param leaveOut? string A key the expression doesn't get.
+--- @return table readOnly
+local function readOnlyCopy(source, leaveOut)
+  local copy = {}
+  for key, value in pairs(source) do
+    if key ~= leaveOut then
+      copy[key] = value
+    end
+  end
+  return setmetatable({}, {
+    __index = copy,
+    __newindex = function()
+      error("expressions can't change this table", 2)
+    end,
+    __metatable = false,
+  })
+end
+
+local SANDBOX_MATH = readOnlyCopy(math)
+local SANDBOX_STRING = readOnlyCopy(string, "dump")
 
 ---------------------------------------------------------------------------
 -- Built-in Functions
@@ -92,14 +115,13 @@ local function compile(expression)
 end
 
 --- Build the sandboxed environment for expression evaluation.
---- @param rawValue any Optional raw value bound as `value` for transforms.
+--- @param bindings? any[] Values an expression reads as `__p[1]`, `__p[2]` and so on.
 --- @return table env
-local function buildEnv(rawValue)
-  local numValue = tonumber(rawValue)
+local function buildEnv(bindings)
   return {
-    value = numValue ~= nil and numValue or rawValue,
-    math = math,
-    string = string,
+    __p = bindings,
+    math = SANDBOX_MATH,
+    string = SANDBOX_STRING,
     tonumber = tonumber,
     tostring = tostring,
     type = type,
@@ -118,79 +140,42 @@ local function buildEnv(rawValue)
     room_name = roomName,
     c2f = c2f,
     f2c = f2c,
-    map = function(tbl)
-      if type(tbl) ~= "table" then
-        return rawValue
-      end
-      local key = tostring(rawValue)
-      if tbl[key] ~= nil then
-        return tbl[key]
-      end
-      -- Try case-insensitive match
-      local lower = key:lower()
-      for k, v in pairs(tbl) do
-        if tostring(k):lower() == lower then
-          return v
-        end
-      end
-      return rawValue
-    end,
   }
 end
 
---- Evaluate an expression, optionally with a raw value bound as `value`.
+--- Evaluate an expression.
 --- @param expression string Lua expression
---- @param rawValue any Optional raw value available as `value` in the sandbox.
---- @return any result The result, or rawValue on error (nil when no rawValue).
+--- @param bindings? any[] Values available as `__p[1]`, `__p[2]` and so on. They aren't part of the text, so the compile cache holds across values.
+--- @return any result The result, or nil on error.
 --- @return string|nil err Error message if evaluation failed
-function Transform.eval(expression, rawValue)
+function Sandbox.eval(expression, bindings)
   if not expression or expression == "" then
-    return rawValue
+    return nil
   end
 
   local fn, compileErr = compile(expression)
   if not fn then
     local msg = "compile error: " .. (compileErr or "unknown")
-    log:warn("Transform %s for '%s'", msg, expression)
-    return rawValue, msg
+    log:warn("Expression %s for '%s'", msg, expression)
+    return nil, msg
   end
 
-  local env = buildEnv(rawValue)
-  -- setfenv must target fn directly so loadstring'd code resolves
-  -- names (value, abs, device_name, etc.) from the sandbox environment.
-  -- Safe: C4 Lua is single-threaded with no yields between here and pcall.
-  setfenv(fn, env)
+  -- setfenv must target fn directly so loadstring'd code resolves names from the
+  -- sandbox. Safe: C4 Lua is single-threaded with no yields between here and pcall.
+  setfenv(fn, buildEnv(bindings))
 
+  -- A string's methods read the real string table, so ("").dump needs this too.
+  local dump = string.dump
+  string.dump = nil
   local ok, result = pcall(fn)
+  string.dump = dump
   if not ok then
     local msg = "runtime error: " .. tostring(result)
-    log:warn("Transform %s for '%s' (value=%s)", msg, expression, tostring(rawValue))
-    return rawValue, msg
+    log:warn("Expression %s for '%s'", msg, expression)
+    return nil, msg
   end
 
   return result
 end
 
---- Validate an expression without executing it.
---- @param expression string
---- @return boolean valid
---- @return string|nil errorMsg
-function Transform.validate(expression)
-  if not expression or expression == "" then
-    return true
-  end
-
-  local fn, err = loadstring("return " .. expression)
-  if not fn then
-    return false, err
-  end
-
-  return true
-end
-
---- Clear the expression cache.
-function Transform.clearCache()
-  _cache = {}
-end
-
-return Transform
+return Sandbox
