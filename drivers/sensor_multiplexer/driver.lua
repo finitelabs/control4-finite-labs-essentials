@@ -642,6 +642,9 @@ end
 --- Ask the linked thermostat to apply a preset.
 --- @param name string The preset name.
 local function setThermostatPreset(name)
+  if not licensed() then
+    return
+  end
   log:debug("Setting thermostat preset '%s'", name)
   SendToDevice(getLinkedThermostatId(), "SET_PRESET", { NAME = name })
 end
