@@ -434,7 +434,7 @@ local function recalcHumidity()
 end
 
 --- Recalculate the aggregated contact state and update outputs/properties.
---- @param asState? boolean Send a change without a programming event, as at a load.
+--- @param asState? boolean Send a change without a programming event, as at a start or a bind.
 local function recalcContact(asState)
   log:trace("recalcContact()")
   if not licensed() then
@@ -458,7 +458,6 @@ local function recalcContact(asState)
     end
   else
     UpdateProperty("Aggregated Contact", "", true)
-    lastContactOutputState = nil
   end
 
   if #vals > 0 then
@@ -556,10 +555,10 @@ local function registerContactInputHandlers(binding, persistKey, recalcFn)
     log:trace("RFP[%s](%s, %s)", binding.bindingId, idBinding, strCommand)
     if strCommand == "CLOSED" or strCommand == "STATE_CLOSED" then
       setCachedValue(persistKey, binding.key, true)
-      recalcFn()
+      recalcFn(strCommand == "STATE_CLOSED")
     elseif strCommand == "OPENED" or strCommand == "STATE_OPENED" then
       setCachedValue(persistKey, binding.key, false)
-      recalcFn()
+      recalcFn(strCommand == "STATE_OPENED")
     end
   end
 
@@ -576,7 +575,7 @@ local function registerContactInputHandlers(binding, persistKey, recalcFn)
     )
     if not bIsBound then
       clearCachedValue(persistKey, binding.key)
-      recalcFn()
+      recalcFn(true)
     end
   end
 end
@@ -592,12 +591,14 @@ local function registerContactOutputHandlers(binding, outputKey, persistKey, get
   -- OBC handler: send current state when consumer connects
   OBC[binding.bindingId] = function(idBinding, _strClass, bIsBound, _otherDeviceId, _otherBindingId)
     log:trace("OBC[%s](%s, %s, %s)", binding.bindingId, idBinding, _strClass, bIsBound)
+    lastContactOutputState = nil
     if bIsBound and licensed() then
       local vals = getActiveBoolValues(persistKey)
       local aggFuncName = getAggFn()
       local aggFunc = BOOL_AGG_FUNCTIONS[aggFuncName] or calcAny
       local result = aggFunc(vals)
       if result ~= nil then
+        lastContactOutputState = result
         -- Use STATE_ prefix on bind to set state without triggering programming events
         SendToProxy(idBinding, result and "STATE_CLOSED" or "STATE_OPENED", {}, "NOTIFY")
       end
@@ -662,7 +663,7 @@ local function reconcileInputBindings(
     registerHandlersFn(binding, persistKey, recalcFn)
   end
 
-  recalcFn()
+  recalcFn(true)
 end
 
 --#ifndef DRIVERCENTRAL
