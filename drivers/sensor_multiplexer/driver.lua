@@ -200,7 +200,6 @@ end
 -- Last Contact Output State (for change detection)
 --------------------------------------------------------------------------------
 
---- The state last told to the contact output. Its proxy keeps showing it while the selected input has no state.
 local lastContactOutputState = nil
 
 --------------------------------------------------------------------------------
@@ -393,7 +392,6 @@ local function registerContactInputHandlers(binding, name)
   -- RFP handler: receive OPENED/CLOSED from provider
   RFP[binding.bindingId] = function(idBinding, strCommand, _tParams, _args)
     log:trace("RFP[%s](%s, %s)", binding.bindingId, idBinding, strCommand)
-    -- A sensor tells its state at its start or bind as STATE_, which changes no device.
     if strCommand == "CLOSED" or strCommand == "STATE_CLOSED" then
       setCachedInputValue(name, INPUT_CONTACT, true)
       if getActiveInput() == name then

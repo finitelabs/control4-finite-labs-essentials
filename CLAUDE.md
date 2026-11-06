@@ -54,11 +54,13 @@ current in a way a template pasted into this file is not.
 
 ## Traps
 
-- **`CLOSED`/`OPENED` fire programming events; `STATE_CLOSED`/`STATE_OPENED` set
-  the same state silently.** Pick between them on `gInitialized` (false in
-  `OnDriverInit`, true at the end of `OnDriverLateInit`). Restoring bindings on
-  boot with the wrong pair replays every automation the driver has ever
-  triggered.
+- **`CLOSED`/`OPENED` fire programming events, even for the state the proxy
+  already shows; `STATE_CLOSED`/`STATE_OPENED` set the same state silently.**
+  Pick between them on `gInitialized` (false in `OnDriverInit`, true at the end
+  of `OnDriverLateInit`), and send `STATE_` for a bind, an unbind and a sensor's
+  own `STATE_` report too. Restoring bindings on boot with the wrong pair
+  replays every automation the driver has ever triggered. Keep the last state
+  told to a contact output while no input has one: its proxy keeps showing it.
 - **`C4:AddEvent` is unavailable before `OnDriverLateInit`,** so
   `events:restoreEvents()` must be called from there, never from `OnDriverInit`.
 - **`OPC.*` and `OVC[]` keys replace spaces with underscores.** A property shown

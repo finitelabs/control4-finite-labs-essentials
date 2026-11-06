@@ -282,7 +282,7 @@ local humAggregationFunction = AGG_MEAN
 --- Current aggregation function setting for contact
 local contactAggregationFunction = AGG_ANY
 
---- The state last told to the contact output. Its proxy keeps showing it while no input has a state.
+--- Last output state for change detection (avoids redundant NOTIFY commands)
 local lastContactOutputState = nil
 
 --------------------------------------------------------------------------------
@@ -553,7 +553,6 @@ local function registerContactInputHandlers(binding, persistKey, recalcFn)
   -- RFP handler: receive OPENED/CLOSED from provider
   RFP[binding.bindingId] = function(idBinding, strCommand, _tParams, _args)
     log:trace("RFP[%s](%s, %s)", binding.bindingId, idBinding, strCommand)
-    -- A sensor tells its state at its start or bind as STATE_, which changes no device.
     if strCommand == "CLOSED" or strCommand == "STATE_CLOSED" then
       setCachedValue(persistKey, binding.key, true)
       recalcFn(strCommand == "STATE_CLOSED")

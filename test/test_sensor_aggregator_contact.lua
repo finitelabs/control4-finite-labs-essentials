@@ -95,6 +95,7 @@ local rebound = told(function()
   OnBindingChanged(output(), "CONTACT_SENSOR", true, 601, 1)
 end)
 T.eq("an output bound to another contact", rebound, "STATE_CLOSED")
+T.eq("the same state again tells nothing", report(1, "CLOSED"), "")
 T.eq("then a real change", report(1, "OPENED"), "OPENED")
 T.eq("the last input's unbind", bound(1, false), "")
 rebound = told(function()
@@ -104,6 +105,15 @@ end)
 T.eq("an output bound while no input has a state", rebound, "")
 bound(1, true)
 T.eq("the first state it gets", report(1, "STATE_OPENED"), "STATE_OPENED")
+
+T.section("sensor_aggregator: removing an input with Contact Inputs changes the output without programming")
+bound(2, true)
+T.eq("the other input closing", report(2, "CLOSED"), "CLOSED")
+local lowered = told(function()
+  Properties["Contact Inputs"] = "1"
+  OnPropertyChanged("Contact Inputs")
+end)
+T.eq("Contact Inputs lowered to leave the open input", lowered, "STATE_OPENED")
 
 if H.gate and H.gate._timer then
   H.gate._timer:Cancel()
