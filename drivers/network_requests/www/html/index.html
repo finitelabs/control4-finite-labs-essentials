@@ -638,8 +638,8 @@ function handleDriverData(cmd, params) {
       onWebhooks(JSON.parse(params.webhooks || '[]'), params.webhookBase || '');
       onProperties(JSON.parse(params.properties || '[]'));
     }
-    else if (cmd === 'REQUEST_RESULT') onRequestResult(params);
-    else if (cmd === 'WEBHOOK_RESULT') onWebhookResult(params);
+    else if (cmd === 'REQUEST_RESULT') onRequestResult(JSON.parse(params.data));
+    else if (cmd === 'WEBHOOK_RESULT') onWebhookResult(JSON.parse(params.data));
     else if (cmd === 'DEVICES_DATA') onDevices(JSON.parse(params.devices || '[]'));
     else if (cmd === 'DEVICE_VARIABLES_DATA') onDeviceVariables(params.deviceId, JSON.parse(params.variables || '[]'));
     else if (cmd === 'PROPERTY_ERROR') onPropertyError(params.property, params.error || '');

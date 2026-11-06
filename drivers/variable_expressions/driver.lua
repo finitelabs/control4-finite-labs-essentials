@@ -82,12 +82,15 @@ local function setResult(name, entry)
   local results = getResults()
   results[name] = entry
   persist:set(PERSIST_RESULTS, results)
+  -- One JSON string: the socket reads a param like 72.50, 007 or false as a number or a boolean.
   C4:SendDataToUI("EXPRESSION_RESULT", {
-    name = name,
-    result = entry.result or "",
-    error = entry.error or "",
-    rendered = entry.rendered or "",
-    ts = entry.ts or os.time(),
+    data = JSON:encode({
+      name = name,
+      result = entry.result or "",
+      error = entry.error or "",
+      rendered = entry.rendered or "",
+      ts = entry.ts or os.time(),
+    }),
   })
 end
 
@@ -535,11 +538,13 @@ function UIR._EVAL_EXPRESSION(tParams)
   local mode = params.mode == "string" and "string" or "equation"
   local eval = Expressions.evaluate(mode, tostring(params.template or ""))
   return uiRespond("EVAL_RESULT", {
-    id = params.id or "",
-    rendered = eval.rendered or "",
-    substituted = eval.substituted or "",
-    result = eval.result ~= nil and tostring(eval.result) or "",
-    error = eval.error or "",
+    data = JSON:encode({
+      id = params.id or "",
+      rendered = eval.rendered or "",
+      substituted = eval.substituted or "",
+      result = eval.result ~= nil and tostring(eval.result) or "",
+      error = eval.error or "",
+    }),
   })
 end
 

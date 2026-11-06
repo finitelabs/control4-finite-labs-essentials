@@ -59,7 +59,7 @@ local function eval(mode, template)
   end, "", 2000000)
   local answer = JSON:decode(UIR._EVAL_EXPRESSION(data({ id = "1", mode = mode, template = template })))
   debug.sethook()
-  return answer
+  return JSON:decode(answer.data)
 end
 
 project()

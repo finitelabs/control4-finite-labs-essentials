@@ -49,6 +49,10 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Fixed saving text in the Network Requests and Variable Expressions tabs. A
   character outside Western European alphabets made the save do nothing, and an
   accented letter was stored wrongly.
+- Fixed the Network Requests and Variable Expressions tabs changing how a value
+  looks. A result of `72.50` showed as `72.5`, `007` as `7`, and a response or a
+  preview of `0` or `false` could show nothing. A request, webhook or expression
+  named only with digits now updates in place.
 - Fixed a variable's value being able to break or run as part of a Variable
   Expressions expression. An equation now reads each value as data, so a text
   variable holding a quote no longer breaks it and no value can run as code.
