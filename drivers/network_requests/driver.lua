@@ -283,7 +283,6 @@ local function setResult(name, entry)
   local results = getResults()
   results[name] = entry
   persist:set(PERSIST_RESULTS, results)
-  -- One JSON string: the socket reads a param like 12.50, 007 or false as a number or a boolean.
   C4:SendDataToUI("REQUEST_RESULT", {
     data = JSON:encode({
       name = name,

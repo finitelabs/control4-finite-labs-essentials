@@ -468,7 +468,7 @@ function api(method, path, body) {
 function sendCommand(cmd, params) {
   return api('POST', '/api/v1/items/' + gDriverId + '/commands', {
     command: cmd,
-    // UTF-8, since btoa takes only Latin-1. Why the newlines: lib/page-params.lua.
+    // Why the newlines: lib/page-params.lua.
     tParams: { DATA: btoa(unescape(encodeURIComponent(JSON.stringify(params || {})))).replace(/(.{76})/g, '$1\n') },
     async: false
   });
