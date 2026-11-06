@@ -200,6 +200,7 @@ end
 -- Last Contact Output State (for change detection)
 --------------------------------------------------------------------------------
 
+--- The state last told to the contact output. Its proxy keeps showing it while the selected input has no state.
 local lastContactOutputState = nil
 
 --------------------------------------------------------------------------------
@@ -247,7 +248,7 @@ end
 --------------------------------------------------------------------------------
 
 --- Update all output display properties and send values from the active group.
---- @param asState? boolean Send a contact change without a programming event, as at a load.
+--- @param asState? boolean Send a contact change without a programming event, as at a start or a bind.
 local function updateOutputs(asState)
   log:trace("updateOutputs()")
   if not licensed() then
@@ -281,7 +282,7 @@ local function updateOutputs(asState)
 
   -- Contact
   if isContactEnabled() then
-    local contact = activeName and getCachedInputValue(activeName, INPUT_CONTACT) or nil
+    local contact = activeName and getCachedInputValue(activeName, INPUT_CONTACT)
     if contact ~= nil then
       UpdateProperty("Output Contact", contact and "Closed" or "Open", true)
       if contact ~= lastContactOutputState then
@@ -294,7 +295,6 @@ local function updateOutputs(asState)
       end
     else
       UpdateProperty("Output Contact", "", true)
-      lastContactOutputState = nil
     end
   end
 end
@@ -334,7 +334,6 @@ local function setActiveInput(name)
   end
 
   -- Update outputs from newly selected group
-  lastContactOutputState = nil
   updateOutputs()
 end
 
@@ -394,15 +393,16 @@ local function registerContactInputHandlers(binding, name)
   -- RFP handler: receive OPENED/CLOSED from provider
   RFP[binding.bindingId] = function(idBinding, strCommand, _tParams, _args)
     log:trace("RFP[%s](%s, %s)", binding.bindingId, idBinding, strCommand)
+    -- A sensor tells its state at its start or bind as STATE_, which changes no device.
     if strCommand == "CLOSED" or strCommand == "STATE_CLOSED" then
       setCachedInputValue(name, INPUT_CONTACT, true)
       if getActiveInput() == name then
-        updateOutputs()
+        updateOutputs(strCommand == "STATE_CLOSED")
       end
     elseif strCommand == "OPENED" or strCommand == "STATE_OPENED" then
       setCachedInputValue(name, INPUT_CONTACT, false)
       if getActiveInput() == name then
-        updateOutputs()
+        updateOutputs(strCommand == "STATE_OPENED")
       end
     end
   end
@@ -422,7 +422,7 @@ local function registerContactInputHandlers(binding, name)
       clearCachedInputValue(name, INPUT_CONTACT)
     end
     if getActiveInput() == name then
-      updateOutputs()
+      updateOutputs(true)
     end
   end
 end
@@ -473,11 +473,13 @@ local function registerContactOutputHandlers(binding)
   -- OBC handler: send current state when consumer connects
   OBC[binding.bindingId] = function(idBinding, _strClass, bIsBound, _otherDeviceId, _otherBindingId)
     log:trace("OBC[%s](%s, %s, %s)", binding.bindingId, idBinding, _strClass, bIsBound)
+    lastContactOutputState = nil
     if bIsBound and licensed() then
       local activeName = getActiveInput()
       if activeName then
         local value = getCachedInputValue(activeName, INPUT_CONTACT)
         if value ~= nil then
+          lastContactOutputState = value
           -- Use STATE_ prefix on bind to set state without triggering programming events
           SendToProxy(idBinding, value and "STATE_CLOSED" or "STATE_OPENED", {}, "NOTIFY")
         end

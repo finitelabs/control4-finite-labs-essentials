@@ -237,6 +237,12 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Fixed long names and values running past the edge of the Network Requests and
   Variable Expressions tabs. They now wrap inside the page, and the Mode column
   shows NUMBER in full.
+- Fixed Sensor Aggregator's and Sensor Multiplexer's contact outputs firing
+  Opened or Closed programming when no contact changed. A start, a bind or an
+  unbind now updates the output without programming, and selecting an input in
+  the state the output already shows tells it nothing.
+- Fixed Sensor Multiplexer's contact output not opening when the selected
+  input's contact opened.
 
 ### Changed
 
