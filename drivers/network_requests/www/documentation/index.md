@@ -192,8 +192,8 @@ HTTP request.
    variable. It is fixed once the request has been saved: to rename, create a
    new request and delete the old one. Names must be unique.
 1. **Type** - switches between HTTP, TCP, UDP, and WOL.
-1. **Method / URL** - the HTTP method and the destination. Basic auth goes in
-   the URL as `http://user:pass@host:port/path`.
+1. **Method / URL** - the HTTP method and the destination. For basic auth, put
+   the user name and password in the URL ahead of the host.
 1. **Headers** - optional request headers. **+ Add header** adds a row and the X
    removes one; rows left without a name are dropped when saving.
 1. **Validate TLS certificate** - off by default, so self-signed HTTPS endpoints
@@ -475,17 +475,17 @@ secret.
 
 ## Examples
 
-**Turn on rack LCDs** (HTTP GET with basic auth):
+**Turn on a display** (HTTP GET):
 
-1. In the Requests tab, add an HTTP request named `Rack LCD 1 On` with URL
-   `http://pi:secret@192.168.1.5:9080/api/v1/uctronics-lcd/start`.
-1. In programming, fire it with `Send Request` -> `Rack LCD 1 On`.
+1. In the Requests tab, add an HTTP request named `Display On` with URL
+   `http://192.168.1.5:9080/api/v1/display/on`.
+1. In programming, fire it with `Send Request` -> `Display On`.
 
 **Set a subwoofer level from a variable** (HTTP POST with a JSON body):
 
 ```
-URL:  http://192.168.2.16/request.cgi
-Body: {"type":"http_set","packet":[{"id":62,"feature":"level.SW","value":PARAM{100001,2500}}]}
+URL:  http://192.168.1.16/api/level
+Body: {"channel":"sub","level":PARAM{100001,2500}}
 ```
 
 **PJLink projector power on** (TCP with a response):

@@ -406,7 +406,7 @@
           <section>
             <h4>String mode</h4>
             <p>Literal text with tokens substituted, no evaluation:
-            <code>Espresso: PARAM{2795,1017} W</code></p>
+            <code>Espresso: PARAM{105,1017} W</code></p>
           </section>
         </div>
       </div>
@@ -1085,31 +1085,31 @@ function initTabs() {
     var now = Math.floor(Date.now() / 1000);
     onConfig([
       { name: 'Bathroom Humidity Diff', mode: 'equation', auto: true, ts: now,
-        template: 'abs(PARAM{2306,1002} - PARAM{2311,1002})', result: '7.6',
+        template: 'abs(PARAM{96,1002} - PARAM{97,1002})', result: '7.6',
         rendered: 'abs([Master Bathroom > Bath Humidity Sensor > HUMIDITY] - [Upstairs Hallway > Hall Humidity Sensor > HUMIDITY])' },
       { name: 'Espresso Status', mode: 'string', auto: true, ts: now,
-        template: 'Espresso machine: PARAM{2795,1017} W', result: 'Espresso machine: 1343 W',
-        rendered: 'Espresso machine: [Coffee Bar > Kasa HS300 Power Strip > Output 5 Power] W' },
+        template: 'Espresso machine: PARAM{105,1017} W', result: 'Espresso machine: 1343 W',
+        rendered: 'Espresso machine: [Kitchen > Demo Power Strip > Outlet 5 Power] W' },
       { name: 'Christmas Lights Hours', mode: 'equation', auto: false, ts: now,
-        template: 'PARAM{2675,1003} / 24', error: 'unresolved variable reference',
-        rendered: '[Device 2675 > TOTAL_ON_HOURS] / 24' }
+        template: 'PARAM{140,1003} / 24', error: 'unresolved variable reference',
+        rendered: '[Device 140 > TOTAL_ON_HOURS] / 24' }
     ]);
     onDevices([
-      { id: 2306, name: 'Bath Humidity Sensor', roomName: 'Master Bathroom' },
-      { id: 2311, name: 'Hall Humidity Sensor', roomName: 'Upstairs Hallway' },
-      { id: 2795, name: 'Kasa HS300 Power Strip', roomName: 'Coffee Bar' }
+      { id: 96, name: 'Bath Humidity Sensor', roomName: 'Master Bathroom' },
+      { id: 97, name: 'Hall Humidity Sensor', roomName: 'Upstairs Hallway' },
+      { id: 105, name: 'Demo Power Strip', roomName: 'Kitchen' }
     ]);
-    onDeviceVariables(2306, [
+    onDeviceVariables(96, [
       { id: 1002, name: 'HUMIDITY', type: 'NUMBER', value: '61.8' },
       { id: 1001, name: 'TEMPERATURE', type: 'NUMBER', value: '74.2' }
     ]);
-    onDeviceVariables(2311, [
+    onDeviceVariables(97, [
       { id: 1002, name: 'HUMIDITY', type: 'NUMBER', value: '54.2' },
       { id: 1003, name: 'BATTERY_LEVEL', type: 'NUMBER', value: '88' }
     ]);
-    onDeviceVariables(2795, [
+    onDeviceVariables(105, [
       { id: 1014, name: 'Voltage', type: 'NUMBER', value: '122' },
-      { id: 1017, name: 'Output 5 Power', type: 'NUMBER', value: '1342.6' }
+      { id: 1017, name: 'Outlet 5 Power', type: 'NUMBER', value: '1342.6' }
     ]);
     onProperties([
       // #ifdef DRIVERCENTRAL
