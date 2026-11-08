@@ -1348,7 +1348,11 @@ function initTabs() {
       // #endif
       { group: 'Driver Settings', name: 'Driver Status', value: 'Ready', readonly: true },
       { group: 'Driver Settings', name: 'Driver Version', value: '20261105', readonly: true },
+      // #ifdef DRIVERCENTRAL
+      { group: 'Driver Settings', name: 'Log Level', value: '3 - Info', choices: ['0 - Fatal', '1 - Error', '2 - Warning', '3 - Info', '4 - Debug'] },
+      // #else
       { group: 'Driver Settings', name: 'Log Level', value: '3 - Info', choices: ['0 - Fatal', '1 - Error', '2 - Warning', '3 - Info', '4 - Debug', '5 - Trace', '6 - Ultra'] },
+      // #endif
       { group: 'Driver Settings', name: 'Log Mode', value: 'Off', choices: ['Off', 'Print', 'Log', 'Print and Log'] },
       // #ifdef DRIVERCENTRAL
       { group: 'Driver Settings', name: 'Cloud Monitoring', value: 'Enabled', choices: ['Disabled', 'Enabled'], description: 'Sends memory and error reports to Finite Labs so we can fix driver problems.' },

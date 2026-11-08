@@ -25,6 +25,7 @@ local pushes = {}
 --- Loads a driver with a fresh module and records what it pushes to the tab.
 local function load(driver, answer, productId)
   package.loaded["lib.tab-properties"] = nil
+  package.loaded["lib.support-code"] = nil
   H.load(driver, answer or H.LICENSED, nil, productId)
   function C4:SendDataToUI(command, data)
     pushes[#pushes + 1] = { command = command, data = data }
@@ -120,6 +121,28 @@ for driver, extra in pairs({ network_requests = { "Webhook Port", "Webhook URL" 
   T.eq("so no code is entered", Properties["Support Code"], "")
   T.eq("a change with no value is refused", set("Log Mode")._command, "PROPERTY_ERROR")
   T.eq("so is a property the driver lacks", set("Nothing", "x")._command, "PROPERTY_ERROR")
+
+  T.section(driver .. ": Log Level offers the logger's levels")
+  local log = require("lib.logging")
+  log:allowTraceAndUltra(false)
+  T.eq(
+    "a DriverCentral build's tab stops at Debug",
+    property("Log Level").choices,
+    { "0 - Fatal", "1 - Error", "2 - Warning", "3 - Info", "4 - Debug" }
+  )
+  T.eq("and turns Trace away", set("Log Level", "5 - Trace")._command, "PROPERTY_ERROR")
+  log:allowTraceAndUltra(true)
+  T.eq("a Support Code hour adds Trace and Ultra", property("Log Level").choices[7], "6 - Ultra")
+  T.eq("which the tab can set", set("Log Level", "6 - Ultra")._command, "CONFIG_DATA")
+  T.eq("so the property shows it", Properties["Log Level"], "6 - Ultra")
+  set("Log Level", "4 - Debug")
+  local supportCode = require("lib.support-code")
+  log:allowTraceAndUltra(false)
+  pushes = {}
+  log:allowTraceAndUltra(true)
+  supportCode:_tell(true)
+  T.eq("opening the hour pushes the tab", #pushes > 0 and pushes[#pushes].command, "CONFIG_DATA")
+  T.eq("with Ultra on offer", property("Log Level", pushes[#pushes].data).choices[7], "6 - Ultra")
 
   T.section(driver .. ": a change made in Composer")
   for _, name in ipairs({ "Automatic Updates", "Update Channel", "Log Mode", "Log Level", "Cloud Monitoring" }) do

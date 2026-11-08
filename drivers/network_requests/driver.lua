@@ -997,19 +997,6 @@ end
 function OPC.Log_Level(propertyValue)
   log:trace("OPC.Log_Level('%s')", propertyValue)
   log:setLogLevel(propertyValue)
-  if log:getLogLevel() >= 6 and log:isPrintEnabled() then
-    DEBUGPRINT = true
-    DEBUG_TIMER = true
-    DEBUG_RFN = true
-    DEBUG_URL = true
-    DEBUG_WEBSOCKET = true
-  else
-    DEBUGPRINT = false
-    DEBUG_TIMER = false
-    DEBUG_RFN = false
-    DEBUG_URL = false
-    DEBUG_WEBSOCKET = false
-  end
 end
 
 function OPC.Automatic_Updates(propertyValue)
@@ -1041,6 +1028,11 @@ end
 function OPC.Support_Code(propertyValue)
   supportCode:enter(propertyValue)
 end
+
+-- Log Level's choices change with the Support Code's hour, which runs no handler the tab follows.
+supportCode:onChange(function()
+  UIR._GET_CONFIG()
+end)
 
 --- Turns Cloud Monitoring on or off.
 --- @param propertyValue string
