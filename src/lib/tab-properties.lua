@@ -4,6 +4,8 @@
 require("drivers-common-public.global.handlers")
 require("drivers-common-public.global.lib")
 
+local log = require("lib.logging")
+
 --- @class TabProperties
 --- @field private _config table[]|nil
 local TabProperties = {}
@@ -29,14 +31,20 @@ function TabProperties:_read()
     local kind = XMLCapture(xml, "type")
     if kind == "LABEL" then
       group = XMLCapture(xml, "default") or ""
-    elseif SHOWN_TYPES[kind] and XMLCapture(xml, "password") ~= "true" then
+    elseif
+      (SHOWN_TYPES[kind] or (kind == "DYNAMIC_LIST" and XMLCapture(xml, "name") == "Log Level"))
+      and XMLCapture(xml, "password") ~= "true"
+    then
       local property = {
         name = XMLCapture(xml, "name"),
         group = group,
         readonly = XMLCapture(xml, "readonly") == "true",
         description = XMLCapture(xml, "description"),
       }
-      if kind == "LIST" then
+      if kind == "DYNAMIC_LIST" then
+        -- Log Level: the logger gives its choices, which a Support Code hour widens.
+        property.logLevels = true
+      elseif kind == "LIST" then
         property.choices = {}
         for item in XMLgCapture(xml, "item") do
           table.insert(property.choices, item)
@@ -60,6 +68,10 @@ function TabProperties:list()
     for key, value in pairs(config) do
       property[key] = value
     end
+    if config.logLevels then
+      property.logLevels = nil
+      property.choices = log:getLogLevelNames()
+    end
     table.insert(properties, property)
   end
   return properties
@@ -71,8 +83,9 @@ end
 --- @return string|nil value The value to set, or nil when the property cannot hold it.
 --- @return string|nil err Why not.
 local function checked(config, value)
-  if config.choices then
-    for _, choice in ipairs(config.choices) do
+  local choices = config.logLevels and log:getLogLevelNames() or config.choices
+  if choices then
+    for _, choice in ipairs(choices) do
       if choice == value then
         return value
       end
