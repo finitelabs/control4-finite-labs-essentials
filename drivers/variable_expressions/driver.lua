@@ -253,11 +253,9 @@ function OnDriverLateInit()
   end
 
   -- Fire OnPropertyChanged for all properties to set initial global state
+  -- The router runs each handler in its own xpcall and reports its error, so the rest still run.
   for p, _ in pairs(Properties) do
-    local status, err = pcall(OnPropertyChanged, p)
-    if not status and err then
-      log:error("Error in OnPropertyChanged for property '%s': %s", p, err or "unknown error")
-    end
+    OnPropertyChanged(p)
   end
 
   -- Restore variable watches and recompute auto expressions once at boot.
