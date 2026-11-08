@@ -402,7 +402,7 @@
         <div class="frow">
           <div class="f">
             <label for="req-name">Name <span id="req-name-lock" style="display:none; font-weight:400;">(fixed - to rename, create a new request and delete this one)</span></label>
-            <input type="text" id="req-name" placeholder="e.g. Rack LCDs On" oninput="this.classList.remove('input-error'); updatePublishLine();"/>
+            <input type="text" id="req-name" placeholder="e.g. Display On" oninput="this.classList.remove('input-error'); updatePublishLine();"/>
           </div>
           <div style="flex:none;">
             <label>Type</label>
@@ -428,7 +428,7 @@
             <div class="f">
               <label for="req-url">URL</label>
               <input type="text" id="req-url" class="mono" data-tok="1" spellcheck="false"
-                placeholder="http://user:pass@192.168.1.10:8080/api/v1/thing"/>
+                placeholder="http://192.168.1.10:8080/api/v1/thing"/>
             </div>
           </div>
           <label>Headers</label>
@@ -527,7 +527,7 @@
             <h4>HTTP</h4>
             <p>HTTPS is supported; TLS certificates are only checked when
             <b>Validate TLS certificate</b> is on, so self-signed LAN devices work by default.
-            Basic auth goes in the URL: <code>http://user:pass@host/path</code>. The last response
+            For basic auth, put the user name and password in the URL ahead of the host. The last response
             body is published to the <code>&lt;Name&gt; Response</code> variable.</p>
           </section>
         </div>
@@ -1314,10 +1314,10 @@ function initTabs() {
     document.getElementById('conn-warn').style.display = 'block';
     var now = Math.floor(Date.now() / 1000);
     onConfig([
-      { name: 'Rack LCDs On', type: 'http', method: 'GET', url: 'http://pi:secret@192.168.1.5:9080/api/v1/uctronics-lcd/start',
+      { name: 'Display On', type: 'http', method: 'GET', url: 'http://192.168.1.5:9080/api/v1/display/on',
         headers: [], status: 'ok', detail: 'HTTP 200 GET', response: '{"ok":true}', ts: now },
-      { name: 'Sub Level +10', type: 'http', method: 'POST', url: 'http://192.168.2.16/request.cgi',
-        body: '{"type":"http_set","packet":[{"id":62,"feature":"level.SW","value":10}]}',
+      { name: 'Sub Level +10', type: 'http', method: 'POST', url: 'http://192.168.1.16/api/level',
+        body: '{"channel":"sub","level":10}',
         headers: [], status: 'ok', detail: 'HTTP 200 POST', ts: now },
       { name: 'Projector Power On', type: 'tcp', host: '192.168.1.30', port: 4352, payload: '%1POWR 1\\r',
         encoding: 'text', waitResponse: true, timeout: 5, status: 'error', detail: 'no response from 192.168.1.30:4352 within 5s', ts: now },
@@ -1325,14 +1325,14 @@ function initTabs() {
     ]);
     onDevices([
       { id: 100001, name: 'Variables Agent', roomName: 'Services' },
-      { id: 2795, name: 'Kasa HS300 Power Strip', roomName: 'Coffee Bar' }
+      { id: 105, name: 'Demo Power Strip', roomName: 'Kitchen' }
     ]);
     onDeviceVariables(100001, [
       { id: 2301, name: 'MB_HIGH_HUMIDITY_DIFF_THRESHOLD', type: 'NUMBER', value: '4' }
     ]);
-    onDeviceVariables(2795, [
+    onDeviceVariables(105, [
       { id: 1014, name: 'Voltage', type: 'NUMBER', value: '122' },
-      { id: 1017, name: 'Output 5 Power', type: 'NUMBER', value: '1342.6' }
+      { id: 1017, name: 'Outlet 5 Power', type: 'NUMBER', value: '1342.6' }
     ]);
     onWebhooks([
       { name: 'Doorbell Motion', key: 'secret', from: '192.168.1.50', payload: 'zone=porch', ts: now - 120 },
