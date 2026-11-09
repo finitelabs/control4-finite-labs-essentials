@@ -333,7 +333,6 @@
 <!-- #embed ../../../../src/lib/ui/page.js -->
 
 
-// What the driver pushes, by command. page.js handles the properties card's CONFIG_DATA and PROPERTY_ERROR.
 var DRIVER_HANDLERS = {
   CONFIG_DATA: function (params) {
     onConfig(JSON.parse(params.expressions || '[]'));

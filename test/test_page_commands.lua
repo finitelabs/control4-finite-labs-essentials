@@ -103,7 +103,7 @@ local function named(list, name)
   return {}
 end
 
-T.section("Text outside Latin-1, sent by each page's own line")
+T.section("Text outside Latin-1, sent through the pages' encodeParams in lib/ui/page.js")
 if hasNode() then
   H.load("network_requests", H.LICENSED)
   local request = fromPage("network_requests", {
