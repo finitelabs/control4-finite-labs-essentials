@@ -4,7 +4,7 @@
 03-tcp-request|img=page-tcp-editor.png&fit=1&t=Raw%20TCP%20and%20UDP&s=Send%20text%20or%20hex%20payloads%20with%20escapes%2C%20and%20wait%20for%20the%20device%27s%20reply.
 04-webhooks|img=page-webhooks.png&end=315&t=Webhooks&s=Outside%20systems%20call%20a%20URL%2C%20with%20an%20optional%20key%2C%20to%20start%20Control4%20programming.
 05-variable-expressions|img=page-expressions.png&end=240&t=Variable%20expressions&s=Math%20and%20logic%20over%20Control4%20variables%2C%20published%20as%20new%20variables.
-06-expression-editor|img=page-expr-editor.png&end=525&t=Every%20reference%2C%20every%20value&s=See%20each%20variable%20an%20expression%20reads%2C%20its%20current%20value%2C%20and%20the%20result.
+06-expression-editor|img=page-expr-editor.png&fit=1&t=Every%20reference%2C%20every%20value&s=See%20each%20variable%20an%20expression%20reads%2C%20its%20current%20value%2C%20and%20the%20result.
 07-string-expressions|img=page-string-editor.png&end=470&t=Text%20from%20variables&s=String%20expressions%20build%20text%20from%20Control4%20variables.
 08-sensor-aggregation|img=composer-aggregator.png&fit=1&t=Sensor%20aggregation&s=Combine%20several%20temperature%2C%20humidity%20or%20contact%20sensors%20into%20one%20reading.
 09-virtual-devices|img=composer-programmer.png&fit=1&t=Virtual%20devices&s=Name%20temperature%2C%20humidity%20and%20contact%20sensors%20and%20relays%2C%20and%20set%20them%20from%20Control4%20programming.
