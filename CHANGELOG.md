@@ -25,43 +25,43 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 ### Added
 
 - Added a Support Code property to every driver, which lets Finite Labs support
-  open the driver's Lua tab and its Trace and Ultra log levels for an hour
+  open the driver's Lua tab and its Trace and Ultra log levels for an hour.
 - Added Cloud Monitoring, Enabled by default, which sends Finite Labs each
   driver's memory use every hour and each error it hits, and a Diagnostics
-  Snapshot action
+  Snapshot action.
 
 <!-- #endif -->
 
 ### Fixed
 
 - Fixed saving text with accented letters or characters outside Western European
-  alphabets in the Network Requests and Variable Expressions tabs
+  alphabets in the Network Requests and Variable Expressions tabs.
 - Fixed the Network Requests and Variable Expressions tabs dropping a value's
   zeros, showing nothing for 0 or false, and not updating an entry named only
-  with digits
+  with digits.
 - Fixed a variable's value being able to break a Variable Expressions equation
-  or run as code in it
+  or run as code in it.
 - Fixed comparing a text variable with text in a Variable Expressions equation,
-  which was always false
+  which was always false.
 - Fixed a variable that keeps changing holding off a Variable Expressions
-  recalculation indefinitely
+  recalculation indefinitely.
 - Fixed saving a long request or expression in the Network Requests and Variable
-  Expressions tabs slowing the controller
+  Expressions tabs slowing the controller.
 - Fixed Network Requests' Webhook URL property reading Failed to listen on port
-  after a port change or driver update, while the webhook server was listening
+  after a port change or driver update, while the webhook server was listening.
 - Fixed Sensor Multiplexer's Selection Changed event leaving the device's name
-  out of its programming line in Composer Pro
+  out of its programming line in Composer Pro.
 - Fixed long names and values running past the edge of the Network Requests and
-  Variable Expressions tabs
+  Variable Expressions tabs.
 - Fixed Sensor Aggregator's and Sensor Multiplexer's contact outputs firing
-  Opened or Closed programming when no contact changed
+  Opened or Closed programming when no contact changed.
 - Fixed Sensor Multiplexer's contact output not opening when the selected
-  input's contact opened
+  input's contact opened.
 
 ### Changed
 
 - Changed the drivers' icons and documentation header to a new Finite Labs
-  Essentials mark
+  Essentials mark.
 
 ## v20260816 - 2026-08-16
 
@@ -105,8 +105,8 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Added
 
-- Initial release of Device Programmer
-- Initial release of Light Relay
-- Initial release of Sensor Aggregator
-- Initial release of Sensor Multiplexer
-- Initial release of Variable Expressions
+- Initial release of Device Programmer.
+- Initial release of Light Relay.
+- Initial release of Sensor Aggregator.
+- Initial release of Sensor Multiplexer.
+- Initial release of Variable Expressions.
