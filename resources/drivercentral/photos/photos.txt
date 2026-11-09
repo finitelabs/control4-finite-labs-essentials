@@ -1,8 +1,16 @@
 # <output name>|<query>: one listing photo per line, in upload order. README.md lists the fields.
-1-network-requests|img=page-requests.png&end=360&t=Network%20requests&s=Send%20HTTP%2C%20TCP%2C%20UDP%20and%20Wake-on-LAN%20requests%20from%20Control4%20programming.
-2-request-editor|img=page-editor.png&fit=1&t=Variables%20in%20every%20request&s=Put%20any%20Control4%20variable%20in%20a%20URL%20or%20body%2C%20and%20see%20the%20last%20response.
-3-webhooks|img=page-webhooks.png&end=325&t=Webhooks&s=Outside%20systems%20call%20a%20URL%20to%20start%20Control4%20programming.
-4-variable-expressions|img=page-expr-editor.png&end=525&t=Variable%20expressions&s=Math%20and%20logic%20over%20Control4%20variables%2C%20published%20as%20new%20variables.
-5-sensor-aggregation|img=composer-aggregator.png&fit=1&t=Sensor%20aggregation&s=Combine%20several%20temperature%2C%20humidity%20or%20contact%20sensors%20into%20one%20reading.
-6-connections|img=composer-connections.png&fit=1&t=Connections&s=Virtual%20sensors%2C%20the%20aggregator%20and%20the%20multiplexer%20connect%20like%20any%20Control4%20device.
-7-programming|img=composer-programming-events.png&fit=1&t=Programming&s=Every%20request%20and%20webhook%20has%20its%20own%20events%2C%20and%20each%20utility%20adds%20commands.
+01-network-requests|img=page-requests.png&end=360&t=Network%20requests&s=Send%20HTTP%2C%20TCP%2C%20UDP%20and%20Wake-on-LAN%20requests%20from%20Control4%20programming.
+02-request-editor|img=page-editor.png&fit=1&t=Variables%20in%20every%20request&s=Put%20any%20Control4%20variable%20in%20a%20URL%20or%20body%2C%20and%20see%20the%20last%20response.
+03-tcp-request|img=page-tcp-editor.png&fit=1&t=Raw%20TCP%20and%20UDP&s=Send%20text%20or%20hex%20payloads%20with%20escapes%2C%20and%20wait%20for%20the%20device%27s%20reply.
+04-webhooks|img=page-webhooks.png&end=315&t=Webhooks&s=Outside%20systems%20call%20a%20URL%2C%20with%20an%20optional%20key%2C%20to%20start%20Control4%20programming.
+05-variable-expressions|img=page-expressions.png&end=240&t=Variable%20expressions&s=Math%20and%20logic%20over%20Control4%20variables%2C%20published%20as%20new%20variables.
+06-expression-editor|img=page-expr-editor.png&end=525&t=Every%20reference%2C%20every%20value&s=See%20each%20variable%20an%20expression%20reads%2C%20its%20current%20value%2C%20and%20the%20result.
+07-string-expressions|img=page-string-editor.png&end=470&t=Text%20from%20variables&s=String%20expressions%20build%20text%20from%20Control4%20variables.
+08-sensor-aggregation|img=composer-aggregator.png&fit=1&t=Sensor%20aggregation&s=Combine%20several%20temperature%2C%20humidity%20or%20contact%20sensors%20into%20one%20reading.
+09-virtual-devices|img=composer-programmer.png&fit=1&t=Virtual%20devices&s=Name%20temperature%2C%20humidity%20and%20contact%20sensors%20and%20relays%2C%20and%20set%20them%20from%20Control4%20programming.
+10-sensor-multiplexer|img=composer-multiplexer.png&fit=1&t=Sensor%20multiplexer&s=Pick%20which%20group%20of%20sensors%20a%20thermostat%20reads%2C%20from%20Control4%20programming.
+11-light-relay|img=composer-lightrelay-picker.png&fit=1&t=Lights%20as%20relays&s=Control%20relay%20devices%20from%20a%20light%20switch%2C%20with%20the%20state%20kept%20in%20sync%20both%20ways.
+12-connections|img=composer-connections.png&fit=1&t=Connections&s=Virtual%20sensors%2C%20the%20aggregator%20and%20the%20multiplexer%20connect%20like%20any%20Control4%20device.
+13-programming|img=composer-programming-events.png&fit=1&t=Programming&s=Every%20request%20and%20webhook%20has%20its%20own%20events%2C%20and%20each%20utility%20adds%20commands.
+14-utilities-together|img=composer-prog-garage.png&fit=1&t=Utilities%20work%20together&s=A%20webhook%20sets%20a%20virtual%20contact%20sensor%20and%20switches%20the%20sensor%20a%20thermostat%20reads.
+15-conditionals|img=composer-prog-margin.png&fit=1&t=Conditionals&s=Check%20an%20expression%27s%20result%20in%20Control4%20programming%2C%20and%20act%20only%20when%20it%20matches.
