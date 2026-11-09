@@ -1,5 +1,7 @@
 /* The look of a driver's custom Composer tab. A page embeds it first in its <style>, with the line
-   "<!-- #embed ../../../../src/lib/ui/style.css -->", then adds its own rules after it. */
+   "<!-- #embed ../../../../src/lib/ui/style.css -->", then adds its own rules after it. Beyond the shared tokens, base,
+   tab bar, cards, buttons and banner, every rule is scoped to the kit's own markup (.kit-*), so a page's own
+   label, input, table or .note keeps its style. */
 
 :root {
   --bg: #f5f5f7;
@@ -30,7 +32,7 @@ body {
   line-height: 1.5;
 }
 
-/* The tab bar is hidden until initTabs counts two or more tabs. */
+/* The tab bar is hidden until Kit.initTabs counts two or more tabs. */
 .nav {
   display: none;
   align-items: center;
@@ -65,7 +67,7 @@ body {
 ::-webkit-scrollbar-thumb { background: #c7ccd4; border-radius: 5px; border: 2px solid transparent; background-clip: content-box; }
 ::-webkit-scrollbar-thumb:hover { background: #a9b0ba; background-clip: content-box; border: 2px solid transparent; }
 
-/* Shown by demoMode when the page is opened outside Composer. */
+/* Shown by Kit.demoMode when the page is opened outside Composer. */
 .banner { border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; font-size: 12px; }
 .banner.warn { background: #fef3c7; border-color: #fcd34d; color: #92400e; font-weight: 500; }
 .banner.err { background: #fee2e2; border-color: #fca5a5; color: #991b1b; font-weight: 500; }
@@ -87,25 +89,6 @@ body {
   margin-bottom: 10px;
   font-weight: 600;
 }
-.card .note { margin: -4px 0 12px; color: var(--text-muted); font-size: 12px; }
-
-label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px; font-weight: 500; }
-input[type="text"], input[type="password"], input[type="number"], select {
-  width: 100%;
-  padding: 6px 8px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
-  font-size: 13px;
-  font-family: var(--font);
-  margin-bottom: 10px;
-}
-input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15); }
-input:read-only, input:disabled { background: var(--bg); color: var(--text-muted); }
-.input-error { border-color: var(--danger) !important; }
-.error-text { color: var(--danger); font-size: 11px; margin-top: -8px; margin-bottom: 8px; }
-.hint { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; line-height: 1.4; }
 
 .btn {
   display: inline-flex; align-items: center; gap: 4px;
@@ -121,42 +104,41 @@ input:read-only, input:disabled { background: var(--bg); color: var(--text-muted
 .btn-outline:hover { background: var(--surface-hover); }
 .btn-sm { padding: 3px 8px; font-size: 11px; }
 
-table { width: 100%; border-collapse: collapse; }
-th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); }
-th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; }
-tr:hover td { background: var(--surface-hover); }
-.trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
 /* A status as Composer shows it, as a pill; then counts as tiles. */
-.summary-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin-bottom: 12px; }
-.summary-row .muted { color: var(--text-muted); overflow-wrap: anywhere; min-width: 0; }
-.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
-.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-.pill.online { background: #dcfce7; color: var(--success); }
-.pill.pending { background: #fef3c7; color: var(--warning); }
-.pill.offline { background: #fee2e2; color: var(--danger); }
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 8px; }
-.tile { border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; background: var(--surface); min-width: 0; }
-.tile .k { color: var(--text-muted); font-size: 11px; }
-.tile .v { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.tile.config { background: var(--bg); }
+.kit-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin-bottom: 12px; }
+.kit-summary .kit-muted { color: var(--text-muted); overflow-wrap: anywhere; min-width: 0; }
+.kit-pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.kit-pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.kit-pill.online { background: #dcfce7; color: var(--success); }
+.kit-pill.pending { background: #fef3c7; color: var(--warning); }
+.kit-pill.offline { background: #fee2e2; color: var(--danger); }
+.kit-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 8px; }
+.kit-tile { border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; background: var(--surface); min-width: 0; }
+.kit-tile .k { color: var(--text-muted); font-size: 11px; }
+.kit-tile .v { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.kit-tile.config { background: var(--bg); }
 
-/* The properties card: the driver's properties, grouped under Composer's labels. */
-.pgroup { font-size: 11px; font-weight: 600; color: var(--text); margin: 14px 0 6px; }
-.pgroup:first-child { margin-top: 0; }
-.pfields { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-.pfields > div { min-width: 0; }
-.pfields input, .pfields select { margin-bottom: 0; }
-.pdesc { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
-.perror { color: var(--danger); font-size: 11px; margin-top: 3px; }
-
-.empty { text-align: center; padding: 30px 16px; color: var(--text-muted); font-size: 12px; }
-.back-link { color: var(--accent); cursor: pointer; font-size: 12px; margin-bottom: 10px; display: inline-block; }
-.back-link:hover { text-decoration: underline; }
-
-.flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-.mb-8 { margin-bottom: 8px; }
-.mb-12 { margin-bottom: 12px; }
-@media (max-width: 560px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+/* The properties card: the element Kit.initPropertiesCard is given becomes .kit-props. Its fields sit two classes
+   deep, so a page's own label, input or select rule doesn't reach into the card. */
+.kit-props-note { margin: -4px 0 12px; color: var(--text-muted); font-size: 12px; }
+.kit-props .pgroup { font-size: 11px; font-weight: 600; color: var(--text); margin: 14px 0 6px; }
+.kit-props .pgroup:first-child { margin-top: 0; }
+.kit-props .pfields { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.kit-props .pfields > div { min-width: 0; }
+.kit-props .pfields label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px; font-weight: 500; }
+.kit-props .pfields input, .kit-props .pfields select {
+  width: 100%;
+  padding: 6px 8px;
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font);
+}
+.kit-props .pfields input:focus, .kit-props .pfields select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15); }
+.kit-props .pfields input:disabled { background: var(--bg); color: var(--text-muted); }
+.kit-props .pfields .input-error { border-color: var(--danger); }
+.kit-props .pdesc { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+.kit-props .perror { color: var(--danger); font-size: 11px; margin-top: 3px; }

@@ -43,7 +43,7 @@ end
 local function fromPage(driver, params)
   assert(readFile("drivers/" .. driver .. "/www/html/index.html"):find("src/lib/ui/page.js", 1, true), "no kit")
   local kit = readFile("src/lib/ui/page.js")
-  local expression = assert(kit:match("function encodeParams%(params%) {\n  return (.-);\n}"), "no encodeParams")
+  local expression = assert(kit:match("function encodeParams%(params%) {%s*return (.-);%s*}"), "no encodeParams")
   local path = os.tmpname()
   local file = assert(io.open(path, "w"))
   file:write("const params = ", JSON:encode(params), ";\nprocess.stdout.write(", expression, ");\n")

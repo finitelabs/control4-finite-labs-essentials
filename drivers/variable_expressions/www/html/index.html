@@ -10,9 +10,11 @@
 
     body { overflow-wrap: break-word; }
     .nav-meta { min-width: 0; }
+
     input[type="text"]:disabled { background: var(--bg); color: var(--text-muted); }
+
+    label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px; font-weight: 500; }
     input[type="text"], textarea, select {
-      margin-bottom: 0;
       width: 100%;
       padding: 6px 8px;
       background: var(--surface);
@@ -23,6 +25,7 @@
       font-family: var(--font);
     }
     input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+    .input-error { border-color: var(--danger) !important; }
 
     /* Highlighted expression editor: a transparent textarea stacked over a
        <pre> that renders the same text colorized. Both layers share identical
@@ -66,10 +69,15 @@
        1px rounding overflow must not summon a scrollbar on wide ones. */
     .table-wrap { overflow-x: hidden; }
     @media (max-width: 560px) { .table-wrap { overflow-x: auto; } }
-    table { min-width: 480px; table-layout: fixed; }
-    th, td { padding: 7px 9px; vertical-align: middle; }
-    th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    table { width: 100%; min-width: 480px; border-collapse: collapse; table-layout: fixed; }
+    th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
+    th {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-muted); font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
     td { font-size: 12px; }
+    .trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     tbody tr:hover td { background: var(--surface-hover); }
     tbody tr:last-child td { border-bottom: none; }
     @media (max-width: 840px) { .col-mode { display: none; } }
@@ -94,8 +102,9 @@
 
     .expr-rendered { font-family: var(--mono); font-size: 10.5px; color: var(--text-muted); }
     .res { font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; }
-    .hint { margin-top: 8px; }
+    .hint { font-size: 11.5px; color: var(--text-muted); margin-top: 8px; }
     .hint code, .pub code { font-family: var(--mono); font-size: 10.5px; }
+    .empty { padding: 22px 8px; text-align: center; color: var(--text-muted); font-size: 12.5px; }
 
     /* Editor layout: browser pane keeps a narrow band on wide panes and wraps
        to a full-width row on narrow ones. */
@@ -331,6 +340,7 @@
 
 <script>
 <!-- #embed ../../../../src/lib/ui/page.js -->
+var sendCommand = Kit.sendCommand, gApiHost = Kit.apiHost, gDriverId = Kit.driverId;
 
 
 var DRIVER_HANDLERS = {
@@ -347,6 +357,11 @@ var DRIVER_HANDLERS = {
 // ============================================================
 // Helpers
 // ============================================================
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 function debounce(fn, ms) {
   var t = null;
   return function() {
@@ -799,11 +814,11 @@ function insertToken(deviceId, variableId) {
 // Boot
 // ============================================================
 (async function boot() {
-  initTabs(closeEditor);
-  initPropertiesCard(document.getElementById('props'));
+  Kit.initTabs(closeEditor);
+  Kit.initPropertiesCard(document.getElementById('props'));
   document.getElementById('nav-meta').textContent = 'Variable Expressions' + (gDriverId ? ' · device ' + gDriverId : '');
   document.getElementById('expr-name').addEventListener('input', updatePublishLine);
-  if (demoMode(null)) {
+  if (Kit.demoMode(null)) {
     // No controller API (opened outside Composer): show demo data so the
     // layout can be previewed.
     var now = Math.floor(Date.now() / 1000);
@@ -835,7 +850,7 @@ function insertToken(deviceId, variableId) {
       { id: 1014, name: 'Voltage', type: 'NUMBER', value: '122' },
       { id: 1017, name: 'Outlet 5 Power', type: 'NUMBER', value: '1342.6' }
     ]);
-    showProperties([
+    Kit.showProperties([
       // #ifdef DRIVERCENTRAL
       { group: 'Cloud Settings', name: 'Cloud Status', value: 'License Activated', readonly: true },
       // #endif
@@ -857,7 +872,7 @@ function insertToken(deviceId, variableId) {
     ]);
     return;
   }
-  connectDriver({
+  Kit.connectDriver({
     handlers: DRIVER_HANDLERS,
     onConnect: function () {
       sendCommand('_GET_CONFIG');
