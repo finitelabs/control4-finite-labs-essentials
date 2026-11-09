@@ -340,7 +340,7 @@
 
 <script>
 <!-- #embed ../../../../src/lib/ui/page.js -->
-var sendCommand = Kit.sendCommand, gApiHost = Kit.apiHost, gDriverId = Kit.driverId;
+var sendCommand = Kit.sendCommand, esc = Kit.esc, gDriverId = Kit.driverId;
 
 
 var DRIVER_HANDLERS = {
@@ -357,11 +357,6 @@ var DRIVER_HANDLERS = {
 // ============================================================
 // Helpers
 // ============================================================
-function esc(s) {
-  return String(s == null ? '' : s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
 function debounce(fn, ms) {
   var t = null;
   return function() {
