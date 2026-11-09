@@ -180,8 +180,8 @@ update-xml-modified: $(VENV_STAMP)
 
 # ─── Docs ─────────────────────────────────────────────────────────────────────
 
-.PHONY: docs docs-html docs-pdf docs-readme
-docs: docs-readme docs-html docs-pdf ## Generate all documentation
+.PHONY: docs docs-html docs-pdf docs-readme docs-revisions
+docs: docs-readme docs-html docs-pdf docs-revisions ## Generate all documentation
 
 
 docs-readme: preprocess $(VENV_STAMP)
@@ -190,6 +190,14 @@ docs-readme: preprocess $(VENV_STAMP)
 	$(VENV_PY) tools/docs.py readme \
 		build/$(README_BUILD)/documentation/index.md README.md
 
+
+# DriverCentral's Revisions tab, pasted at each upload. It sits beside the zip
+# integrators download, not in it.
+docs-revisions: preprocess $(VENV_STAMP)
+	@mkdir -p dist/drivercentral
+	$(VENV_PY) tools/docs.py revisions \
+		build/drivercentral/documentation/index.md \
+		dist/drivercentral/revisions.html
 
 docs-html: $(VENV_STAMP)
 	@for build in $(DISTRIBUTIONS); do \

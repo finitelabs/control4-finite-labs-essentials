@@ -5,6 +5,7 @@ Subcommands:
   docs.py md2html  <input.md>   <output-dir>   # styled HTML -> <output-dir>/index.html
   docs.py html2pdf <input.html> <output.pdf>   # HTML -> PDF
   docs.py readme   <input.md>   <output.md>    # driver docs -> repo README.md
+  docs.py revisions <input.md>  <output.html>  # changelog -> DriverCentral Revisions
   docs.py fmt      [--check] --wrap N <md...>  # mdformat, keeping alert markers
 
 Pipeline:
@@ -388,6 +389,25 @@ def readme(input_path: Path, output_path: Path) -> None:
     output_path.write_text(_mdformat(text, 80), encoding="utf-8")
 
 
+_RELEASE_RE = re.compile(r"^## v\d{8}\b", re.M)
+
+
+def revisions(input_path: Path, output_path: Path) -> None:
+    """Every released changelog section in a preprocessed doc, as DriverCentral's
+    Revisions tab takes it: a release as <h3>, its sections as <h4>."""
+    text = input_path.read_text(encoding="utf-8")
+    first = _RELEASE_RE.search(text)
+    body = text[first.start() :] if first else ""
+    body = re.sub(r"^(##|###) ", r"#\1 ", body, flags=re.M)
+    html = re.sub(r"\n(?!<|\Z)", " ", MarkdownIt("commonmark").render(body))
+    # A link into the docs has nothing to point at on DriverCentral.
+    html = re.sub(r'<a href="(?![a-z]+:)[^"]*">(.*?)</a>', r"\1", html)
+    # A section, or a release, whose lines are all open-source only.
+    html = re.sub(r"<h4>[^<]*</h4>\n(?=<h[34]>|\Z)", "", html)
+    html = re.sub(r"<h3>[^<]*</h3>\n(?=<h3>|\Z)", "", html)
+    output_path.write_text(html, encoding="utf-8")
+
+
 def fmt(args: list[str]) -> int:
     """Format files in place, or with --check name each one that would change.
 
@@ -425,7 +445,12 @@ def fmt(args: list[str]) -> int:
     return failed
 
 
-_COMMANDS = {"md2html": md2html, "html2pdf": html2pdf, "readme": readme}
+_COMMANDS = {
+    "md2html": md2html,
+    "html2pdf": html2pdf,
+    "readme": readme,
+    "revisions": revisions,
+}
 
 
 def main() -> int:

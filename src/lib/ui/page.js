@@ -9,6 +9,7 @@
 //   Kit.demoMode(answer)            outside Composer: the banner, and commands answered by the page's demo data
 //   Kit.deliver(command, params)    hands a demo answer to the page as a push would arrive
 //   Kit.esc(text)                   text made safe for HTML; Kit.str(value) a value as text, "" for none
+//   Kit.socket()                    connectDriver's socket.io connection, for another item's pushes on it too
 //   Kit.apiHost, Kit.driverId, Kit.apiToken: the page's address parameters
 
 var Kit = (function () {
@@ -340,6 +341,9 @@ var Kit = (function () {
     apiHost: apiHost,
     driverId: driverId,
     apiToken: apiToken,
+    socket: function () {
+      return socket;
+    },
     str: str,
     esc: esc,
     api: api,
