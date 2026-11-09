@@ -1,17 +1,32 @@
 --- The driver's properties for its web tab: what the tab shows, read once from this build's driver.xml, and the
 --- changes the tab may make. Passwords stay in Composer's Properties tab.
+---
+--- lib/ui/page.js's properties card speaks this: the driver's CONFIG_DATA carries `properties`, JSON of `list()`; the
+--- page sends `_SET_PROPERTY` with `{ property, value }`; a refusal goes back as PROPERTY_ERROR with `payload`, JSON
+--- of `{ property, error }`.
 
 require("drivers-common-public.global.handlers")
 require("drivers-common-public.global.lib")
 
 local log = require("lib.logging")
 
+local SHOWN_TYPES = { LIST = true, STRING = true, RANGED_INTEGER = true }
+
+--- @class TabProperty
+--- @field name string The property's name in driver.xml.
+--- @field group string The label above it in Composer, or "" before the first label.
+--- @field readonly boolean Whether only the driver sets it.
+--- @field description? string Its driver.xml description.
+--- @field value? string Its current value, in what `list` returns.
+--- @field choices? string[] A list's items, or the logger's levels for Log Level.
+--- @field minimum? integer A ranged integer's lowest value.
+--- @field maximum? integer A ranged integer's highest value.
+--- @field logLevels? boolean Set on Log Level, whose choices come from the logger.
+
 --- @class TabProperties
---- @field private _config table[]|nil
+--- @field private _config TabProperty[]|nil The properties the tab shows, read once from driver.xml.
 local TabProperties = {}
 TabProperties.__index = TabProperties
-
-local SHOWN_TYPES = { LIST = true, STRING = true, RANGED_INTEGER = true }
 
 --- Creates a new `TabProperties` instance.
 --- @return TabProperties tabProperties A new `TabProperties` instance.
@@ -20,7 +35,7 @@ function TabProperties:new()
 end
 
 --- @private
---- @return table[] config Each property the tab shows, in driver.xml order.
+--- @return TabProperty[] config Each property the tab shows, in driver.xml order.
 function TabProperties:_read()
   if self._config then
     return self._config
@@ -29,17 +44,18 @@ function TabProperties:_read()
   local group = ""
   for xml in XMLgCapture(C4:GetDriverConfigInfo("config") or "", "property") do
     local kind = XMLCapture(xml, "type")
+    -- Text comes back as driver.xml spells it: a label's `&` is `&amp;` there.
     if kind == "LABEL" then
-      group = XMLCapture(xml, "default") or ""
+      group = XMLDecode(XMLCapture(xml, "default") or "")
     elseif
       (SHOWN_TYPES[kind] or (kind == "DYNAMIC_LIST" and XMLCapture(xml, "name") == "Log Level"))
       and XMLCapture(xml, "password") ~= "true"
     then
       local property = {
-        name = XMLCapture(xml, "name"),
+        name = XMLDecode(XMLCapture(xml, "name")),
         group = group,
         readonly = XMLCapture(xml, "readonly") == "true",
-        description = XMLCapture(xml, "description"),
+        description = XMLDecode(XMLCapture(xml, "description")),
       }
       if kind == "DYNAMIC_LIST" then
         -- Log Level: the logger gives its choices, which a Support Code hour widens.
@@ -47,7 +63,7 @@ function TabProperties:_read()
       elseif kind == "LIST" then
         property.choices = {}
         for item in XMLgCapture(xml, "item") do
-          table.insert(property.choices, item)
+          table.insert(property.choices, XMLDecode(item))
         end
       elseif kind == "RANGED_INTEGER" then
         property.minimum = tonumber(XMLCapture(xml, "minimum"))
@@ -59,8 +75,8 @@ function TabProperties:_read()
   return self._config
 end
 
---- @return table[] properties Each property the tab shows, with its current value: name, group (the label above it),
---- readonly, description, value, a list's choices, and a ranged integer's minimum and maximum.
+--- Lists the properties the tab shows, each with its current value.
+--- @return TabProperty[] properties In driver.xml order; Log Level's choices are the logger's levels now.
 function TabProperties:list()
   local properties = {}
   for _, config in ipairs(self:_read()) do
@@ -78,7 +94,7 @@ function TabProperties:list()
 end
 
 --- @private
---- @param config table
+--- @param config TabProperty
 --- @param value string
 --- @return string|nil value The value to set, or nil when the property cannot hold it.
 --- @return string|nil err Why not.
@@ -122,7 +138,7 @@ end
 
 --- Calls `push` after each change to a property the tab shows, wherever it was made. Call it once the load's own
 --- property changes have run, at the end of OnDriverLateInit.
---- @param push fun()
+--- @param push fun() Sends the tab what it shows.
 function TabProperties:follow(push)
   for _, config in ipairs(self:_read()) do
     local key = config.name:gsub("%W", "_"):gsub("_+", "_"):gsub("^_", ""):gsub("_$", "")

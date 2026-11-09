@@ -36,13 +36,14 @@ local function hasNode()
   return found
 end
 
---- A command's parameters as a page's own sendCommand line encodes them, run under node.
+--- A command's parameters as the pages' sendCommand encodes them (lib/ui/page.js's encodeParams), run under node.
 --- @param driver string
 --- @param params table
 --- @return table tParams
 local function fromPage(driver, params)
-  local page = readFile("drivers/" .. driver .. "/www/html/index.html")
-  local expression = assert(page:match("DATA: (.-) },\n"), "no DATA line in the page")
+  assert(readFile("drivers/" .. driver .. "/www/html/index.html"):find("src/lib/ui/page.js", 1, true), "no kit")
+  local kit = readFile("src/lib/ui/page.js")
+  local expression = assert(kit:match("function encodeParams%(params%) {\n  return (.-);\n}"), "no encodeParams")
   local path = os.tmpname()
   local file = assert(io.open(path, "w"))
   file:write("const params = ", JSON:encode(params), ";\nprocess.stdout.write(", expression, ");\n")
@@ -57,8 +58,13 @@ end
 T.section("Each page breaks its base64, and each driver reads only through its helper")
 for _, driver in ipairs({ "network_requests", "variable_expressions" }) do
   local page = readFile("drivers/" .. driver .. "/www/html/index.html")
-  local wraps = "btoa(unescape(encodeURIComponent(JSON.stringify(params || {})))).replace(/(.{76})/g, '$1\\n')"
-  T.check(driver .. "'s page wraps every 76 characters", page:find(wraps, 1, true) ~= nil)
+  local kit = readFile("src/lib/ui/page.js")
+  local wraps = 'btoa(unescape(encodeURIComponent(JSON.stringify(params || {})))).replace(/.{76}/g, "$&\\n")'
+  T.check(
+    driver .. "'s page sends through lib/ui",
+    page:find("<!-- #embed ../../../../src/lib/ui/page.js -->", 1, true) ~= nil
+  )
+  T.check("which wraps every 76 characters", kit:find(wraps, 1, true) ~= nil)
   local source = readFile("drivers/" .. driver .. "/driver.lua")
   T.check(driver .. "'s driver reads through its helper", not source:find("C4:Base64Decode(tParams.DATA", 1, true))
 end

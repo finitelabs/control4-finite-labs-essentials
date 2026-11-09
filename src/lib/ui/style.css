@@ -1,0 +1,162 @@
+/* The look of a driver's custom Composer tab. A page embeds it first in its <style>, with the line
+   "<!-- #embed ../../../../src/lib/ui/style.css -->", then adds its own rules after it. */
+
+:root {
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --surface-hover: #f0f0f2;
+  --border: #d1d5db;
+  --text: #1a1a1a;
+  --text-muted: #6b7280;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --success: #16a34a;
+  --warning: #d97706;
+  --radius: 6px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* The tab bar is hidden until initTabs counts two or more tabs. */
+.nav {
+  display: none;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+  box-shadow: var(--shadow);
+}
+.nav.multi { display: flex; }
+.nav-tab {
+  padding: 10px 18px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+.nav-tab:hover { color: var(--text); }
+.nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.nav-meta { margin-left: auto; padding-left: 12px; color: var(--text-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.panel { display: none; padding: 16px; }
+.panel.active { display: block; }
+
+/* Composer's webview shows classic always-on scrollbars; keep them slim. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c7ccd4; border-radius: 5px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: #a9b0ba; background-clip: content-box; border: 2px solid transparent; }
+
+/* Shown by demoMode when the page is opened outside Composer. */
+.banner { border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; font-size: 12px; }
+.banner.warn { background: #fef3c7; border-color: #fcd34d; color: #92400e; font-weight: 500; }
+.banner.err { background: #fee2e2; border-color: #fca5a5; color: #991b1b; font-weight: 500; }
+#conn-warn { margin: 12px 16px 0; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+.card h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+.card .note { margin: -4px 0 12px; color: var(--text-muted); font-size: 12px; }
+
+label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px; font-weight: 500; }
+input[type="text"], input[type="password"], input[type="number"], select {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font);
+  margin-bottom: 10px;
+}
+input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15); }
+input:read-only, input:disabled { background: var(--bg); color: var(--text-muted); }
+.input-error { border-color: var(--danger) !important; }
+.error-text { color: var(--danger); font-size: 11px; margin-top: -8px; margin-bottom: 8px; }
+.hint { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; line-height: 1.4; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 12px; border: none; border-radius: var(--radius);
+  font-size: 12px; font-family: var(--font); cursor: pointer;
+  font-weight: 500; transition: background 0.15s;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { background: var(--danger-hover); }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-outline:hover { background: var(--surface-hover); }
+.btn-sm { padding: 3px 8px; font-size: 11px; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; }
+tr:hover td { background: var(--surface-hover); }
+.trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* A status as Composer shows it, as a pill; then counts as tiles. */
+.summary-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin-bottom: 12px; }
+.summary-row .muted { color: var(--text-muted); overflow-wrap: anywhere; min-width: 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pill.online { background: #dcfce7; color: var(--success); }
+.pill.pending { background: #fef3c7; color: var(--warning); }
+.pill.offline { background: #fee2e2; color: var(--danger); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 8px; }
+.tile { border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; background: var(--surface); min-width: 0; }
+.tile .k { color: var(--text-muted); font-size: 11px; }
+.tile .v { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tile.config { background: var(--bg); }
+
+/* The properties card: the driver's properties, grouped under Composer's labels. */
+.pgroup { font-size: 11px; font-weight: 600; color: var(--text); margin: 14px 0 6px; }
+.pgroup:first-child { margin-top: 0; }
+.pfields { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.pfields > div { min-width: 0; }
+.pfields input, .pfields select { margin-bottom: 0; }
+.pdesc { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+.perror { color: var(--danger); font-size: 11px; margin-top: 3px; }
+
+.empty { text-align: center; padding: 30px 16px; color: var(--text-muted); font-size: 12px; }
+.back-link { color: var(--accent); cursor: pointer; font-size: 12px; margin-bottom: 10px; display: inline-block; }
+.back-link:hover { text-decoration: underline; }
+
+.flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-12 { margin-bottom: 12px; }
+@media (max-width: 560px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }

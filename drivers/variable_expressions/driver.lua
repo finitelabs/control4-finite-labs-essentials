@@ -10,13 +10,13 @@ require("drivers-common-public.global.timer")
 JSON = require("JSON")
 
 local log = require("lib.logging")
-local pageParams = require("lib.page-params")
+local pageParams = require("lib.ui.page-params")
 local persist = require("lib.persist")
 local values = require("lib.values")
 local events = require("lib.events")
 local Expressions = require("lib.expressions")
 local updateSettings = require("lib.update-settings")
-local tabProperties = require("lib.tab-properties")
+local tabProperties = require("lib.ui.tab-properties")
 --#ifdef DRIVERCENTRAL
 local drivercentral = require("lib.drivercentral")
 local supportCode = require("lib.support-code")
@@ -446,7 +446,7 @@ function UIR._SET_PROPERTY(tParams)
   local params = pageParams(tParams)
   local err = tabProperties:set(params.property, params.value)
   if err then
-    return uiRespond("PROPERTY_ERROR", { property = params.property, error = err })
+    return uiRespond("PROPERTY_ERROR", { payload = JSON:encode({ property = params.property, error = err }) })
   end
   return UIR._GET_CONFIG()
 end

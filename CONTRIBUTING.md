@@ -62,6 +62,8 @@ then pull the change in with `copier update`.
 - `values.lua`: value parsing, coercion, and formatting
 - `expressions.lua`, `expression-sandbox.lua`: expressions over device
   variables: `PARAM{device,variable}` tokens, evaluation, and debounced watches
+- `ui/`: the kit for a custom Composer tab (see
+  [Custom Composer Tabs](#custom-composer-tabs))
 - `github-updater.lua`: GitHub Releases self-updater (OSS builds)
 
 **Vendor libraries (`vendor/`):**
@@ -768,3 +770,64 @@ Each driver's documentation gets a Cloud Monitoring entry right after the
 Support Code entry, inside its `#ifdef`. Copy it from a driver that has one,
 such as `drivers/tplink_light/www/documentation/index.md` in
 [control4-tplink](https://github.com/finitelabs/control4-tplink).
+
+### Custom Composer Tabs
+
+`src/lib/ui/` is the kit for a driver's custom Composer tab: the shared look
+(`style.css`), the page's link to its driver, the tab bar, demo mode and a card
+of the driver's properties (`page.js`), and the driver's side of that card
+(`lib.ui.tab-properties` and `lib.ui.page-params`).
+
+A page embeds the stylesheet first in its `<style>` and the script first in its
+`<script>`, then adds its own:
+
+```html
+<style>
+<!-- #embed ../../../../src/lib/ui/style.css -->
+</style>
+<div class="nav">
+  <div class="nav-tab active" data-panel="status">Status</div>
+</div>
+<div class="banner warn" id="conn-warn" hidden>Not connected to the controller. Open this tab from Composer. The values shown are examples.</div>
+<div class="panel active" id="panel-status">
+  <div class="card" hidden><h3>Properties</h3><div id="props"></div></div>
+</div>
+<script>
+<!-- #embed ../../../../src/lib/ui/page.js -->
+initTabs();
+initPropertiesCard(document.getElementById("props"));
+demoMode(function (command) {
+  if (command === "_GET_CONFIG") deliver("CONFIG_DATA", { properties: "[]" });
+});
+connectDriver({ onConnect: function () { sendCommand("_GET_CONFIG"); } });
+</script>
+```
+
+The build splices both files in, so each `.c4z` ships one self-contained page;
+open the built page in `build/<distribution>/drivers/<name>/www/html/` to see
+it. The tab bar shows from two tabs. Opened outside Composer, the page shows the
+`#conn-warn` banner and the demo data its `demoMode` answer gives, which is what
+the documentation's screenshots are taken from.
+
+The driver answers the card's two commands:
+
+```lua
+local pageParams = require("lib.ui.page-params")
+local tabProperties = require("lib.ui.tab-properties")
+
+function UIR._GET_CONFIG()
+  C4:SendDataToUI("CONFIG_DATA", { properties = JSON:encode(tabProperties:list()) })
+end
+
+function UIR._SET_PROPERTY(tParams)
+  local params = pageParams(tParams)
+  local err = tabProperties:set(params.property, params.value)
+  if err then
+    C4:SendDataToUI("PROPERTY_ERROR", { payload = JSON:encode({ property = params.property, error = err }) })
+  end
+end
+```
+
+and, at the end of `OnDriverLateInit`, `tabProperties:follow(UIR._GET_CONFIG)`,
+so a change made in Composer reaches the open tab. Decode every other command's
+parameters with `pageParams` too: the page breaks them into lines.

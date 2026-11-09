@@ -24,7 +24,7 @@ local pushes = {}
 
 --- Loads a driver with a fresh module and records what it pushes to the tab.
 local function load(driver, answer, productId)
-  package.loaded["lib.tab-properties"] = nil
+  package.loaded["lib.ui.tab-properties"] = nil
   package.loaded["lib.support-code"] = nil
   H.load(driver, answer or H.LICENSED, nil, productId)
   function C4:SendDataToUI(command, data)
@@ -112,8 +112,9 @@ for driver, extra in pairs({ network_requests = { "Webhook Port", "Webhook URL" 
   T.section(driver .. ": changes the tab is turned away from")
   reply = set("Log Mode", "Loud")
   T.eq("a value the list lacks is refused", reply._command, "PROPERTY_ERROR")
-  T.truthy("and says why", reply.error:find("Log Mode", 1, true))
-  T.eq("naming the field it belongs under", reply.property, "Log Mode")
+  local refused = JSON:decode(reply.payload or "{}")
+  T.truthy("and says why, as one JSON string", (refused.error or ""):find("Log Mode", 1, true))
+  T.eq("naming the field it belongs under", refused.property, "Log Mode")
   T.eq("leaving the property as it was", Properties["Log Mode"], "Off")
   T.eq("a read-only property is refused", set("Driver Version", "1")._command, "PROPERTY_ERROR")
   T.neq("and keeps its value", Properties["Driver Version"], "1")
@@ -191,20 +192,18 @@ T.truthy("which reaches the tab too", pushedValue("Webhook URL"):find("Failed to
 OnServerStatusChanged(49301, "ONLINE")
 T.eq("and coming back online restores the URL", Properties["Webhook URL"], listening)
 
-for driver, panel in pairs({ network_requests = "panel-list", variable_expressions = "panel-list" }) do
-  T.section(driver .. ": the tab bar")
+-- The tab bar, the Properties card and the link to the driver come from lib/ui, which its own tests cover; these check
+-- each page is wired to it.
+for _, driver in ipairs({ "network_requests", "variable_expressions" }) do
+  T.section(driver .. ": the page on lib/ui")
   local page = readFile("drivers/" .. driver .. "/www/html/index.html"):gsub("%s+", "")
-  T.truthy("the bar starts hidden", page:find(".nav{display:none;", 1, true))
-  T.truthy("and shows with the class the count sets", page:find(".nav.multi{display:flex;}", 1, true))
-  T.truthy(
-    "its one tab is a real tab naming its panel",
-    page:find('class="nav-tabactive"data-panel="' .. panel .. '"', 1, true)
-  )
-  T.truthy("which exists", page:find('id="' .. panel .. '"', 1, true))
-  T.truthy("the count sets the class", page:find("classList.toggle('multi',tabs.length>1)", 1, true))
-  T.truthy("and a click shows a tab's panel", page:find("showTab(tab)", 1, true))
-  T.truthy("a refusal redraws only its own field", page:find("parentNode.outerHTML=propCell(p,i)", 1, true))
-  T.truthy("and changing that field clears the reason", page:find("e.target.classList.remove('input-error')", 1, true))
+  T.truthy("it embeds the kit's stylesheet", page:find("<!--#embed../../../../src/lib/ui/style.css-->", 1, true))
+  T.truthy("and its script", page:find("<!--#embed../../../../src/lib/ui/page.js-->", 1, true))
+  T.truthy("its one tab is a real tab naming its panel", page:find('class="nav-tabactive"data-panel="list"', 1, true))
+  T.truthy("which exists", page:find('id="panel-list"', 1, true))
+  T.truthy("the kit runs the tab bar", page:find("initTabs(closeEditor)", 1, true))
+  T.truthy("and the Properties card", page:find("initPropertiesCard(document.getElementById('props'))", 1, true))
+  T.truthy("which stays hidden until there is something to show", page:find('id="props-card"hidden', 1, true))
   T.truthy(
     "the Properties card comes first in the panel",
     page:find('id="props-card"', 1, true) < page:find('<tableid="', 1, true)
