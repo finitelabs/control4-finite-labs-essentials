@@ -794,20 +794,26 @@ A page embeds the stylesheet first in its `<style>` and the script first in its
 </div>
 <script>
 <!-- #embed ../../../../src/lib/ui/page.js -->
-initTabs();
-initPropertiesCard(document.getElementById("props"));
-demoMode(function (command) {
-  if (command === "_GET_CONFIG") deliver("CONFIG_DATA", { properties: "[]" });
+Kit.initTabs();
+Kit.initPropertiesCard(document.getElementById("props"));
+Kit.demoMode(function (command) {
+  if (command === "_GET_CONFIG") Kit.deliver("CONFIG_DATA", { properties: "[]" });
 });
-connectDriver({ onConnect: function () { sendCommand("_GET_CONFIG"); } });
+Kit.connectDriver({ onConnect: function () { Kit.sendCommand("_GET_CONFIG"); } });
 </script>
 ```
+
+Everything `page.js` offers is on one object, `Kit`, so a page's own function of
+the same name never replaces the kit's; alias the names you use often
+(`var sendCommand = Kit.sendCommand;`). `style.css` styles the shared base, tab
+bar, cards, buttons and banner, and otherwise only its own `.kit-*` markup, so a
+page keeps its own styles for labels, inputs, tables and the like.
 
 The build splices both files in, so each `.c4z` ships one self-contained page;
 open the built page in `build/<distribution>/drivers/<name>/www/html/` to see
 it. The tab bar shows from two tabs. Opened outside Composer, the page shows the
-`#conn-warn` banner and the demo data its `demoMode` answer gives, which is what
-the documentation's screenshots are taken from.
+`#conn-warn` banner and the demo data its `Kit.demoMode` answer gives, which is
+what the documentation's screenshots are taken from.
 
 The driver answers the card's two commands:
 
