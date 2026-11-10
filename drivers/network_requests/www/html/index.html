@@ -8,8 +8,6 @@
 <!-- #embed ../../../../src/lib/ui/style.css -->
 <!-- #embed ../../../../src/lib/ui/variables.css -->
 <!-- #embed ../../../../src/lib/ui/expressions.css -->
-    input.mono, textarea.mono { font-family: var(--mono); font-size: 12.5px; }
-
     @media (max-width: 840px) { .col-type { display: none; } }
 
     .chip-http { background: #dbeafe; color: #1d4ed8; }
@@ -19,20 +17,6 @@
 
     .req-target { font-family: var(--mono); font-size: 10.5px; color: var(--text-muted); }
     .res { font-family: var(--mono); font-size: 11.5px; }
-    .hint code { font-family: var(--mono); font-size: 10.5px; }
-
-    /* Editor layout: browser pane keeps a narrow band on wide panes and wraps
-       to a full-width row on narrow ones. */
-    .split { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
-    .browser { flex: 1 1 260px; max-width: 340px; display: flex; flex-direction: column; max-height: 560px; }
-    .editor-col { flex: 999 1 400px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
-    @media (max-width: 740px) {
-      .browser { max-width: none; max-height: 320px; }
-    }
-
-    .frow { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-    .frow .f { flex: 1; min-width: 140px; }
-    .frow .f-narrow { flex: 0 1 120px; min-width: 90px; }
 
     .hgrid { display: grid; grid-template-columns: 1fr 2fr 26px; gap: 6px; margin-bottom: 6px; align-items: center; }
     .hgrid .hdel { text-align: center; cursor: pointer; color: var(--text-muted); font-weight: 600; }
@@ -44,8 +28,6 @@
       padding: 8px 10px; margin-top: 8px;
       max-height: 180px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere;
     }
-
-    .footbar { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
   </style>
 </head>
 <body>
@@ -63,10 +45,7 @@
   </div>
 
   <div class="card">
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-      <h3 style="margin:0;">Requests</h3>
-      <button class="btn btn-primary btn-sm" onclick="openEditor(null)">+ Add Request</button>
-    </div>
+    <h3>Requests <button class="btn btn-primary btn-sm" onclick="openEditor(null)">+ Add Request</button></h3>
     <div class="table-wrap">
       <table id="req-table">
         <thead>
@@ -90,10 +69,7 @@
   </div>
 
   <div class="card">
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-      <h3 style="margin:0;">Webhooks</h3>
-      <button class="btn btn-primary btn-sm" onclick="showWebhookForm()">+ Add Webhook</button>
-    </div>
+    <h3>Webhooks <button class="btn btn-primary btn-sm" onclick="showWebhookForm()">+ Add Webhook</button></h3>
     <div class="table-wrap">
       <table id="hook-table">
         <thead>
@@ -108,12 +84,12 @@
       </table>
     </div>
     <div class="empty" id="hook-empty" style="display:none;">No webhooks yet. Add Webhook to create one.</div>
-    <div class="frow" id="hook-form" style="margin-top:10px; align-items:flex-end; display:none;">
-      <div class="f">
+    <div class="kit-fields" id="hook-form" style="margin-top:10px; align-items:flex-end; display:none;">
+      <div>
         <label for="hook-name">Name</label>
         <input type="text" id="hook-name" placeholder="e.g. Doorbell Motion"/>
       </div>
-      <div class="f">
+      <div>
         <label for="hook-key">Key (optional, callers must pass ?key=...)</label>
         <input type="text" id="hook-key" class="mono" spellcheck="false" placeholder="secret"/>
       </div>
@@ -131,17 +107,17 @@
 
 <!-- ── Editor panel ───────────────────────────────────────────── -->
 <div class="panel" id="panel-editor">
-  <div class="split">
+  <div class="kit-split">
 
-    <div class="card browser">
+    <div class="card kit-split-side">
       <h3>Variables</h3>
       <div id="vb"></div>
     </div>
 
-    <div class="editor-col">
+    <div class="kit-split-main">
       <div class="card">
-        <div class="frow">
-          <div class="f">
+        <div class="kit-fields">
+          <div>
             <label for="req-name">Name <span id="req-name-lock" style="display:none; font-weight:400;">(fixed - to rename, create a new request and delete this one)</span></label>
             <input type="text" id="req-name" placeholder="e.g. Display On" oninput="this.classList.remove('input-error'); updatePublishLine();"/>
           </div>
@@ -158,15 +134,15 @@
 
         <!-- HTTP fields -->
         <div id="fields-http">
-          <div class="frow">
-            <div class="f-narrow">
+          <div class="kit-fields">
+            <div class="narrow">
               <label for="req-method">Method</label>
               <select id="req-method">
                 <option>GET</option><option>POST</option><option>PUT</option>
                 <option>PATCH</option><option>DELETE</option><option>HEAD</option>
               </select>
             </div>
-            <div class="f">
+            <div>
               <label for="req-url">URL</label>
               <input type="text" id="req-url" class="mono" data-tok="1" spellcheck="false"
                 placeholder="http://192.168.1.10:8080/api/v1/thing"/>
@@ -187,12 +163,12 @@
 
         <!-- TCP/UDP fields -->
         <div id="fields-tcpudp" style="display:none;">
-          <div class="frow">
-            <div class="f">
+          <div class="kit-fields">
+            <div>
               <label for="req-host">Host</label>
               <input type="text" id="req-host" class="mono" spellcheck="false" placeholder="192.168.1.20"/>
             </div>
-            <div class="f-narrow">
+            <div class="narrow">
               <label for="req-port">Port</label>
               <input type="number" id="req-port" min="1" max="65535" placeholder="23"/>
             </div>
@@ -205,10 +181,10 @@
             </div>
           </div>
           <textarea id="req-payload" data-tok="1" rows="3" placeholder="PWR ON\r\n"></textarea>
-          <div class="frow" id="tcp-wait-row" style="margin-top:10px; align-items:center;">
-            <label class="check"><input type="checkbox" id="req-wait"/>
+          <div class="kit-fields" id="tcp-wait-row" style="margin-top:10px; align-items:center;">
+            <label class="check" style="flex:none;"><input type="checkbox" id="req-wait"/>
               Wait for a response</label>
-            <div class="f-narrow" id="tcp-timeout-wrap">
+            <div class="narrow" id="tcp-timeout-wrap">
               <label for="req-timeout">Timeout (s)</label>
               <input type="number" id="req-timeout" min="1" max="60" value="5"/>
             </div>
@@ -217,8 +193,8 @@
 
         <!-- WOL fields -->
         <div id="fields-wol" style="display:none;">
-          <div class="frow">
-            <div class="f">
+          <div class="kit-fields">
+            <div>
               <label for="req-mac">MAC address</label>
               <input type="text" id="req-mac" class="mono" spellcheck="false" placeholder="AA:BB:CC:DD:EE:FF"/>
             </div>
@@ -239,7 +215,7 @@
         <div class="respbox" id="last-result-body" style="display:none;"></div>
       </div>
 
-      <div class="footbar">
+      <div class="kit-foot">
         <span class="save-error" id="save-error"></span>
         <button class="btn btn-outline" onclick="closeEditor()">Cancel</button>
         <button class="btn btn-outline" id="btn-send-now" title="Save and send now" onclick="saveRequest(true)">Save &amp; Send</button>
