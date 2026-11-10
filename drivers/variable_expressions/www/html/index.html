@@ -178,7 +178,6 @@ function renderList() {
   tb.innerHTML = html;
 }
 
-// A row's buttons name their action; the row names the expression.
 document.getElementById('expr-rows').addEventListener('click', function(e) {
   var button = e.target.closest('[data-act]');
   if (!button) return;

@@ -340,7 +340,6 @@ function renderList() {
   tb.innerHTML = html;
 }
 
-// A row's buttons name their action; the row names the request or webhook.
 function onRowAction(tbody, actions) {
   document.getElementById(tbody).addEventListener('click', function(e) {
     var button = e.target.closest('[data-act]');
