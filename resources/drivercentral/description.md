@@ -2,6 +2,8 @@
 
 ## Overview
 
+*This software is neither affiliated with nor endorsed by Control4.*
+
 Utility drivers that fill common gaps in Control4 programming. Combine or switch
 sensors, make virtual sensors and relays, run relay devices from a light switch,
 build text and math from variables, and send network commands to devices that
