@@ -797,7 +797,7 @@ others, so a page keeps only its own views and its driver only its own commands:
   `lib.ui.devices` on the driver's side
 - `expressions.js` and `expressions.css`: the expression editor, with its
   highlighting, help and live preview, and `lib.ui.expression-tab` on the
-  driver's side; `expressions-demo.js` adds previews in demo mode
+  driver's side
 - `lib.ui.page`, `lib.ui.page-params` and `lib.ui.tab-properties`: the driver's
   side of the link and the properties card
 
@@ -851,18 +851,8 @@ function UIR._SET_MODE(tParams)
 end
 ```
 
-`page.send` carries each message as one JSON parameter, which the kit decodes,
-so a page's handler gets the object the driver sent, numbers and booleans
-intact. `pageParams` never raises: a body that does not decode reads as no
-parameters. The kit shows a banner when the live link drops or no message
-arrives within 10 seconds of a connect, and the next message clears it. The
-properties card asks for its list on each connect and after each property
-change.
-
-Everything `page.js` offers is on one object, `Kit`, so a page's own function of
-the same name never replaces the kit's. A page restyles nothing the kit styles:
-`test/test_ui_pages.lua` fails one that does, so a better look goes into the kit
-for every tab.
+A page restyles nothing the kit styles: `test/test_ui_pages.lua` fails one that
+does, so a better look goes into the kit for every tab.
 
 The build splices the files in, so each `.c4z` ships one self-contained page;
 open the built page in `build/<distribution>/drivers/<name>/www/html/` to see

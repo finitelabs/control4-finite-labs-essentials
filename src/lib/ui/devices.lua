@@ -137,27 +137,6 @@ local function before(a, b)
   return a.id < b.id
 end
 
---- Cuts text to at most `bytes` bytes without splitting a character.
---- @param text string
---- @param bytes integer
---- @return string
-local function cutText(text, bytes)
-  if #text <= bytes then
-    return text
-  end
-  local cut = text:sub(1, bytes)
-  -- A lead byte without all its continuation bytes is not valid text; a whole character at the end stays.
-  local tail = cut:match("[\192-\255][\128-\191]*$")
-  if tail then
-    local lead = tail:byte(1)
-    local length = lead >= 240 and 4 or lead >= 224 and 3 or 2
-    if #tail < length then
-      cut = cut:sub(1, #cut - #tail)
-    end
-  end
-  return cut
-end
-
 --- The project's devices and agents for a page to pick from. A driver and the proxies that restate it are separate
 --- project items sharing a room and name, so they are one entry; a name still not unique in its room gets the id.
 --- @param options? DevicesOptions
@@ -292,7 +271,7 @@ function Devices.variables(deviceId, options)
       for varId, varInfo in pairs(deviceVars) do
         local value = varInfo.value
         if options.valueBytes then
-          value = cutText(value == nil and "" or tostring(value), options.valueBytes)
+          value = page.cut(value == nil and "" or tostring(value), options.valueBytes)
         end
         vars[#vars + 1] = {
           id = tonumber(varId),

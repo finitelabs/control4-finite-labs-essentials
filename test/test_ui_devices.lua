@@ -319,4 +319,11 @@ T.eq(
 )
 T.eq("without the other options", #sent[1].data.devices, 2)
 
+T.section("page.cut keeps every whole character that fits")
+local cut = require("lib.ui.page").cut
+T.eq("a two-byte character that fits stays", cut("a\195\169b", 3), "a\195\169")
+T.eq("a three-byte one too", cut("ab\226\130\172c", 5), "ab\226\130\172")
+T.eq("one cut through goes", cut("ab\226\130\172c", 4), "ab")
+T.eq("no limit, no cut", cut("abc", nil), "abc")
+
 T.finish()

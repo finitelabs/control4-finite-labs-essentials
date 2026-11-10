@@ -14,7 +14,7 @@
 //   Kit.deliver(command, data)        hands a demo answer to the page as a push would arrive
 //   Kit.esc, Kit.str, Kit.ago         text made safe for HTML; a value as text; a time as "5 min ago"
 //   Kit.listen(command, fn), Kit.demoAnswer(command, fn): a component's own pushes and demo answers, before the page's
-//   Kit.apiHost, Kit.driverId, Kit.apiToken: the page's address parameters
+//   Kit.apiHost, Kit.driverId         the page's address parameters
 // A driver's pushes come from lib.ui.page's send: one `json` parameter, which the kit decodes for the handler.
 
 var Kit = (function () {
@@ -84,7 +84,6 @@ var Kit = (function () {
   // #endif
 
   function api(method, path, body) {
-    if (!apiHost) return Promise.resolve(null);
     var opts = { method: method, headers: { Authorization: "Bearer " + apiToken, "Content-Type": "application/json" } };
     if (body) opts.body = JSON.stringify(body);
     return fetch(apiOrigin() + path, opts)
@@ -280,6 +279,7 @@ var Kit = (function () {
   }
 
   var socket = null;
+  var polling = false;
   var round = 0; // Bumped by each connect and drop, so a retry or push from an earlier one stops.
   var links = {};
 
@@ -297,7 +297,7 @@ var Kit = (function () {
       return;
     }
     var ev = String(sub.subscriptionId);
-    if (sock.off) sock.off(ev);
+    sock.off(ev);
     sock.on(ev, function (evt) {
       if (mine === round) listener(evt);
     });
@@ -317,6 +317,7 @@ var Kit = (function () {
     if (!apiHost) {
       // Demo mode: the page's demo answer stands in for the driver, asked what a connect asks.
       setTimeout(function () {
+        linked = true;
         if (props.el) sendCommand("_GET_PROPERTIES");
         if (options.onConnect) options.onConnect();
       }, 0);
@@ -325,7 +326,9 @@ var Kit = (function () {
     setTimeout(function () {
       if (!live) showLink(false);
     }, 10000);
-    if (options.poll) {
+    // One poll for the page's life: a socket that fails to load calls connectDriver again.
+    if (options.poll && !polling) {
+      polling = true;
       setInterval(function () {
         sendCommand(options.poll.command);
       }, options.poll.every);
@@ -534,12 +537,11 @@ var Kit = (function () {
   var props = { el: null, list: [], errors: {}, exclude: [] };
   var linked = false; // the driver's pushes are subscribed
 
-  // options.exclude names properties the page shows elsewhere, which the card leaves out.
   function initPropertiesCard(el, options) {
     props.el = el;
     if (options && options.exclude) props.exclude = options.exclude;
     // A card set up after the connect (a page that draws it with its first state) asks for itself.
-    if (!props.list.length && (linked || !apiHost)) askProperties();
+    if (!props.list.length && linked) askProperties();
     el.classList.add("kit-props");
     el.addEventListener("change", function (e) {
       var name = e.target.dataset.prop;
@@ -650,12 +652,9 @@ var Kit = (function () {
   return {
     apiHost: apiHost,
     driverId: driverId,
-    apiToken: apiToken,
     str: str,
     esc: esc,
     ago: ago,
-    api: api,
-    encodeParams: encodeParams,
     sendCommand: sendCommand,
     call: call,
     follow: follow,
@@ -670,9 +669,5 @@ var Kit = (function () {
     setDetail: setDetail,
     initPropertiesCard: initPropertiesCard,
     showProperties: showProperties,
-    markPropertyError: markPropertyError,
-    // For the kit's own tests.
-    _commandParams: commandParams,
-    _properties: props,
   };
 })();

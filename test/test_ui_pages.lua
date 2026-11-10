@@ -169,8 +169,6 @@ listing:close()
 
 -- Each component's script comes with its stylesheet.
 local PAIRS = { ["variables.js"] = "variables.css", ["expressions.js"] = "expressions.css" }
--- The demo evaluator builds on the editor.
-PAIRS["expressions-demo.js"] = "expressions.js"
 
 local checked = 0
 for _, path in ipairs(pages) do

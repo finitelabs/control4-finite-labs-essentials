@@ -5,20 +5,18 @@
 //       value(), setValue(text), setMode(mode), insert(text), sync(), preview(now), used(), hold
 //   Kit.expressionHelp(options)              a help panel of its own, for one that serves several fields
 //   Kit.expressionError(raw, text, rendered, label)  an engine error as a plain sentence
-//   Kit.highlightExpression(text, mode, escapes)     the colored HTML the editor shows
 // The modes: equation comes out a number, condition true or false, string is the text with each variable's value in
-// it, and text colors only the variables and is never evaluated. Demo previews are expressions-demo.js's.
+// it, and text colors only the variables and is never evaluated. In demo mode a preview goes to the page's demo answer.
 //
 // Editor options:
 //   mode                 "equation" (the default), "condition", "string" or "text"
 //   escapes              colors \r \n \t \0 \\ and \xNN in string and text modes
 //   singleLine           Enter adds no line, and value() reads a pasted line break as a space
-//   minHeight            the least height in px: 64, or 32 on one line
 //   onInput(text)        after each edit
 //   preview              the element the preview fills, ahead of what the page put in it, or false
 //   previewWhen(text)    whether this text is evaluated: by default, whenever it isn't blank
 //   onResult(result, editor)  each answer to the text as it stands, result.message its error in plain words
-//   label                the field's name in a plain-language error; formatError(raw, text, rendered) words it instead
+//   label                the field's name in a plain-language error
 //   watch                the element that says how many variables the text reads
 //   help                 { toggle, panel, wrap, sections }: the button, the panel the kit fills, what shows and hides
 //                        with it (the panel itself by default) and its sections, each a key of the kit's or
@@ -255,15 +253,10 @@
   }
 
   // A help panel: options { toggle, panel, wrap, sections, mode, escapes }. Returns { open(state), isOpen(), render(mode) }.
-  // An element option may also be a selector.
-  function element(x) {
-    return typeof x === "string" ? document.querySelector(x) : x;
-  }
-
   function expressionHelp(options) {
-    var toggle = element(options.toggle);
-    var panel = element(options.panel);
-    var shown = element(options.wrap) || panel;
+    var toggle = options.toggle;
+    var panel = options.panel;
+    var shown = options.wrap || panel;
     var open = false;
     panel.classList.add("kit-help");
 
@@ -346,7 +339,7 @@
   function expressionEditor(textarea, options) {
     options = options || {};
     var mode = options.mode || "equation";
-    var minHeight = options.minHeight || (options.singleLine ? 32 : 64);
+    var minHeight = options.singleLine ? 32 : 64;
     var prefix = "x" + ++made + "-";
     var seq = 0;
     var timer = null;
@@ -359,9 +352,6 @@
     box.appendChild(textarea);
     textarea.setAttribute("spellcheck", "false");
 
-    textarea = element(textarea);
-    if (options.preview) options.preview = element(options.preview);
-    if (options.watch) options.watch = element(options.watch);
     var parts = options.preview ? previewParts(options.preview) : null;
     var help = options.help && options.help.panel ? expressionHelp({
       toggle: options.help.toggle,
@@ -371,9 +361,6 @@
       mode: mode,
       escapes: options.escapes,
     }) : null;
-    var format = options.formatError || function (raw, text, rendered) {
-      return expressionError(raw, text, rendered, options.label);
-    };
 
     function value() {
       return options.singleLine ? textarea.value.replace(/\s*\n\s*/g, " ") : textarea.value;
@@ -458,7 +445,7 @@
     editors[prefix] = function (result) {
       if (Kit.str(result.id) !== prefix + seq) return;
       var error = Kit.str(result.error);
-      result.message = error ? format(error, value(), result.rendered) : "";
+      result.message = error ? expressionError(error, value(), result.rendered, options.label) : "";
       editor.hold = result.hold ? result.message : "";
       textarea.classList.toggle("input-error", !!error);
       if (parts) show(result);
@@ -524,8 +511,4 @@
   Kit.expressionEditor = expressionEditor;
   Kit.expressionHelp = expressionHelp;
   Kit.expressionError = expressionError;
-  Kit.highlightExpression = highlight;
-  // For the kit's own tests: the names the highlighter colors, and the help's sections.
-  Kit.expressionNames = { functions: NAMES, libraries: LIBRARIES, words: WORDS };
-  Kit._expressionHelp = HELP;
 })();

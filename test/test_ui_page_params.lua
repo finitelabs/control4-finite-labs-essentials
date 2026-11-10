@@ -29,6 +29,5 @@ T.eq("an unbroken body reads too", pageParams({ DATA = C4:Base64Encode(JSON:enco
 T.eq("no DATA reads as no parameters", next(pageParams({})), nil)
 T.eq("a body that is not base64 JSON reads as no parameters", next(pageParams({ DATA = "not base64 json" })), nil)
 T.eq("nor does JSON that is not an object", next(pageParams({ DATA = C4:Base64Encode("42") })), nil)
-T.eq("nor no params at all", next(pageParams(nil)), nil)
 
 T.finish()

@@ -6,10 +6,10 @@ require("drivers-common-public.global.lib")
 
 local log = require("lib.logging")
 
---- @param tParams table|nil
+--- @param tParams table
 --- @return table params
 return function(tParams)
-  local encoded = tostring((tParams or {}).DATA or "e30="):gsub("%s", "")
+  local encoded = (tParams.DATA or "e30="):gsub("%s", "")
   local ok, decoded = pcall(function()
     return JSON:decode(C4:Base64Decode(encoded))
   end)

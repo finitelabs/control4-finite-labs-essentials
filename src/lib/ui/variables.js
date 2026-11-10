@@ -11,13 +11,11 @@
 //     onChange(fn)                    fn(id) after an entry's variables arrive, fn(null) after the list; returns a stop
 //     demo(devices, variablesById)    answers the two commands in demo mode with this data
 //   Kit.variableBrowser(el, options)  a search box, the tree and a footer in el; returns { render(), refresh() }
-//     target    the field a pick goes into: an element, a selector, or a function given the last focused [data-tok]
-//               field (or null) that returns one; the default is that field, else the first [data-tok] field
-//     token(v)  a pick's text, by default PARAM{deviceId,id}
-//     onPick(v) what a pick does, by default inserts the token at the target's caret and fires its input event
-//     usedIn    the fields whose tokens tick a variable as used: elements, a selector or a function; default the
-//               target. Typing in one redraws the ticks; a page that sets a value itself calls render().
-// A pick, v, is the variable's row with deviceId the member owning it and device its entry.
+//     target    the field a pick goes into: a selector, or a function given the last focused [data-tok] field
+//               (or null) that returns one; the default is that field, else the first [data-tok] field
+//     usedIn    a selector for the fields whose tokens tick a variable as used; default the target. Typing in one
+//               redraws the ticks; a page that sets a value itself calls render().
+// A pick inserts PARAM{device,variable} at the target's caret and fires the target's input event.
 
 (function (Kit) {
   var AUTO_OPEN = 25; // a search opens the devices it finds up to this many; past it they wait for a narrower one
@@ -204,7 +202,6 @@
   }
 
   function fieldsOf(spec) {
-    if (typeof spec === "function") spec = spec();
     if (typeof spec === "string") spec = document.querySelectorAll(spec);
     if (!spec) return [];
     if (spec.nodeType === 1) return [spec];
@@ -213,23 +210,19 @@
 
   function insertAtCaret(field, text) {
     var value = Kit.str(field.value);
-    var start = null;
-    var end = null;
-    // A field type without a selection throws on reading one in some engines.
-    try {
-      start = field.selectionStart;
-      end = field.selectionEnd;
-    } catch (e) {}
+    var start = field.selectionStart;
+    var end = field.selectionEnd;
     if (typeof start !== "number") start = end = value.length;
-    if (typeof end !== "number") end = start;
     field.value = value.slice(0, start) + text + value.slice(end);
     var caret = start + text.length;
-    if (field.focus) field.focus();
-    try {
-      field.setSelectionRange(caret, caret);
-    } catch (e) {}
+    field.focus();
+    field.setSelectionRange(caret, caret);
     field.dispatchEvent(new Event("input", { bubbles: true }));
   }
+
+  // Every browser on the page, for the one document listener that redraws their ticks.
+  var browsers = [];
+  var typing = false;
 
   function variableBrowser(el, options) {
     options = options || {};
@@ -401,31 +394,11 @@
       render();
     }
 
-    function token(v) {
-      return "PARAM{" + digits(v.deviceId) + "," + digits(v.id) + "}";
-    }
-
-    function insert(v) {
+    // A row carries its owner's and its variable's ids as digits.
+    function pick(ownerId, varId) {
       var field = target();
-      if (field) insertAtCaret(field, (options.token || token)(v));
-    }
-
-    function pick(entryId, ownerId, varId) {
-      var rows = cache[entryId] || [];
-      for (var i = 0; i < rows.length; i++) {
-        var row = rows[i];
-        if (digits(ownerOf(row, entryId)) === ownerId && digits(row.id) === varId) {
-          var v = {};
-          Object.keys(row).forEach(function (name) {
-            v[name] = row[name];
-          });
-          v.deviceId = ownerOf(row, Number(entryId));
-          v.device = device(entryId);
-          (options.onPick || insert)(v);
-          render();
-          return;
-        }
-      }
+      if (field) insertAtCaret(field, "PARAM{" + ownerId + "," + varId + "}");
+      render();
     }
 
     // One delegated click: a row is a button carrying its ids.
@@ -433,7 +406,7 @@
       var node = e.target;
       while (node && node !== tree) {
         if (node.getAttribute && node.getAttribute("data-var") !== null) {
-          pick(node.getAttribute("data-entry"), node.getAttribute("data-owner"), node.getAttribute("data-var"));
+          pick(node.getAttribute("data-owner"), node.getAttribute("data-var"));
           return;
         }
         if (node.getAttribute && node.getAttribute("data-device") !== null) {
@@ -446,12 +419,23 @@
 
     search.addEventListener("input", render);
 
-    // Typing in a field the ticks read redraws them.
-    document.addEventListener("input", function (e) {
-      if (e.target !== search && usedFields().indexOf(e.target) !== -1) render();
+    // Typing in a field the ticks read redraws them; a browser a redraw took off the page stops following.
+    browsers.push({ el: el, search: search, usedFields: usedFields, render: render });
+    if (!typing) {
+      typing = true;
+      document.addEventListener("input", function (e) {
+        browsers = browsers.filter(function (b) {
+          return b.el.isConnected !== false;
+        });
+        browsers.forEach(function (b) {
+          if (e.target !== b.search && b.usedFields().indexOf(e.target) !== -1) b.render();
+        });
+      });
+    }
+    var stop = onChange(function () {
+      if (el.isConnected === false) stop();
+      else render();
     });
-
-    onChange(render);
     render();
 
     return {

@@ -587,6 +587,10 @@ T.eq("a device that left isn't tried for long", arms, 1)
 removedLate:unsubscribeExpression("removed")
 SetTimer = realSetTimer -- luacheck: ignore
 
+T.section("compileError reads a text as evaluate does")
+T.truthy("two tokens in a row can't compile", Expressions.compileError("PARAM{1,2}PARAM{3,4}"))
+T.eq("one token compiles", Expressions.compileError("PARAM{1,2} + 1"), nil)
+
 T.section("A missing variable doesn't fill the log")
 ShimSetDevices({ [700] = { deviceName = "Light", roomName = "Hall", variables = { ["1"] = { name = "OWN" } } } })
 local logging = require("lib.logging")

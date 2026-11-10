@@ -405,7 +405,8 @@ end
 --- @param template string
 --- @return string|nil err The compiler's message, worded as `evaluate` words it, or nil when it compiles.
 function Expressions.compileError(template)
-  local source = tostring(template or ""):gsub(PARAM_PATTERN, "__p")
+  -- Each token as evaluate puts it, so a text evaluate can't compile can't compile here either.
+  local source = tostring(template or ""):gsub(PARAM_PATTERN, "__p[1]")
   local _, err = loadstring("return " .. source)
   return err and ("compile error: " .. err) or nil
 end

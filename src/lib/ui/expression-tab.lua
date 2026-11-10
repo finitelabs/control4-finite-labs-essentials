@@ -18,16 +18,6 @@ local ExpressionTab = {}
 --- Every mode the engine evaluates.
 local MODES = { "equation", "condition", "string" }
 
---- @param text string
---- @param bytes integer|nil
---- @return string cut At most that many bytes, on a whole character: a UTF-8 lead byte left on its own isn't text.
-local function cut(text, bytes)
-  if not bytes or #text <= bytes then
-    return text
-  end
-  return (text:sub(1, bytes):gsub("[\192-\255][\128-\191]*$", ""))
-end
-
 --- @class ExpressionTabOptions
 --- @field modes? string[] The modes the page may ask for; the first answers any other. Default equation, condition, string.
 --- @field maxLength? integer The longest expression evaluated, in bytes. The rest is cut, and `substituted` too.
@@ -47,7 +37,7 @@ local function answer(options, params)
       mode = known
     end
   end
-  local expression = cut(tostring(params.expression or ""), options.maxLength)
+  local expression = page.cut(tostring(params.expression or ""), options.maxLength)
   local held = options.hold and options.hold(expression, mode) or nil
   -- A held text isn't evaluated: what it would give doesn't matter while it can't be saved.
   local evaluation = held and { rendered = Expressions.render(expression, mode) }
@@ -55,7 +45,7 @@ local function answer(options, params)
   local reply = {
     id = tostring(params.id or ""),
     rendered = evaluation.rendered or "",
-    substituted = cut(evaluation.substituted or "", options.maxLength),
+    substituted = page.cut(evaluation.substituted or "", options.maxLength),
     result = evaluation.result ~= nil and tostring(evaluation.result) or "",
     error = held and tostring(held) or evaluation.error or "",
     hold = held and true or nil,
