@@ -1,6 +1,7 @@
--- The web tabs built on lib/ui: a page that embeds the kit embeds both its files at paths that resolve, the kit's
--- page.js breaks a command's base64 the way lib.ui.page-params reads it, and its style.css leaves a page's own markup
--- alone.
+-- The web tabs built on lib/ui: a page that embeds the kit embeds its files, and each component's pair, at paths that
+-- resolve; the kit's page.js breaks a command's base64 the way lib.ui.page-params reads it; style.css is the house base
+-- by plain selector and the components' stylesheets style only their own .kit-* markup; and a page restyles no selector
+-- the kit styles, since the kit's version is the house one.
 --
 -- Run from the driver root:
 --   make test
@@ -28,9 +29,8 @@ T.contains("breaks the body every 76 characters", pageJs, '.replace(/.{76}/g, "$
 T.contains("sends it as the command's DATA", pageJs, "tParams: { DATA: encodeParams(params) }")
 
 T.section("style.css")
--- Beyond the shared base, tab bar, cards, buttons and banner, the kit styles only its own .kit-* markup, so a page's
--- own label, input, table or .note keeps its style.
-local SHARED = {}
+-- The house base, by plain selector. Anything else in the kit is a component's own .kit-* markup.
+local BASE = {}
 for _, selector in ipairs({
   ":root",
   "*",
@@ -51,31 +51,106 @@ for _, selector in ipairs({
   ".banner",
   ".banner.warn",
   ".banner.err",
-  "#conn-warn",
   ".card",
   ".card h3",
+  ".card h3 .count",
   ".btn",
   ".btn-primary",
   ".btn-primary:hover",
   ".btn-danger",
   ".btn-danger:hover",
+  ".btn-secondary",
+  ".btn-secondary:hover",
   ".btn-outline",
   ".btn-outline:hover",
+  ".btn.danger",
+  ".btn.danger:hover",
+  ".btn-ghost",
+  ".btn-ghost:hover",
   ".btn-sm",
+  ".btn:disabled",
+  ".btn:focus-visible",
+  "label",
+  "label.check",
+  'input[type="text"]',
+  'input[type="number"]',
+  'input[type="password"]',
+  'input[type="search"]',
+  'input[type="url"]',
+  "textarea",
+  "select",
+  "input:focus",
+  "textarea:focus",
+  "select:focus",
+  "input:disabled",
+  "textarea:disabled",
+  "select:disabled",
+  ".input-error",
+  ".table-wrap",
+  "table",
+  "th",
+  "td",
+  "tbody tr:hover td",
+  "tbody tr:last-child td",
+  ".trunc",
+  ".note",
+  ".hint",
+  ".empty",
+  ".save-error",
+  ".chip",
+  ".chip-err",
+  ".status-dot",
+  ".status-ok",
+  ".status-warn",
+  ".status-none",
+  ".seg",
+  ".seg button",
+  ".seg button:first-child",
+  ".seg button.on",
 }) do
-  SHARED[selector] = true
+  BASE[selector] = true
 end
-local css = (read(ROOT .. "src/lib/ui/style.css") or ""):gsub("/%*.-%*/", "")
-local stray = {}
-for selectors in css:gmatch("([^{}]+){[^{}]*}") do
-  for selector in selectors:gmatch("[^,]+") do
-    selector = selector:gsub("^%s+", ""):gsub("%s+$", ""):gsub("%s+", " ")
-    if not SHARED[selector] and not selector:find("^%.kit%-") then
-      stray[#stray + 1] = selector
+
+--- Each selector a stylesheet's rules name, @media blocks included, comments out.
+--- @param css string
+--- @return string[]
+local function selectors(css)
+  local out = {}
+  css = css:gsub("/%*.-%*/", ""):gsub("@keyframes[^{]*%b{}", "")
+  css = css:gsub("@media[^{]*(%b{})", function(block)
+    return block:sub(2, -2)
+  end)
+  for list in css:gmatch("([^{}]+){[^{}]*}") do
+    for selector in list:gmatch("[^,]+") do
+      selector = selector:gsub("^%s+", ""):gsub("%s+$", ""):gsub("%s+", " ")
+      if selector ~= "" then
+        out[#out + 1] = selector
+      end
     end
   end
+  return out
 end
-T.eq("styles only the shared base and its own .kit-* markup", stray, {})
+
+local KIT_CSS = { "style.css", "variables.css", "expressions.css" }
+local kitSelectors = {}
+for _, name in ipairs(KIT_CSS) do
+  local css = read(ROOT .. "src/lib/ui/" .. name)
+  if css then
+    local stray = {}
+    for _, selector in ipairs(selectors(css)) do
+      kitSelectors[selector] = name
+      local ok = selector:find("^%.kit%-") or (name == "style.css" and BASE[selector])
+      if not ok then
+        stray[#stray + 1] = selector
+      end
+    end
+    T.eq(
+      name .. " styles only " .. (name == "style.css" and "the house base and " or "") .. "its own .kit-* markup",
+      stray,
+      {}
+    )
+  end
+end
 
 T.section("pages")
 local listing = io.popen('find "' .. ROOT .. 'drivers" -path "*/www/html/*.html" 2>/dev/null')
@@ -84,6 +159,11 @@ for path in listing:lines() do
   pages[#pages + 1] = path
 end
 listing:close()
+
+-- Each component's script comes with its stylesheet.
+local PAIRS = { ["variables.js"] = "variables.css", ["expressions.js"] = "expressions.css" }
+-- The demo evaluator builds on the editor.
+PAIRS["expressions-demo.js"] = "expressions.js"
 
 local checked = 0
 for _, path in ipairs(pages) do
@@ -101,10 +181,25 @@ for _, path in ipairs(pages) do
     local page = path:sub(#ROOT + 1)
     for _, name in ipairs(KIT) do
       T.truthy(page .. " embeds " .. name, embeds[name])
-      if embeds[name] then
-        T.truthy(page .. "'s " .. name .. " path resolves", read(dir .. embeds[name]))
+    end
+    for name, rel in pairs(embeds) do
+      T.truthy(page .. "'s " .. name .. " path resolves", read(dir .. rel))
+    end
+    for script, partner in pairs(PAIRS) do
+      if embeds[script] then
+        T.truthy(page .. " embeds " .. partner .. " with " .. script, embeds[partner])
       end
     end
+    local copies = {}
+    for style in html:gmatch("<style>(.-)</style>") do
+      for _, selector in ipairs(selectors(style)) do
+        -- A page's own tokens go in :root beside the kit's.
+        if kitSelectors[selector] and selector ~= ":root" then
+          copies[#copies + 1] = selector
+        end
+      end
+    end
+    T.eq(page .. " restyles nothing the kit styles", copies, {})
   end
 end
 print(checked .. " of " .. #pages .. " pages embed the kit")

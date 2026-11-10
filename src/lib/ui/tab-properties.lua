@@ -1,14 +1,16 @@
 --- The driver's properties for its web tab: what the tab shows, read once from this build's driver.xml, and the
 --- changes the tab may make. Passwords stay in Composer's Properties tab.
 ---
---- lib/ui/page.js's properties card speaks this: the driver's CONFIG_DATA carries `properties`, JSON of `list()`; the
---- page sends `_SET_PROPERTY` with `{ property, value }`; a refusal goes back as PROPERTY_ERROR with `payload`, JSON
---- of `{ property, error }`.
+--- lib/ui/page.js's properties card speaks this, once the driver calls `serve()`: the card asks `_GET_PROPERTIES` and
+--- gets PROPERTIES, `{ properties = list() }`; it sends `_SET_PROPERTY` with `{ property, value }`, and a refusal goes
+--- back as PROPERTY_ERROR, `{ property, error }`.
 
 require("drivers-common-public.global.handlers")
 require("drivers-common-public.global.lib")
 
 local log = require("lib.logging")
+local page = require("lib.ui.page")
+local pageParams = require("lib.ui.page-params")
 
 local SHOWN_TYPES = { LIST = true, STRING = true, RANGED_INTEGER = true }
 
@@ -134,6 +136,21 @@ function TabProperties:set(name, value)
     end
   end
   return "The tab cannot set " .. tostring(name) .. "."
+end
+
+--- Answers the properties card's two commands. Call it once, as the driver loads.
+function TabProperties:serve()
+  UIR._GET_PROPERTIES = function()
+    page.send("PROPERTIES", { properties = self:list() })
+  end
+  UIR._SET_PROPERTY = function(tParams)
+    local params = pageParams(tParams)
+    local err = self:set(params.property, params.value)
+    if err then
+      log:warn("The web tab's property change was refused: %s", err)
+      page.send("PROPERTY_ERROR", { property = tostring(params.property), error = err })
+    end
+  end
 end
 
 --- Calls `push` after each change to a property the tab shows, wherever it was made. Call it once the load's own

@@ -786,13 +786,24 @@ such as `drivers/tplink_light/www/documentation/index.md` in
 
 ### Custom Composer Tabs
 
-`src/lib/ui/` is the kit for a driver's custom Composer tab: the shared look
-(`style.css`), the page's link to its driver, the tab bar, demo mode and a card
-of the driver's properties (`page.js`), and the driver's side of that card
-(`lib.ui.tab-properties` and `lib.ui.page-params`).
+`src/lib/ui/` holds everything a driver's custom Composer tab shares with the
+others, so a page keeps only its own views and its driver only its own commands:
 
-A page embeds the stylesheet first in its `<style>` and the script first in its
-`<script>`, then adds its own:
+- `style.css`: the house look, from the tab bar and cards to form fields,
+  tables, chips and the segmented switch
+- `page.js`: the page's link to its driver, the live-link and demo banners, the
+  tabs, the properties card and demo mode
+- `variables.js` and `variables.css`: the variable browser, with
+  `lib.ui.devices` on the driver's side
+- `expressions.js` and `expressions.css`: the expression editor, with its
+  highlighting, help and live preview, and `lib.ui.expression-tab` on the
+  driver's side; `expressions-demo.js` adds previews in demo mode
+- `lib.ui.page`, `lib.ui.page-params` and `lib.ui.tab-properties`: the driver's
+  side of the link and the properties card
+
+Each file's header comment lists what it offers. A page embeds the stylesheets
+in its `<style>` and the scripts in its `<script>`, the kit's first, then adds
+its own:
 
 ```html
 <style>
@@ -801,52 +812,63 @@ A page embeds the stylesheet first in its `<style>` and the script first in its
 <div class="nav">
   <div class="nav-tab active" data-panel="status">Status</div>
 </div>
-<div class="banner warn" id="conn-warn" hidden>Not connected to the controller. Open this tab from Composer. The values shown are examples.</div>
 <div class="panel active" id="panel-status">
+  <div class="card"><h3>Status</h3><div id="status"></div></div>
   <div class="card" hidden><h3>Properties</h3><div id="props"></div></div>
 </div>
 <script>
 <!-- #embed ../../../../src/lib/ui/page.js -->
-Kit.initTabs();
+function showStatus(status) {
+  document.getElementById("status").textContent = status.text;
+}
+Kit.initTabs(null, { hash: true });
 Kit.initPropertiesCard(document.getElementById("props"));
+// Outside Composer, this stands in for the driver.
 Kit.demoMode(function (command) {
-  if (command === "_GET_CONFIG") Kit.deliver("CONFIG_DATA", { properties: "[]" });
+  if (command === "_GET_STATUS") Kit.deliver("STATUS", { text: "Connected" });
 });
-Kit.connectDriver({ onConnect: function () { Kit.sendCommand("_GET_CONFIG"); } });
+Kit.connectDriver({
+  handlers: { STATUS: showStatus },
+  onConnect: function () { Kit.sendCommand("_GET_STATUS"); },
+});
 </script>
 ```
 
-Everything `page.js` offers is on one object, `Kit`, so a page's own function of
-the same name never replaces the kit's; alias the names you use often
-(`var sendCommand = Kit.sendCommand;`). `style.css` styles the shared base, tab
-bar, cards, buttons and banner, and otherwise only its own `.kit-*` markup, so a
-page keeps its own styles for labels, inputs, tables and the like.
-
-The build splices both files in, so each `.c4z` ships one self-contained page;
-open the built page in `build/<distribution>/drivers/<name>/www/html/` to see
-it. The tab bar shows from two tabs. Opened outside Composer, the page shows the
-`#conn-warn` banner and the demo data its `Kit.demoMode` answer gives, which is
-what the documentation's screenshots are taken from.
-
-The driver answers the card's two commands:
+and its driver answers:
 
 ```lua
+local page = require("lib.ui.page")
 local pageParams = require("lib.ui.page-params")
-local tabProperties = require("lib.ui.tab-properties")
+require("lib.ui.tab-properties"):serve()
 
-function UIR._GET_CONFIG()
-  C4:SendDataToUI("CONFIG_DATA", { properties = JSON:encode(tabProperties:list()) })
+function UIR._GET_STATUS()
+  page.send("STATUS", { text = Properties["Driver Status"] })
 end
 
-function UIR._SET_PROPERTY(tParams)
+function UIR._SET_MODE(tParams)
   local params = pageParams(tParams)
-  local err = tabProperties:set(params.property, params.value)
-  if err then
-    C4:SendDataToUI("PROPERTY_ERROR", { payload = JSON:encode({ property = params.property, error = err }) })
-  end
+  -- params.mode is what the page sent
 end
 ```
 
-and, at the end of `OnDriverLateInit`, `tabProperties:follow(UIR._GET_CONFIG)`,
-so a change made in Composer reaches the open tab. Decode every other command's
-parameters with `pageParams` too: the page breaks them into lines.
+`page.send` carries each message as one JSON parameter, which the kit decodes,
+so a page's handler gets the object the driver sent, numbers and booleans
+intact. `pageParams` never raises: a body that does not decode reads as no
+parameters. The kit shows a banner when the live link drops or no message
+arrives within 10 seconds of a connect, and the next message clears it. The
+properties card asks for its list on each connect and after each property
+change.
+
+Everything `page.js` offers is on one object, `Kit`, so a page's own function of
+the same name never replaces the kit's. A page restyles nothing the kit styles:
+`test/test_ui_pages.lua` fails one that does, so a better look goes into the kit
+for every tab.
+
+The build splices the files in, so each `.c4z` ships one self-contained page;
+open the built page in `build/<distribution>/drivers/<name>/www/html/` to see
+it. Opened outside Composer, the page shows the demo banner and the data its
+`Kit.demoMode` answer gives, which is what the documentation's screenshots are
+taken from. Opened with a controller address but no token, an OSS build logs in
+through the dev proxy's saved login (`tools/dev/c4proxy.py` where a repo has
+one), so a live check needs nothing typed; the DriverCentral build has no such
+login.

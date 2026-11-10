@@ -1,7 +1,8 @@
 /* The look of a driver's custom Composer tab. A page embeds it first in its <style>, with the line
-   "<!-- #embed ../../../../src/lib/ui/style.css -->", then adds its own rules after it. Beyond the shared tokens, base,
-   tab bar, cards, buttons and banner, every rule is scoped to the kit's own markup (.kit-*), so a page's own
-   label, input, table or .note keeps its style. */
+   "<!-- #embed ../../../../src/lib/ui/style.css -->", then adds only the rules for its own views after it. This is
+   the house look: tokens, base, tab bar, cards, buttons, form fields, tables, text, chips and the segmented control,
+   by plain selector, and the kit's components as .kit-*. A page keeps no copy of these; plain selectors only, since
+   Composer's engine may be old. */
 
 :root {
   --bg: #f5f5f7;
@@ -19,6 +20,7 @@
   --radius: 6px;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -30,6 +32,7 @@ body {
   color: var(--text);
   font-size: 13px;
   line-height: 1.5;
+  overflow-wrap: break-word;
 }
 
 /* The tab bar is hidden until Kit.initTabs counts two or more tabs. */
@@ -56,9 +59,9 @@ body {
 }
 .nav-tab:hover { color: var(--text); }
 .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-.nav-meta { margin-left: auto; padding-left: 12px; color: var(--text-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nav-meta { margin-left: auto; padding-left: 12px; color: var(--text-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 
-.panel { display: none; padding: 16px; }
+.panel { display: none; padding: 16px; width: 100%; }
 .panel.active { display: block; }
 
 /* Composer's webview shows classic always-on scrollbars; keep them slim. */
@@ -67,11 +70,11 @@ body {
 ::-webkit-scrollbar-thumb { background: #c7ccd4; border-radius: 5px; border: 2px solid transparent; background-clip: content-box; }
 ::-webkit-scrollbar-thumb:hover { background: #a9b0ba; background-clip: content-box; border: 2px solid transparent; }
 
-/* Shown by Kit.demoMode when the page is opened outside Composer. */
+/* A banner; the kit adds two under the tab bar: demo data outside Composer, and a live link that dropped. */
 .banner { border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; font-size: 12px; }
 .banner.warn { background: #fef3c7; border-color: #fcd34d; color: #92400e; font-weight: 500; }
 .banner.err { background: #fee2e2; border-color: #fca5a5; color: #991b1b; font-weight: 500; }
-#conn-warn { margin: 12px 16px 0; }
+.kit-demo, .kit-link { margin: 12px 16px 0; }
 
 .card {
   background: var(--surface);
@@ -81,7 +84,12 @@ body {
   margin-bottom: 12px;
   box-shadow: var(--shadow);
 }
+/* A card heading is a row: its title, and a count or controls at its right. */
 .card h3 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -89,6 +97,7 @@ body {
   margin-bottom: 10px;
   font-weight: 600;
 }
+.card h3 .count { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--text-muted); }
 
 .btn {
   display: inline-flex; align-items: center; gap: 4px;
@@ -100,9 +109,72 @@ body {
 .btn-primary:hover { background: var(--accent-hover); }
 .btn-danger { background: var(--danger); color: #fff; }
 .btn-danger:hover { background: var(--danger-hover); }
-.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-.btn-outline:hover { background: var(--surface-hover); }
+.btn-secondary, .btn-outline { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+.btn-secondary:hover, .btn-outline:hover { background: var(--surface-hover); }
+.btn.danger { color: var(--danger); background: var(--surface); border: 1px solid #f0c4c4; }
+.btn.danger:hover { background: #fef2f2; border-color: #ef9a9a; }
+.btn-ghost { background: transparent; border: 1px solid transparent; color: var(--text-muted); padding: 3px 6px; font-size: 11px; }
+.btn-ghost:hover { color: var(--text); }
 .btn-sm { padding: 3px 8px; font-size: 11px; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Form fields. A label sits over its field; a checkbox's or radio's label is .check. A select draws its own arrow, so
+   it looks the same in every engine. */
+label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px; font-weight: 500; }
+label.check { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: 12px; color: var(--text); font-weight: 400; }
+input[type="text"], input[type="number"], input[type="password"], input[type="search"], input[type="url"], textarea, select {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font);
+}
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 26px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  background-size: 10px 6px;
+}
+input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15); }
+input:disabled, textarea:disabled, select:disabled { background-color: var(--bg); color: var(--text-muted); }
+.input-error { border-color: var(--danger) !important; }
+
+/* Tables: fixed columns, and a sideways scroll only on a narrow page. */
+.table-wrap { overflow-x: hidden; }
+table { width: 100%; min-width: 480px; border-collapse: collapse; table-layout: fixed; }
+th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
+th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+td { font-size: 12px; }
+tbody tr:hover td { background: var(--surface-hover); }
+tbody tr:last-child td { border-bottom: none; }
+.trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 560px) {
+  .table-wrap { overflow-x: auto; }
+}
+
+/* Text: a muted note under a field or card, a list's empty state, and a save's refusal. */
+.note, .hint { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+.empty { padding: 22px 8px; text-align: center; color: var(--text-muted); font-size: 12px; }
+.save-error { color: var(--danger); font-size: 11.5px; margin-right: auto; min-width: 0; }
+
+/* Small labels: a chip, a status dot, and the segmented control a view switches with. */
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+.chip-err { background: #fef3c7; color: #b45309; }
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.status-ok { background: var(--success); }
+.status-warn { background: var(--warning); }
+.status-none { background: #d1d5db; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.seg button { padding: 5px 12px; font-size: 12px; color: var(--text-muted); background: var(--surface); border: none; border-left: 1px solid var(--border); cursor: pointer; font-family: var(--font); white-space: nowrap; }
+.seg button:first-child { border-left: none; }
+.seg button.on { background: var(--accent); color: #fff; font-weight: 600; }
 
 /* A status as Composer shows it, as a pill; then counts as tiles. */
 .kit-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin-bottom: 12px; }
@@ -112,33 +184,19 @@ body {
 .kit-pill.online { background: #dcfce7; color: var(--success); }
 .kit-pill.pending { background: #fef3c7; color: var(--warning); }
 .kit-pill.offline { background: #fee2e2; color: var(--danger); }
+.kit-pill.info { background: #f1f5f9; color: #475569; }
 .kit-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 8px; }
 .kit-tile { border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; background: var(--surface); min-width: 0; }
 .kit-tile .k { color: var(--text-muted); font-size: 11px; }
 .kit-tile .v { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .kit-tile.config { background: var(--bg); }
 
-/* The properties card: the element Kit.initPropertiesCard is given becomes .kit-props. Its fields sit two classes
-   deep, so a page's own label, input or select rule doesn't reach into the card. */
+/* The properties card: the element Kit.initPropertiesCard is given becomes .kit-props. Its fields are the house
+   fields; the card adds its groups, its grid and the line under a field. */
 .kit-props-note { margin: -4px 0 12px; color: var(--text-muted); font-size: 12px; }
 .kit-props .pgroup { font-size: 11px; font-weight: 600; color: var(--text); margin: 14px 0 6px; }
 .kit-props .pgroup:first-child { margin-top: 0; }
 .kit-props .pfields { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
 .kit-props .pfields > div { min-width: 0; }
-.kit-props .pfields label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px; font-weight: 500; }
-.kit-props .pfields input, .kit-props .pfields select {
-  width: 100%;
-  padding: 6px 8px;
-  margin: 0;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
-  font-size: 13px;
-  font-family: var(--font);
-}
-.kit-props .pfields input:focus, .kit-props .pfields select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15); }
-.kit-props .pfields input:disabled { background: var(--bg); color: var(--text-muted); }
-.kit-props .pfields .input-error { border-color: var(--danger); }
 .kit-props .pdesc { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
 .kit-props .perror { color: var(--danger); font-size: 11px; margin-top: 3px; }

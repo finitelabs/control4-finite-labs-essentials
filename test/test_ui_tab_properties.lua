@@ -118,4 +118,29 @@ OPC.Driver_Version("1")
 T.eq("so does a read-only one, which only the driver changes", pushed, 3)
 T.falsy("a password gets no push", OPC.API_Token)
 
+T.section("serve")
+local sent = {}
+function C4:SendDataToUI(command, params)
+  sent[#sent + 1] = { command = command, data = JSON:decode(params.json) }
+end
+--- A command's DATA as lib/ui/page.js sends it.
+local function page(params)
+  return { DATA = C4:Base64Encode(JSON:encode(params)) }
+end
+tabProperties:serve()
+UIR._GET_PROPERTIES()
+T.eq("the card's ask is answered with PROPERTIES", sent[1].command, "PROPERTIES")
+T.eq("carrying the list, as one JSON parameter", #sent[1].data.properties, 5)
+sent = {}
+UIR._SET_PROPERTY(page({ property = "Mode", value = "Auto" }))
+T.eq("a change it can make is made", Properties.Mode, "Auto")
+T.eq("with nothing sent back", #sent, 0)
+UIR._SET_PROPERTY(page({ property = "Mode", value = "Slow" }))
+T.eq("a change it refuses goes back as PROPERTY_ERROR", sent[1].command, "PROPERTY_ERROR")
+T.eq("naming the property", sent[1].data.property, "Mode")
+T.eq("and why", sent[1].data.error, "Mode has no choice Slow.")
+sent = {}
+UIR._SET_PROPERTY({ DATA = "not base64 json" })
+T.eq("a body that does not decode is refused as no property", sent[1].data.error, "The tab cannot set nil.")
+
 T.finish()

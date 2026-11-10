@@ -1,0 +1,17 @@
+--- A driver's messages to its web tab. Each goes as one parameter, `json`, which lib/ui/page.js decodes for the page's
+--- handler: the socket reads a bare `72.50`, `007` or `false` as a number or a boolean, and C4:SendDataToUI cannot carry
+--- a boolean or a nested table at all.
+
+require("drivers-common-public.global.lib")
+
+local Page = {}
+
+--- Sends the web tab a message; nothing happens when no tab is open.
+--- @param command string The page's handler for it.
+--- @param data? table What it carries.
+function Page.send(command, data)
+  data = data or {}
+  C4:SendDataToUI(command, { json = next(data) == nil and "{}" or JSON:encode(data) })
+end
+
+return Page

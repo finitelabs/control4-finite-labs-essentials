@@ -1,0 +1,68 @@
+/* The expression editor (expressions.js): a transparent textarea over a <pre> of the same text in color. Both layers
+   share their font metrics, so the caret and the selection stay on the colored text. */
+.kit-editor { position: relative; flex: 1; min-width: 0; }
+.kit-editor textarea, .kit-editor pre {
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
+  padding: 9px 10px; margin: 0;
+  white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word;
+  min-height: 64px; box-sizing: border-box; width: 100%;
+  border-radius: var(--radius); tab-size: 2;
+}
+.kit-editor pre {
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+  border: 1px solid transparent;
+  background: var(--surface);
+  overflow: hidden;
+  pointer-events: none;
+  color: var(--text);
+}
+.kit-editor textarea {
+  position: relative; z-index: 1; display: block;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--text);
+  border: 1px solid var(--border);
+  resize: none; overflow: hidden;
+}
+.kit-editor textarea::placeholder { color: #9ca3af; }
+.kit-editor textarea::selection { background: rgba(37, 99, 235, 0.22); }
+.kit-editor-line textarea, .kit-editor-line pre { padding: 5px 10px; min-height: 32px; }
+
+.kit-hl-tok { background: #dbeafe; border-radius: 4px; box-shadow: 0 0 0 1.5px #dbeafe; color: #1d4ed8; }
+.kit-hl-fn { color: #6d28d9; }
+.kit-hl-num { color: #0f766e; }
+.kit-hl-str { color: #059669; }
+.kit-hl-op { color: #6b7280; }
+.kit-hl-esc { color: #b45309; font-weight: 600; }
+
+/* A field's label with the help toggle at its end. */
+.kit-label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.kit-help-toggle {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-family: var(--font); font-size: 11px; font-weight: 500; color: var(--accent); text-align: left;
+}
+.kit-help-toggle:hover { text-decoration: underline; }
+.kit-help {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius);
+  padding: 10px 12px; margin-top: 8px; min-width: 0;
+  columns: 2; column-gap: 24px;
+}
+@media (max-width: 740px) { .kit-help { columns: 1; } }
+.kit-help section { break-inside: avoid; margin-bottom: 10px; }
+.kit-help h4 {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+  color: #94a3b8; margin: 0 0 3px;
+}
+.kit-help p { font-size: 11.5px; color: #475569; margin: 0 0 4px; }
+.kit-help code { font-family: var(--mono); font-size: 10.5px; color: #1e293b; background: #eef2f7; border-radius: 3px; padding: 0 3px; }
+
+/* The live preview, and a page's own line under it as .kit-prev-foot. */
+.kit-prev { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius); padding: 10px 12px; min-width: 0; }
+.kit-prev-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.6px; color: #94a3b8; text-transform: uppercase; margin-bottom: 2px; }
+.kit-prev-value { font-family: var(--mono); font-size: 11px; color: #475569; margin-bottom: 8px; overflow-wrap: anywhere; }
+.kit-prev-result { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--success); overflow-wrap: anywhere; }
+.kit-prev-result.true { color: var(--success); }
+.kit-prev-result.false { color: #475569; }
+.kit-prev-error { font-size: 12px; font-weight: 600; color: var(--danger); overflow-wrap: anywhere; }
+.kit-prev-foot { font-size: 11px; color: var(--text-muted); border-top: 1px dashed #e2e8f0; margin-top: 9px; padding-top: 8px; }
+.kit-prev-foot code { font-family: var(--mono); }

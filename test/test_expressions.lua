@@ -587,38 +587,8 @@ T.eq("a device that left isn't tried for long", arms, 1)
 removedLate:unsubscribeExpression("removed")
 SetTimer = realSetTimer -- luacheck: ignore
 
-T.section("The device browser")
-ShimSetDevices({
-  [700] = {
-    deviceName = "Light",
-    roomName = "Hall",
-    proxies = { [701] = true },
-    variables = { ["1"] = { name = "OWN" } },
-  },
-  [701] = {
-    deviceName = "Light",
-    roomName = "Hall",
-    driverFileName = "light_v2.c4i",
-    variables = { ["2"] = { name = "LEVEL" } },
-  },
-  [710] = { deviceName = "Lamp", roomName = "Attic", variables = { ["1"] = { name = "A" } } },
-  [711] = { deviceName = "Lamp", roomName = "Attic", variables = { ["1"] = { name = "B" } } },
-  [720] = { deviceName = "Nothing", roomName = "Attic" },
-})
-local devices = Expressions.devices()
-T.eq("a driver and the proxy restating it are one entry, and the empty one is left out", #devices, 3)
-T.eq("by room first", devices[1].roomName, "Attic")
-T.eq("names that collide get their id", devices[1].name, "Lamp (710)")
-T.eq("the proxy's owner stands for both", devices[3].id, 700)
-local vars = Expressions.deviceVariables("700")
-T.eq("a device's variables include its proxy's", #vars, 2)
-T.eq("its own come first", vars[1].name, "OWN")
-T.eq("under its own heading", vars[1].section, "Device")
-T.eq("the proxy's name its .c4i", vars[2].section, "light_v2")
-T.eq("a type is defaulted", vars[1].type, "STRING")
-T.eq("an id that isn't a number gives nothing", Expressions.deviceVariables("x"), nil)
-
 T.section("A missing variable doesn't fill the log")
+ShimSetDevices({ [700] = { deviceName = "Light", roomName = "Hall", variables = { ["1"] = { name = "OWN" } } } })
 local logging = require("lib.logging")
 local warned = 0
 logging.warn = function()
