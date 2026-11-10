@@ -790,7 +790,7 @@ such as `drivers/tplink_light/www/documentation/index.md` in
 others, so a page keeps only its own views and its driver only its own commands:
 
 - `style.css`: the house look, from the tab bar and cards to form fields,
-  tables, chips and the segmented switch
+  tables, chips, the segmented switch and a list beside its editor
 - `page.js`: the page's link to its driver, the live-link and demo banners, the
   tabs, the properties card and demo mode
 - `variables.js` and `variables.css`: the variable browser, with

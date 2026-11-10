@@ -21,6 +21,8 @@
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  /* A select's arrow, for anything a page draws to look like one. */
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -98,6 +100,7 @@ body {
   font-weight: 600;
 }
 .card h3 .count { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--text-muted); }
+.card h3 .btn { text-transform: none; letter-spacing: 0; }
 
 .btn {
   display: inline-flex; align-items: center; gap: 4px;
@@ -137,11 +140,14 @@ select {
   appearance: none;
   -webkit-appearance: none;
   padding-right: 26px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: var(--chevron);
   background-repeat: no-repeat;
   background-position: right 9px center;
   background-size: 10px 6px;
 }
+/* A compact field, for one in a table row or a dense editor. */
+input.sm, select.sm, textarea.sm { padding: 4px 7px; font-size: 12px; }
+select.sm { padding-right: 24px; background-position: right 7px center; }
 input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15); }
 input:disabled, textarea:disabled, select:disabled { background-color: var(--bg); color: var(--text-muted); }
 .input-error { border-color: var(--danger) !important; }
@@ -163,6 +169,21 @@ tbody tr:last-child td { border-bottom: none; }
 .note, .hint { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
 .empty { padding: 22px 8px; text-align: center; color: var(--text-muted); font-size: 12px; }
 .save-error { color: var(--danger); font-size: 11.5px; margin-right: auto; min-width: 0; }
+.note code, .hint code, .mono { font-family: var(--mono); }
+.note code, .hint code { font-size: 10.5px; }
+
+/* A list beside its editor: a narrow side column (the variable browser) and the editor's column, the side one wrapping
+   to a full-width row on a narrow page; a row of fields side by side; and the editor's foot of notes and buttons. */
+.kit-split { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+.kit-split-side { flex: 1 1 260px; max-width: 340px; display: flex; flex-direction: column; max-height: 560px; }
+.kit-split-main { flex: 999 1 400px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+@media (max-width: 740px) {
+  .kit-split-side { max-width: none; max-height: 320px; }
+}
+.kit-fields { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.kit-fields > * { flex: 1; min-width: 140px; }
+.kit-fields > .narrow { flex: 0 1 120px; min-width: 90px; }
+.kit-foot { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 
 /* Small labels: a chip, a status dot, and the segmented control a view switches with. */
 .chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }

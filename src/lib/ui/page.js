@@ -8,7 +8,8 @@
 //   Kit.follow(itemId)                another item on the same link: its pushes, commands and calls
 //   Kit.initTabs(onSwitch, options)   the page's tabs, the bar shown from two; Kit.setTabs(list, active) for a set
 //                                     built per state; Kit.switchTab(name); the open tab kept in the address
-//   Kit.initPropertiesCard(el)        the properties card, for a driver whose lib.ui.tab-properties serves it
+//   Kit.initPropertiesCard(el, options)  the properties card, for a driver whose lib.ui.tab-properties serves it;
+//                                     options.exclude leaves out properties the page shows elsewhere
 //   Kit.demoMode(answer)              outside Composer: the demo banner, and commands answered by the page's demo
 //   Kit.deliver(command, data)        hands a demo answer to the page as a push would arrive
 //   Kit.esc, Kit.str, Kit.ago         text made safe for HTML; a value as text; a time as "5 min ago"
@@ -241,9 +242,14 @@ var Kit = (function () {
     });
   }
 
+  // A request the controller did not take answers at once, rather than when the wait runs out.
+  var NOT_TAKEN = { error: "the controller didn't take the command" };
+
   function call(command, params, answer, ms) {
     var answered = waitFor(waiters, answer, ms);
-    sendCommand(command, params);
+    sendCommand(command, params).then(function (r) {
+      if (r === null && apiHost) wake(waiters, answer, NOT_TAKEN);
+    });
     return answered;
   }
 
@@ -356,6 +362,7 @@ var Kit = (function () {
         live = false;
         subscribe(driverId, "properties", mine, onProperty);
         subscribe(driverId, "datatoui", mine, onData, function () {
+          linked = true;
           if (props.el) sendCommand("_GET_PROPERTIES");
           if (options.onConnect) options.onConnect();
         });
@@ -366,6 +373,7 @@ var Kit = (function () {
       sock.on("disconnect", function () {
         round++;
         live = false;
+        linked = false;
         showLink(false);
       });
     } catch (e) {
@@ -425,7 +433,9 @@ var Kit = (function () {
       },
       call: function (command, params, answer, ms) {
         var answered = waitFor(linkWaiters, answer, ms);
-        sendTo(id, command, params);
+        sendTo(id, command, params).then(function (r) {
+          if (r === null && apiHost) wake(linkWaiters, answer, NOT_TAKEN);
+        });
         return answered;
       },
     };
@@ -461,9 +471,10 @@ var Kit = (function () {
     if (!hashTabs) return;
     var open = hashTab();
     if (open.name && tabExists(open.name)) show(open.name, open.detail);
+    // Back, forward or an edited address; a switch's own change is already shown.
     window.addEventListener("hashchange", function () {
       var now = hashTab();
-      if (now.name && tabExists(now.name)) show(now.name, now.detail);
+      if (now.name && tabExists(now.name) && (now.name !== shown.name || now.detail !== shown.detail)) show(now.name, now.detail);
     });
   }
 
@@ -483,7 +494,10 @@ var Kit = (function () {
     return !!document.querySelector('.nav-tab[data-panel="' + name + '"]') || !!document.getElementById("panel-" + name);
   }
 
+  var shown = { name: null, detail: "" };
+
   function show(name, detail) {
+    shown = { name: name, detail: detail || "" };
     document.querySelectorAll(".nav-tab").forEach(function (t) {
       t.classList.toggle("active", t.dataset.panel === name);
     });
@@ -499,10 +513,7 @@ var Kit = (function () {
   function switchTab(name, detail) {
     if (hashTabs) {
       var want = "#" + name + (detail ? "/" + detail : "");
-      if (location.hash !== want) {
-        location.hash = want; // the hashchange shows it
-        return;
-      }
+      if (location.hash !== want) location.hash = want;
     }
     show(name, detail);
   }
@@ -510,18 +521,25 @@ var Kit = (function () {
   // Changes only the open tab's detail in the address, without a switch.
   function setDetail(detail) {
     if (!hashTabs) return;
-    var name = hashTab().name || (document.querySelector(".nav-tab.active") || { dataset: {} }).dataset.panel;
-    if (name) history.replaceState(null, "", "#" + name + (detail ? "/" + detail : ""));
+    var name = shown.name || hashTab().name;
+    if (!name) return;
+    shown.detail = detail || "";
+    history.replaceState(null, "", "#" + name + (detail ? "/" + detail : ""));
   }
 
   // The properties card: a page gives it an element inside a card, and the card hides until there is something to
   // show. It asks the driver for the properties on each connect and after each change, a change sends _SET_PROPERTY,
   // a refusal (PROPERTY_ERROR) shows under its field, and a change made in Composer redraws the card at once. A page that redraws the
   // card's element calls initPropertiesCard again with the new one.
-  var props = { el: null, list: [], errors: {} };
+  var props = { el: null, list: [], errors: {}, exclude: [] };
+  var linked = false; // the driver's pushes are subscribed
 
-  function initPropertiesCard(el) {
+  // options.exclude names properties the page shows elsewhere, which the card leaves out.
+  function initPropertiesCard(el, options) {
     props.el = el;
+    if (options && options.exclude) props.exclude = options.exclude;
+    // A card set up after the connect (a page that draws it with its first state) asks for itself.
+    if (!props.list.length && (linked || !apiHost)) askProperties();
     el.classList.add("kit-props");
     el.addEventListener("change", function (e) {
       var name = e.target.dataset.prop;
@@ -579,6 +597,7 @@ var Kit = (function () {
     if (el.contains(document.activeElement)) return;
     var groups = [];
     props.list.forEach(function (p, i) {
+      if (props.exclude.indexOf(p.name) >= 0) return;
       var g = groups[groups.length - 1];
       if (!g || g.name !== p.group) groups.push((g = { name: p.group, html: [] }));
       g.html.push(propertyCell(p, i));

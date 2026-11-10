@@ -107,6 +107,13 @@ for _, selector in ipairs({
   ".seg button",
   ".seg button:first-child",
   ".seg button.on",
+  ".card h3 .btn",
+  "input.sm",
+  "select.sm",
+  "textarea.sm",
+  ".note code",
+  ".hint code",
+  ".mono",
 }) do
   BASE[selector] = true
 end

@@ -255,10 +255,15 @@
   }
 
   // A help panel: options { toggle, panel, wrap, sections, mode, escapes }. Returns { open(state), isOpen(), render(mode) }.
+  // An element option may also be a selector.
+  function element(x) {
+    return typeof x === "string" ? document.querySelector(x) : x;
+  }
+
   function expressionHelp(options) {
-    var toggle = options.toggle;
-    var panel = options.panel;
-    var shown = options.wrap || panel;
+    var toggle = element(options.toggle);
+    var panel = element(options.panel);
+    var shown = element(options.wrap) || panel;
     var open = false;
     panel.classList.add("kit-help");
 
@@ -354,6 +359,9 @@
     box.appendChild(textarea);
     textarea.setAttribute("spellcheck", "false");
 
+    textarea = element(textarea);
+    if (options.preview) options.preview = element(options.preview);
+    if (options.watch) options.watch = element(options.watch);
     var parts = options.preview ? previewParts(options.preview) : null;
     var help = options.help && options.help.panel ? expressionHelp({
       toggle: options.help.toggle,
