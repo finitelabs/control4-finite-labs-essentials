@@ -19,7 +19,8 @@ it needs.
   variable and event
 - Network Requests: HTTP, TCP, UDP and Wake-on-LAN commands to devices with no
   Control4 driver, sent from programming
-- Composer tabs to write expressions and requests, with a live preview
+- Composer tabs to write expressions, with a live preview, and to set up and
+  send requests
 
 ## System requirements
 
