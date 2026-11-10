@@ -6,102 +6,20 @@
   <title>Network Requests</title>
   <style>
 <!-- #embed ../../../../src/lib/ui/style.css -->
-    :root { --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace; }
-
-    body { overflow-wrap: break-word; }
-    .nav-meta { min-width: 0; }
-
-    input[type="text"]:disabled { background: var(--bg); color: var(--text-muted); }
-
-    label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px; font-weight: 500; }
-    input[type="text"], input[type="number"], textarea, select {
-      width: 100%;
-      padding: 6px 8px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      color: var(--text);
-      font-size: 13px;
-      font-family: var(--font);
-    }
+<!-- #embed ../../../../src/lib/ui/variables.css -->
+<!-- #embed ../../../../src/lib/ui/expressions.css -->
     input.mono, textarea.mono { font-family: var(--mono); font-size: 12.5px; }
-    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
-    .input-error { border-color: var(--danger) !important; }
 
-    /* Highlighted payload editor: a transparent textarea stacked over a <pre>
-       that renders the same text colorized. Both layers share identical font
-       metrics so the caret and selection stay aligned. */
-    .edwrap { position: relative; }
-    .edwrap textarea, .edwrap pre {
-      font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
-      padding: 9px 10px; margin: 0;
-      white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word;
-      min-height: 64px; box-sizing: border-box; width: 100%;
-      border-radius: var(--radius); tab-size: 2;
-    }
-    .edwrap pre {
-      position: absolute; inset: 0;
-      border: 1px solid transparent;
-      background: var(--surface);
-      overflow: hidden;
-      pointer-events: none;
-      color: var(--text);
-    }
-    .edwrap textarea {
-      position: relative; z-index: 1; display: block;
-      background: transparent;
-      color: transparent;
-      caret-color: var(--text);
-      border: 1px solid var(--border);
-      resize: none; overflow: hidden;
-    }
-    .edwrap textarea::placeholder { color: #9ca3af; }
-    .edwrap textarea::selection { background: rgba(37,99,235,0.22); }
-    .hl-tok { background: #dbeafe; border-radius: 4px; box-shadow: 0 0 0 1.5px #dbeafe; color: #1d4ed8; }
-    .hl-esc { color: #b45309; font-weight: 600; }
-    .btn-ghost { background: transparent; border: 1px solid transparent; color: var(--text-muted); padding: 3px 6px; font-size: 11px; cursor: pointer; }
-    .btn-ghost:hover { color: var(--text); }
-    .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-
-    /* Scroll the table inside its card only on genuinely narrow panes;
-       1px rounding overflow must not summon a scrollbar on wide ones. */
-    .table-wrap { overflow-x: hidden; }
-    @media (max-width: 560px) { .table-wrap { overflow-x: auto; } }
-    table { width: 100%; min-width: 480px; border-collapse: collapse; table-layout: fixed; }
-    th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
-    th {
-      font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
-      color: var(--text-muted); font-weight: 600;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    td { font-size: 12px; }
-    .trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    tbody tr:hover td { background: var(--surface-hover); }
-    tbody tr:last-child td { border-bottom: none; }
     @media (max-width: 840px) { .col-type { display: none; } }
 
-    .chip {
-      display: inline-block; padding: 1px 7px; border-radius: 10px;
-      font-size: 10px; font-weight: 600;
-      max-width: 100%; overflow: hidden; text-overflow: ellipsis;
-      white-space: nowrap; vertical-align: bottom;
-    }
     .chip-http { background: #dbeafe; color: #1d4ed8; }
     .chip-tcp { background: #d1fae5; color: #059669; }
     .chip-udp { background: #fef9c3; color: #a16207; }
     .chip-wol { background: #ede9fe; color: #6d28d9; }
-    .chip-err { background: #fef3c7; color: #b45309; }
-
-    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; }
-    .status-ok { background: var(--success); }
-    .status-warn { background: var(--warning); }
-    .status-none { background: #d1d5db; }
 
     .req-target { font-family: var(--mono); font-size: 10.5px; color: var(--text-muted); }
     .res { font-family: var(--mono); font-size: 11.5px; }
-    .hint { font-size: 11.5px; color: var(--text-muted); margin-top: 8px; }
-    .hint code, .pub code { font-family: var(--mono); font-size: 10.5px; }
-    .empty { padding: 22px 8px; text-align: center; color: var(--text-muted); font-size: 12.5px; }
+    .hint code { font-family: var(--mono); font-size: 10.5px; }
 
     /* Editor layout: browser pane keeps a narrow band on wide panes and wraps
        to a full-width row on narrow ones. */
@@ -112,54 +30,9 @@
       .browser { max-width: none; max-height: 320px; }
     }
 
-    .tree-wrap { overflow-y: auto; flex: 1; margin-top: 8px; }
-    .troom {
-      font-size: 9.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
-      color: #9ca3af; padding: 8px 2px 3px;
-    }
-    .tsection {
-      font-size: 9px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
-      color: #b6bcc6; padding: 5px 6px 2px 22px;
-    }
-    .tdev {
-      display: flex; align-items: center; gap: 5px;
-      padding: 4px 4px; border-radius: 5px;
-      font-weight: 600; color: #374151; cursor: pointer; font-size: 12px;
-    }
-    .tdev:hover { background: var(--surface-hover); }
-    .tdev .chev { color: #9ca3af; font-size: 10px; width: 10px; }
-    .tvar {
-      display: flex; align-items: center; gap: 6px;
-      padding: 3px 6px 3px 22px; border-radius: 5px;
-      color: #374151; cursor: pointer;
-    }
-    .tvar:hover { background: #eef2ff; outline: 1px solid #c7d2fe; }
-    .tvar .vname { flex: 1; min-width: 0; font-family: var(--mono); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .tvar.used .vname::after { content: " \2713"; color: var(--success); }
-    .tvar .vval {
-      margin-left: auto; font-family: var(--mono); font-size: 11px;
-      color: var(--text-muted); font-variant-numeric: tabular-nums;
-      max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: none;
-    }
-    .tvar .ins {
-      visibility: hidden; flex: none;
-      font-size: 10px; font-weight: 600; color: #fff;
-      background: var(--accent); border-radius: 4px; padding: 1px 6px;
-    }
-    .tvar:hover .ins { visibility: visible; }
-    .tfoot { padding-top: 8px; font-size: 10.5px; color: #9ca3af; }
-    .tloading { padding: 4px 22px; font-size: 11px; color: var(--text-muted); font-style: italic; }
-    mark.hlq { background: #fde68a; color: inherit; border-radius: 2px; padding: 0; }
-
     .frow { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
     .frow .f { flex: 1; min-width: 140px; }
     .frow .f-narrow { flex: 0 1 120px; min-width: 90px; }
-    .seg { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-    .seg button {
-      padding: 5px 12px; font-size: 12px; color: var(--text-muted);
-      background: var(--surface); border: none; cursor: pointer; font-family: var(--font);
-    }
-    .seg button.on { background: var(--accent); color: #fff; font-weight: 600; }
 
     .hgrid { display: grid; grid-template-columns: 1fr 2fr 26px; gap: 6px; margin-bottom: 6px; align-items: center; }
     .hgrid .hdel { text-align: center; cursor: pointer; color: var(--text-muted); font-weight: 600; }
@@ -171,36 +44,8 @@
       padding: 8px 10px; margin-top: 8px;
       max-height: 180px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere;
     }
-    .pub { font-size: 11px; color: var(--text-muted); border-top: 1px dashed #e2e8f0; margin-top: 9px; padding-top: 8px; }
-
-    /* Syntax help */
-    .label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-    .help-toggle {
-      background: none; border: none; padding: 0; cursor: pointer;
-      font-family: var(--font); font-size: 11px; font-weight: 500; color: var(--accent);
-    }
-    .help-toggle:hover { text-decoration: underline; }
-    .help {
-      display: none;
-      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius);
-      padding: 10px 12px; margin-top: 8px;
-      columns: 2; column-gap: 24px;
-    }
-    .help.open { display: block; }
-    @media (max-width: 740px) { .help { columns: 1; } }
-    .help section { break-inside: avoid; margin-bottom: 10px; }
-    .help h4 {
-      font-size: 9.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
-      color: #94a3b8; margin: 0 0 3px;
-    }
-    .help p { font-size: 11.5px; color: #475569; margin: 0 0 4px; }
-    .help code { font-family: var(--mono); font-size: 10.5px; color: #1e293b; background: #eef2f7; border-radius: 3px; padding: 0 3px; }
 
     .footbar { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
-    .save-error { color: var(--danger); font-size: 11.5px; margin-right: auto; min-width: 0; }
-    .checklabel { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: #374151; cursor: pointer; }
-    .checklabel input { width: auto; }
-    #conn-warn { margin: 0 0 12px; }
   </style>
 </head>
 <body>
@@ -212,7 +57,6 @@
 
 <!-- ── List panel ─────────────────────────────────────────────── -->
 <div class="panel active" id="panel-list">
-  <div class="banner warn" id="conn-warn" hidden>Not connected to the controller API. Open this tab from Composer.</div>
   <div class="card" id="props-card" hidden>
     <h3>Properties</h3>
     <div id="props"></div>
@@ -291,9 +135,7 @@
 
     <div class="card browser">
       <h3>Variables</h3>
-      <input type="text" id="var-search" placeholder="Search rooms, devices, variables" oninput="renderTree()"/>
-      <div class="tree-wrap" id="tree"></div>
-      <div class="tfoot" id="tree-foot"></div>
+      <div id="vb"></div>
     </div>
 
     <div class="editor-col">
@@ -334,17 +176,12 @@
           <div id="req-headers"></div>
           <button type="button" class="btn btn-ghost" onclick="addHeaderRow('','')">+ Add header</button>
           <div style="margin-top:8px;">
-            <label class="checklabel"><input type="checkbox" id="req-tls"/>
+            <label class="check"><input type="checkbox" id="req-tls"/>
               Validate TLS certificate (off accepts self-signed certs, common on LAN devices)</label>
           </div>
           <div style="margin-top:10px;">
             <label for="req-body">Body</label>
-            <div class="edwrap">
-              <pre id="hl-body" aria-hidden="true"></pre>
-              <textarea id="req-body" data-tok="1" rows="3" spellcheck="false"
-                placeholder='{"value": PARAM{100001,2301}}'
-                oninput="syncHl('req-body','hl-body')"></textarea>
-            </div>
+            <textarea id="req-body" data-tok="1" rows="3" placeholder='{"value": PARAM{100001,2301}}'></textarea>
           </div>
         </div>
 
@@ -367,14 +204,9 @@
               </div>
             </div>
           </div>
-          <div class="edwrap">
-            <pre id="hl-payload" aria-hidden="true"></pre>
-            <textarea id="req-payload" data-tok="1" rows="3" spellcheck="false"
-              placeholder="PWR ON\r\n"
-              oninput="syncHl('req-payload','hl-payload')"></textarea>
-          </div>
+          <textarea id="req-payload" data-tok="1" rows="3" placeholder="PWR ON\r\n"></textarea>
           <div class="frow" id="tcp-wait-row" style="margin-top:10px; align-items:center;">
-            <label class="checklabel"><input type="checkbox" id="req-wait"/>
+            <label class="check"><input type="checkbox" id="req-wait"/>
               Wait for a response</label>
             <div class="f-narrow" id="tcp-timeout-wrap">
               <label for="req-timeout">Timeout (s)</label>
@@ -394,42 +226,11 @@
           <p class="hint" style="margin-top:0;">Sends a Wake-on-LAN magic packet as a UDP broadcast.</p>
         </div>
 
-        <div class="label-row" style="margin-top:8px;">
+        <div class="kit-label-row" style="margin-top:8px;">
           <span></span>
-          <button type="button" class="help-toggle" id="help-toggle" onclick="toggleHelp()">Syntax help</button>
+          <button type="button" id="help-toggle">Syntax help</button>
         </div>
-        <div class="help" id="help-panel">
-          <section>
-            <h4>Variable tokens</h4>
-            <p><code>PARAM{deviceId,variableId}</code> is replaced with the variable's current
-            value each time the request is sent. Click a variable in the browser to insert its
-            token into the focused field. Variables can also be referenced by name:
-            <code>PARAM{96,HUMIDITY}</code> (exact match, case sensitive). Tokens work in the URL,
-            body, header values, and Text payloads.</p>
-          </section>
-          <section>
-            <h4>Text payloads (TCP / UDP)</h4>
-            <p>Sent as typed, after decoding the escapes <code>\r</code> <code>\n</code>
-            <code>\t</code> <code>\0</code> <code>\\</code> and <code>\xNN</code> (two hex
-            digits). For example, the payload <code>PWR ON\r\n</code> sends
-            <code>PWR&nbsp;ON</code> followed by a carriage return and a line feed.</p>
-          </section>
-          <section>
-            <h4>Hex payloads (TCP / UDP)</h4>
-            <p>To send raw bytes instead of text, switch the <b>Text | Hex</b> toggle above the
-            payload field to Hex, then write the whole payload as hex digits. Whitespace, commas,
-            and <code>0x</code> prefixes are ignored, so <code>02 41 54 0d</code>,
-            <code>0x02,0x41,0x54,0x0d</code>, and <code>0241540d</code> all send the same 4
-            bytes. Variable tokens are not substituted in Hex payloads.</p>
-          </section>
-          <section>
-            <h4>HTTP</h4>
-            <p>HTTPS is supported; TLS certificates are only checked when
-            <b>Validate TLS certificate</b> is on, so self-signed LAN devices work by default.
-            For basic auth, put the user name and password in the URL ahead of the host. The last response
-            body is published to the <code>&lt;Name&gt; Response</code> variable.</p>
-          </section>
-        </div>
+        <div id="help-panel"></div>
       </div>
 
       <div class="card" id="last-result-card" style="display:none;">
@@ -444,7 +245,7 @@
         <button class="btn btn-outline" id="btn-send-now" title="Save and send now" onclick="saveRequest(true)">Save &amp; Send</button>
         <button class="btn btn-primary" onclick="saveRequest(false)">Save Request</button>
       </div>
-      <div class="pub" id="pub-line" style="margin-top:-4px;"></div>
+      <div class="kit-prev-foot" id="pub-line" style="margin-top:-4px;"></div>
     </div>
 
   </div>
@@ -452,54 +253,71 @@
 
 <script>
 <!-- #embed ../../../../src/lib/ui/page.js -->
+<!-- #embed ../../../../src/lib/ui/variables.js -->
+<!-- #embed ../../../../src/lib/ui/expressions.js -->
 var sendCommand = Kit.sendCommand, esc = Kit.esc, gDriverId = Kit.driverId;
 
-
 var DRIVER_HANDLERS = {
-  CONFIG_DATA: function (params) {
-    onConfig(JSON.parse(params.requests || '[]'));
-    onWebhooks(JSON.parse(params.webhooks || '[]'), params.webhookBase || '');
+  CONFIG_DATA: function (data) {
+    onConfig(data.requests);
+    onWebhooks(data.webhooks, data.webhookBase);
   },
-  REQUEST_RESULT: function (params) { onRequestResult(JSON.parse(params.data)); },
-  WEBHOOK_RESULT: function (params) { onWebhookResult(JSON.parse(params.data)); },
-  DEVICES_DATA: function (params) { onDevices(JSON.parse(params.devices || '[]')); },
-  DEVICE_VARIABLES_DATA: function (params) { onDeviceVariables(params.deviceId, JSON.parse(params.variables || '[]')); },
-  SAVE_RESULT: function (params) { onSaveResult(params); },
+  REQUEST_RESULT: onRequestResult,
+  WEBHOOK_RESULT: onWebhookResult,
+  SAVE_RESULT: onSaveResult,
 };
-
-// ============================================================
-// Helpers
-// ============================================================
-function agoLabel(ts) {
-  if (!ts) return '';
-  var s = Math.max(0, Math.floor(Date.now()/1000 - Number(ts)));
-  if (s < 5) return 'just now';
-  if (s < 60) return s + 's ago';
-  if (s < 3600) return Math.floor(s/60) + 'm ago';
-  return Math.floor(s/3600) + 'h ago';
-}
-function escAttr(s) { return esc(s).replace(/\\/g, '\\\\'); }
 
 // ============================================================
 // State
 // ============================================================
 var gRequests = [];              // [{name, type, method, url, body, headers, host, port, payload, encoding, waitResponse, timeout, mac, status, detail, code, response, ts}]
-var gDevices = [];               // [{id, name, roomName}]
-var gVarsByDevice = {};          // id -> [{id, name, type, value}]
-var gExpanded = {};              // id -> true (manual expansion outside search)
-var gSearchCollapsed = {};       // id -> true (collapse override while searching)
-var gRequestedVars = {};         // id -> true (variable fetch already in flight)
-var gPrevLoaded = {};            // id -> true (had variables at least once; survives onDevices)
-var gLastQ = '';                 // current search term
 var gEditor = { open: false, originalName: '', type: 'http', encoding: 'text' };
-var gTokTarget = null;           // last focused token-capable field
 var gSendAfterSave = false;      // Save & Send flow
+
+// Tokens and escapes are colored in the body and the payload; neither is evaluated as it is typed.
+var bodyEditor = Kit.expressionEditor(document.getElementById('req-body'), { mode: 'text', escapes: true });
+var payloadEditor = Kit.expressionEditor(document.getElementById('req-payload'), { mode: 'text', escapes: true });
+Kit.expressionHelp({
+  toggle: document.getElementById('help-toggle'),
+  panel: document.getElementById('help-panel'),
+  sections: [
+    { title: 'Variable tokens',
+      html: '<p><code>PARAM{deviceId,variableId}</code> is replaced with the variable\'s current value each time the'
+        + ' request is sent. Click a variable in the browser to insert its token into the focused field. Variables can'
+        + ' also be referenced by name: <code>PARAM{96,HUMIDITY}</code> (exact match, case sensitive). Tokens work in'
+        + ' the URL, body, header values, and Text payloads.</p>' },
+    { title: 'Text payloads (TCP / UDP)',
+      html: '<p>Sent as typed, after decoding the escapes below. For example, the payload <code>PWR ON\\r\\n</code>'
+        + ' sends <code>PWR&nbsp;ON</code> followed by a carriage return and a line feed.</p>' },
+    { title: 'Hex payloads (TCP / UDP)',
+      html: '<p>To send raw bytes instead of text, switch the <b>Text | Hex</b> toggle above the payload field to Hex,'
+        + ' then write the whole payload as hex digits. Whitespace, commas, and <code>0x</code> prefixes are ignored,'
+        + ' so <code>02 41 54 0d</code>, <code>0x02,0x41,0x54,0x0d</code>, and <code>0241540d</code> all send the'
+        + ' same 4 bytes. Variable tokens are not substituted in Hex payloads.</p>' },
+    { title: 'HTTP',
+      html: '<p>HTTPS is supported; TLS certificates are only checked when <b>Validate TLS certificate</b> is on, so'
+        + ' self-signed LAN devices work by default. For basic auth, put the user name and password in the URL ahead'
+        + ' of the host. The last response body is published to the <code>&lt;Name&gt; Response</code> variable.</p>' },
+    'escapes',
+  ],
+});
+
+function defaultTokTarget() {
+  if (gEditor.type === 'http') return document.getElementById('req-body');
+  if (gEditor.type === 'tcp' || gEditor.type === 'udp') return document.getElementById('req-payload');
+  return null;
+}
+
+var browser = Kit.variableBrowser(document.getElementById('vb'), {
+  target: function (last) { return last || defaultTokTarget(); },
+  usedIn: '[data-tok]',
+});
 
 // ============================================================
 // List view
 // ============================================================
 function onConfig(requests) {
-  gRequests = requests || [];
+  gRequests = Array.isArray(requests) ? requests : [];
   renderList();
   if (gSendAfterSave) {
     gSendAfterSave = false;
@@ -530,7 +348,7 @@ function renderList() {
     var typeChip = '<span class="chip chip-' + esc(x.type) + '">' + esc((x.type || '').toUpperCase()) + '</span>';
     var resCell;
     if (x.status === 'error') resCell = '<span class="chip chip-err" title="' + esc(x.detail) + '">' + esc(x.detail || 'Error') + '</span>';
-    else if (x.status === 'ok') resCell = '<span class="res" title="' + esc((x.response || '') + '\n' + agoLabel(x.ts)) + '">' + esc(x.detail || 'sent') + '</span>';
+    else if (x.status === 'ok') resCell = '<span class="res" title="' + esc((x.response || '') + '\n' + Kit.ago(x.ts)) + '">' + esc(x.detail || 'sent') + '</span>';
     else resCell = '<span class="res" style="color:var(--text-muted);">-</span>';
     html += '<tr data-name="' + esc(x.name) + '">'
       + '<td class="trunc" title="' + esc(x.name) + '"><span class="status-dot ' + dot + '"></span><b>' + esc(x.name) + '</b></td>'
@@ -538,13 +356,23 @@ function renderList() {
       + '<td class="trunc"><span class="req-target" title="' + esc(targetLabel(x)) + '">' + esc(targetLabel(x)) + '</span></td>'
       + '<td class="cell-result trunc">' + resCell + '</td>'
       + '<td style="text-align:right; white-space:nowrap;">'
-      + '<button class="btn btn-outline btn-sm" title="Send now" onclick="runRequest(\'' + escAttr(x.name) + '\')">&#9654; Send</button> '
-      + '<button class="btn btn-ghost" onclick="editRequest(\'' + escAttr(x.name) + '\')">Edit</button>'
-      + '<button class="btn btn-ghost" title="Delete" onclick="deleteRequest(\'' + escAttr(x.name) + '\')">&#10005;</button>'
+      + '<button class="btn btn-outline btn-sm" title="Send now" data-act="send">&#9654; Send</button> '
+      + '<button class="btn btn-ghost" data-act="edit">Edit</button>'
+      + '<button class="btn btn-ghost" title="Delete" data-act="delete">&#10005;</button>'
       + '</td></tr>';
   });
   tb.innerHTML = html;
 }
+
+// A row's buttons name their action; the row names the request or webhook.
+function onRowAction(tbody, actions) {
+  document.getElementById(tbody).addEventListener('click', function(e) {
+    var button = e.target.closest('[data-act]');
+    if (!button) return;
+    actions[button.getAttribute('data-act')](button.closest('tr').getAttribute('data-name'));
+  });
+}
+onRowAction('req-rows', { send: runRequest, edit: editRequest, delete: deleteRequest });
 
 function onRequestResult(p) {
   var found = false;
@@ -580,7 +408,7 @@ function webhookUrl(x) {
 }
 
 function onWebhooks(webhooks, base) {
-  gWebhooks = webhooks || [];
+  gWebhooks = Array.isArray(webhooks) ? webhooks : [];
   gWebhookBase = base || '';
   renderWebhooks();
 }
@@ -598,19 +426,20 @@ function renderWebhooks() {
   gWebhooks.forEach(function(x) {
     var url = webhookUrl(x);
     var last;
-    if (x.ts) last = '<span class="res" title="' + esc(x.payload || '') + '">' + esc(agoLabel(x.ts)) + (x.from ? ' from ' + esc(x.from) : '') + '</span>';
+    if (x.ts) last = '<span class="res" title="' + esc(x.payload || '') + '">' + esc(Kit.ago(x.ts)) + (x.from ? ' from ' + esc(x.from) : '') + '</span>';
     else last = '<span class="res" style="color:var(--text-muted);">never</span>';
-    html += '<tr>'
+    html += '<tr data-name="' + esc(x.name) + '">'
       + '<td class="trunc" title="' + esc(x.name) + '"><span class="status-dot ' + (x.ts ? 'status-ok' : 'status-none') + '"></span><b>' + esc(x.name) + '</b></td>'
       + '<td class="trunc"><span class="req-target" title="' + esc(url) + '">' + esc(url) + '</span></td>'
       + '<td class="trunc">' + last + '</td>'
       + '<td style="text-align:right; white-space:nowrap;">'
-      + '<button class="btn btn-ghost" title="Copy URL" onclick="copyWebhookUrl(\'' + escAttr(x.name) + '\')">Copy</button>'
-      + '<button class="btn btn-ghost" title="Delete" onclick="deleteWebhook(\'' + escAttr(x.name) + '\')">&#10005;</button>'
+      + '<button class="btn btn-ghost" title="Copy URL" data-act="copy">Copy</button>'
+      + '<button class="btn btn-ghost" title="Delete" data-act="delete">&#10005;</button>'
       + '</td></tr>';
   });
   tb.innerHTML = html;
 }
+onRowAction('hook-rows', { copy: copyWebhookUrl, delete: deleteWebhook });
 
 function copyWebhookUrl(name) {
   var x = null;
@@ -677,25 +506,23 @@ function openEditor(req) {
   document.getElementById('req-name-lock').style.display = req ? 'inline' : 'none';
   document.getElementById('req-method').value = req && req.method ? req.method : 'GET';
   document.getElementById('req-url').value = req ? (req.url || '') : '';
-  document.getElementById('req-body').value = req ? (req.body || '') : '';
   document.getElementById('req-tls').checked = req ? !!req.tlsVerify : false;
   document.getElementById('req-host').value = req ? (req.host || '') : '';
   document.getElementById('req-port').value = req && req.port ? req.port : '';
-  document.getElementById('req-payload').value = req ? (req.payload || '') : '';
   document.getElementById('req-wait').checked = req ? !!req.waitResponse : false;
   document.getElementById('req-timeout').value = req && req.timeout ? req.timeout : 5;
   document.getElementById('req-mac').value = req ? (req.mac || '') : '';
   document.getElementById('save-error').textContent = '';
   renderHeaderRows(req && req.headers ? req.headers : []);
-  setEncoding(req && req.encoding === 'hex' ? 'hex' : 'text', true);
+  setEncoding(req && req.encoding === 'hex' ? 'hex' : 'text');
   setType(req ? req.type : 'http');
   if (req && req.status) renderLastResult(req); else hideLastResult();
   document.getElementById('panel-list').classList.remove('active');
   document.getElementById('panel-editor').classList.add('active');
+  bodyEditor.setValue(req ? req.body : '');
+  payloadEditor.setValue(req ? req.payload : '');
   // Unguarded: the list must refresh on every open, not just populate once.
-  sendCommand('_GET_DEVICES');
-  syncHl('req-body','hl-body');
-  syncHl('req-payload','hl-payload');
+  browser.refresh();
   updatePublishLine();
   document.getElementById('req-name').focus();
 }
@@ -718,11 +545,10 @@ function setType(type) {
   updatePublishLine();
 }
 
-function setEncoding(enc, skipSync) {
+function setEncoding(enc) {
   gEditor.encoding = enc;
   document.getElementById('enc-text').className = enc === 'text' ? 'on' : '';
   document.getElementById('enc-hex').className = enc === 'hex' ? 'on' : '';
-  if (!skipSync) syncHl('req-payload','hl-payload');
 }
 
 // ── Header rows ─────────────────────────────────────────────
@@ -738,7 +564,7 @@ function addHeaderRow(name, value) {
   row.innerHTML = '<input type="text" class="mono h-name" spellcheck="false" placeholder="Content-Type" value="' + esc(name) + '"/>'
     + '<input type="text" class="mono h-value" data-tok="1" spellcheck="false" placeholder="application/json" value="' + esc(value) + '"/>'
     + '<span class="hdel" title="Remove header">&#10005;</span>';
-  row.querySelector('.hdel').addEventListener('click', function() { row.remove(); });
+  row.querySelector('.hdel').addEventListener('click', function() { row.remove(); browser.render(); });
   wrap.appendChild(row);
 }
 
@@ -750,39 +576,6 @@ function collectHeaders() {
     if (name) out.push({ name: name, value: value });
   });
   return out;
-}
-
-// ── Payload highlighting ────────────────────────────────────
-function escMin(s) {
-  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-var HL_RE = /(PARAM\s*\{[^}]*\})|(\\x[0-9a-fA-F]{2}|\\[rnt0\\])/g;
-
-function hlRender(text) {
-  var out = escMin(text).replace(HL_RE, function(m, tok, escSeq) {
-    if (tok) return '<span class="hl-tok">' + tok + '</span>';
-    if (escSeq) return '<span class="hl-esc">' + escSeq + '</span>';
-    return m;
-  });
-  if (out.slice(-1) === '\n' || out === '') out += '​';
-  return out;
-}
-
-function syncHl(taId, preId) {
-  var box = document.getElementById(taId);
-  var hl = document.getElementById(preId);
-  hl.innerHTML = hlRender(box.value);
-  box.style.height = 'auto';
-  box.style.height = Math.max(64, box.scrollHeight) + 'px';
-  renderTree(); // keep used checkmarks in sync
-}
-
-function toggleHelp() {
-  var panel = document.getElementById('help-panel');
-  var open = !panel.classList.contains('open');
-  panel.classList.toggle('open', open);
-  document.getElementById('help-toggle').textContent = open ? 'Hide syntax help' : 'Syntax help';
 }
 
 function updatePublishLine() {
@@ -799,7 +592,7 @@ function renderLastResult(entry) {
   card.style.display = 'block';
   var line = document.getElementById('last-result-line');
   var body = document.getElementById('last-result-body');
-  var when = entry.ts ? ' · ' + agoLabel(entry.ts) : '';
+  var when = entry.ts ? ' · ' + Kit.ago(entry.ts) : '';
   if (entry.status === 'error') {
     line.innerHTML = '<span class="chip chip-err">' + esc(entry.detail || 'Error') + '</span>' + esc(when);
   } else {
@@ -843,12 +636,12 @@ function saveRequest(sendAfter) {
     type: type,
     method: document.getElementById('req-method').value,
     url: document.getElementById('req-url').value.trim(),
-    body: document.getElementById('req-body').value,
+    body: bodyEditor.value(),
     headers: collectHeaders(),
     tlsVerify: document.getElementById('req-tls').checked,
     host: document.getElementById('req-host').value.trim(),
     port: Number(document.getElementById('req-port').value || 0),
-    payload: document.getElementById('req-payload').value,
+    payload: payloadEditor.value(),
     encoding: gEditor.encoding,
     waitResponse: document.getElementById('req-wait').checked,
     timeout: Number(document.getElementById('req-timeout').value || 5),
@@ -859,7 +652,7 @@ function saveRequest(sendAfter) {
 }
 
 function onSaveResult(p) {
-  if (p && (p.ok === false || p.ok === 'false')) {
+  if (p.ok === false) {
     gSendAfterSave = false;
     gPendingSendName = null;
     document.getElementById('panel-list').classList.remove('active');
@@ -869,244 +662,84 @@ function onSaveResult(p) {
 }
 
 // ============================================================
-// Variable browser
+// Demo data, outside Composer
 // ============================================================
-function onDevices(devices) {
-  gDevices = devices || [];
-  gVarsByDevice = {};
-  gRequestedVars = {};
-  renderTree();
-}
+var DEMO_NOW = Math.floor(Date.now() / 1000);
+var DEMO_REQUESTS = [
+  { name: 'Display On', type: 'http', method: 'GET', url: 'http://192.168.1.5:9080/api/v1/display/on',
+    headers: [], status: 'ok', detail: 'HTTP 200 GET', response: '{"ok":true}', ts: DEMO_NOW },
+  { name: 'Sub Level +10', type: 'http', method: 'POST', url: 'http://192.168.1.16/api/level',
+    body: '{"channel":"sub","level":10}',
+    headers: [], status: 'ok', detail: 'HTTP 200 POST', ts: DEMO_NOW },
+  { name: 'Projector Power On', type: 'tcp', host: '192.168.1.30', port: 4352, payload: '%1POWR 1\\r',
+    encoding: 'text', waitResponse: true, timeout: 5, status: 'error', detail: 'no response from 192.168.1.30:4352 within 5s', ts: DEMO_NOW },
+  { name: 'Wake Office PC', type: 'wol', mac: 'AA:BB:CC:DD:EE:FF', status: 'ok', detail: 'sent magic packet for AA:BB:CC:DD:EE:FF', ts: DEMO_NOW }
+];
+var DEMO_WEBHOOKS = [
+  { name: 'Doorbell Motion', key: 'secret', from: '192.168.1.50', payload: 'zone=porch', ts: DEMO_NOW - 120 },
+  { name: 'Backup Finished', key: '', ts: 0 }
+];
+var DEMO_DEVICES = [
+  { id: 105, name: 'Demo Power Strip', roomName: 'Kitchen', section: 'Devices' },
+  { id: 100001, name: 'Variables', roomName: 'Agents', section: 'Agents' }
+];
+var DEMO_VARIABLES = {
+  100001: [
+    { id: 2301, name: 'MB_HIGH_HUMIDITY_DIFF_THRESHOLD', type: 'NUMBER', value: '4' }
+  ],
+  105: [
+    { id: 1017, name: 'Outlet 5 Power', type: 'NUMBER', value: '1342.6' },
+    { id: 1014, name: 'Voltage', type: 'NUMBER', value: '122' }
+  ]
+};
+var DEMO_PROPERTIES = [
+  // #ifdef DRIVERCENTRAL
+  { group: 'Cloud Settings', name: 'Cloud Status', value: 'License Activated', readonly: true },
+  // #endif
+  { group: 'Cloud Settings', name: 'Automatic Updates', value: 'On', choices: ['Off', 'On'] },
+  // #ifndef DRIVERCENTRAL
+  { group: 'Cloud Settings', name: 'Update Channel', value: 'Production', choices: ['Production', 'Prerelease'] },
+  // #endif
+  { group: 'Driver Settings', name: 'Driver Status', value: 'Ready', readonly: true },
+  { group: 'Driver Settings', name: 'Driver Version', value: '20261105', readonly: true },
+  // #ifdef DRIVERCENTRAL
+  { group: 'Driver Settings', name: 'Log Level', value: '3 - Info', choices: ['0 - Fatal', '1 - Error', '2 - Warning', '3 - Info', '4 - Debug'] },
+  // #else
+  { group: 'Driver Settings', name: 'Log Level', value: '3 - Info', choices: ['0 - Fatal', '1 - Error', '2 - Warning', '3 - Info', '4 - Debug', '5 - Trace', '6 - Ultra'] },
+  // #endif
+  { group: 'Driver Settings', name: 'Log Mode', value: 'Off', choices: ['Off', 'Print', 'Log', 'Print and Log'] },
+  // #ifdef DRIVERCENTRAL
+  { group: 'Driver Settings', name: 'Cloud Monitoring', value: 'Enabled', choices: ['Disabled', 'Enabled'], description: 'Sends memory and error reports to Finite Labs so we can fix driver problems.' },
+  // #endif
+  { group: 'Webhook Settings', name: 'Webhook Port', value: '49300', minimum: 0, maximum: 65535, description: 'Port for the inbound webhook HTTP server. 0 disables webhooks.' },
+  { group: 'Webhook Settings', name: 'Webhook URL', value: 'http://192.168.1.2:49300/<Webhook Name>', readonly: true, description: 'Base URL external systems call to fire webhook events.' },
+];
 
-function onDeviceVariables(deviceId, variables) {
-  gVarsByDevice[String(deviceId)] = variables || [];
-  gPrevLoaded[String(deviceId)] = true;
-  renderTree();
-}
-
-function toggleDevice(id) {
-  var key = String(id);
-  if (gLastQ) {
-    if (gSearchCollapsed[key]) delete gSearchCollapsed[key];
-    else gSearchCollapsed[key] = true;
-  } else if (gExpanded[key]) {
-    delete gExpanded[key];
-  } else {
-    gExpanded[key] = true;
+function demoAnswer(command) {
+  if (command === '_GET_CONFIG') {
+    Kit.deliver('CONFIG_DATA', { requests: DEMO_REQUESTS, webhooks: DEMO_WEBHOOKS, webhookBase: 'http://192.168.1.2:49300/' });
+  } else if (command === '_GET_PROPERTIES') {
+    Kit.deliver('PROPERTIES', { properties: DEMO_PROPERTIES });
   }
-  if (!gVarsByDevice[key]) fetchVars(id);
-  renderTree();
 }
-
-function fetchVars(id) {
-  var key = String(id);
-  if (gRequestedVars[key]) return;
-  gRequestedVars[key] = true;
-  sendCommand('_GET_DEVICE_VARIABLES', { deviceId: Number(id) });
-}
-
-function usedTokenSet() {
-  // Set of "deviceId:variableRef" pairs referenced by any token-capable field.
-  var set = {};
-  var re = /PARAM\s*\{\s*(\d+)\s*,\s*([^}]*?)\s*\}/g;
-  document.querySelectorAll('[data-tok]').forEach(function(el) {
-    var m;
-    while ((m = re.exec(el.value || '')) !== null) set[m[1] + ':' + m[2]] = true;
-    re.lastIndex = 0;
-  });
-  return set;
-}
-
-function hi(s) {
-  var t = esc(s);
-  if (!gLastQ) return t;
-  var eq = esc(gLastQ).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return t.replace(new RegExp('(' + eq + ')', 'ig'), '<mark class="hlq">$1</mark>');
-}
-
-var AUTO_EXPAND_LIMIT = 25;
-var FETCH_LIMIT = 15;
-
-function renderTree() {
-  var q = (document.getElementById('var-search').value || '').toLowerCase();
-  if (q !== gLastQ) { gSearchCollapsed = {}; gLastQ = q; }
-  var tree = document.getElementById('tree');
-  var foot = document.getElementById('tree-foot');
-  var used = usedTokenSet();
-
-  var visible = [];
-  var fetches = 0;
-  gDevices.forEach(function(d) {
-    var room = d.roomName || 'No Room';
-    var matchDevice = !q || (d.name || '').toLowerCase().indexOf(q) !== -1 || room.toLowerCase().indexOf(q) !== -1;
-    var vars = gVarsByDevice[String(d.id)];
-    var matchingVars = null;
-    if (q && !matchDevice) {
-      if (!vars) {
-        // onDevices() cleared the var cache; re-fetch devices we had loaded so a
-        // variable-name search still finds them, then wait for the next render.
-        if (gPrevLoaded[String(d.id)] && fetches < FETCH_LIMIT) { fetchVars(d.id); fetches++; }
-        return;
-      }
-      matchingVars = vars.filter(function(v) { return (v.name || '').toLowerCase().indexOf(q) !== -1; });
-      if (!matchingVars.length) return;
-    }
-    visible.push({ d: d, room: room, matchingVars: matchingVars });
-  });
-
-  var autoExpand = q && visible.length <= AUTO_EXPAND_LIMIT;
-  var html = '';
-  var lastRoom = null;
-
-  visible.forEach(function(item) {
-    var d = item.d;
-    var key = String(d.id);
-    var vars = gVarsByDevice[key];
-    if (item.room !== lastRoom) {
-      html += '<div class="troom">' + hi(item.room) + '</div>';
-      lastRoom = item.room;
-    }
-    var expanded = q
-      ? (autoExpand || !!item.matchingVars) && !gSearchCollapsed[key]
-      : !!gExpanded[key];
-    if (expanded && !vars && fetches < FETCH_LIMIT) {
-      fetchVars(d.id);
-      fetches++;
-    }
-    html += '<div class="tdev" onclick="toggleDevice(' + d.id + ')"><span class="chev">' + (expanded ? '&#9662;' : '&#9656;') + '</span>' + hi(d.name) + '</div>';
-    if (expanded) {
-      if (!vars) {
-        html += '<div class="tloading">loading variables...</div>';
-      } else {
-        var list = item.matchingVars || vars;
-        if (!list.length) html += '<div class="tloading">no variables</div>';
-        var lastSection = null;
-        list.forEach(function(v) {
-          // An entry can span a driver and the proxies restating it; head each
-          // member's block, and token on the member that owns the variable.
-          if (v.section && v.section !== lastSection) {
-            html += '<div class="tsection">' + esc(v.section) + '</div>';
-            lastSection = v.section;
-          }
-          var owner = v.deviceId != null ? v.deviceId : d.id;
-          var isUsed = used[owner + ':' + v.id] || used[owner + ':' + v.name];
-          html += '<div class="tvar' + (isUsed ? ' used' : '') + '" onclick="insertToken(' + owner + ',' + v.id + ')" title="' + esc(d.name) + ' &gt; ' + esc(v.name) + '">'
-            + '<span class="vname">' + hi(v.name) + '</span>'
-            + '<span class="vval">' + esc(v.value == null ? '' : v.value) + '</span>'
-            + '<span class="ins">Insert</span>'
-            + '</div>';
-        });
-      }
-    }
-  });
-
-  tree.innerHTML = html || '<div class="tloading">' + (gDevices.length ? 'no matches' : 'loading devices...') + '</div>';
-  foot.textContent = gDevices.length ? (visible.length + ' of ' + gDevices.length + ' devices') : '';
-}
-
-function defaultTokTarget() {
-  if (gEditor.type === 'http') return document.getElementById('req-body');
-  if (gEditor.type === 'tcp' || gEditor.type === 'udp') return document.getElementById('req-payload');
-  return null;
-}
-
-function insertToken(deviceId, variableId) {
-  var token = 'PARAM{' + deviceId + ',' + variableId + '}';
-  var box = (gTokTarget && document.contains(gTokTarget)) ? gTokTarget : defaultTokTarget();
-  if (!box) return;
-  var start = box.selectionStart != null ? box.selectionStart : box.value.length;
-  var end = box.selectionEnd != null ? box.selectionEnd : box.value.length;
-  box.value = box.value.slice(0, start) + token + box.value.slice(end);
-  var caret = start + token.length;
-  box.focus();
-  box.setSelectionRange(caret, caret);
-  if (box.id === 'req-body') syncHl('req-body','hl-body');
-  else if (box.id === 'req-payload') syncHl('req-payload','hl-payload');
-  else renderTree();
-}
-
-// Track the last focused token-capable field so Insert lands there.
-document.addEventListener('focusin', function(e) {
-  if (e.target && e.target.getAttribute && e.target.getAttribute('data-tok')) gTokTarget = e.target;
-});
-
-
-// ============================================================
-// Tabs
-// ============================================================
 
 // ============================================================
 // Boot
 // ============================================================
-(async function boot() {
-  Kit.initTabs(closeEditor);
-  Kit.initPropertiesCard(document.getElementById('props'));
-  document.getElementById('nav-meta').textContent = 'Network Requests' + (gDriverId ? ' · device ' + gDriverId : '');
-  document.getElementById('req-wait').addEventListener('change', updatePublishLine);
-  if (Kit.demoMode(null)) {
-    // No controller API (opened outside Composer): show demo data so the
-    // layout can be previewed.
-    var now = Math.floor(Date.now() / 1000);
-    onConfig([
-      { name: 'Display On', type: 'http', method: 'GET', url: 'http://192.168.1.5:9080/api/v1/display/on',
-        headers: [], status: 'ok', detail: 'HTTP 200 GET', response: '{"ok":true}', ts: now },
-      { name: 'Sub Level +10', type: 'http', method: 'POST', url: 'http://192.168.1.16/api/level',
-        body: '{"channel":"sub","level":10}',
-        headers: [], status: 'ok', detail: 'HTTP 200 POST', ts: now },
-      { name: 'Projector Power On', type: 'tcp', host: '192.168.1.30', port: 4352, payload: '%1POWR 1\\r',
-        encoding: 'text', waitResponse: true, timeout: 5, status: 'error', detail: 'no response from 192.168.1.30:4352 within 5s', ts: now },
-      { name: 'Wake Office PC', type: 'wol', mac: 'AA:BB:CC:DD:EE:FF', status: 'ok', detail: 'sent magic packet for AA:BB:CC:DD:EE:FF', ts: now }
-    ]);
-    onDevices([
-      { id: 100001, name: 'Variables Agent', roomName: 'Services' },
-      { id: 105, name: 'Demo Power Strip', roomName: 'Kitchen' }
-    ]);
-    onDeviceVariables(100001, [
-      { id: 2301, name: 'MB_HIGH_HUMIDITY_DIFF_THRESHOLD', type: 'NUMBER', value: '4' }
-    ]);
-    onDeviceVariables(105, [
-      { id: 1014, name: 'Voltage', type: 'NUMBER', value: '122' },
-      { id: 1017, name: 'Outlet 5 Power', type: 'NUMBER', value: '1342.6' }
-    ]);
-    onWebhooks([
-      { name: 'Doorbell Motion', key: 'secret', from: '192.168.1.50', payload: 'zone=porch', ts: now - 120 },
-      { name: 'Backup Finished', key: '', ts: 0 }
-    ], 'http://192.168.1.2:49300/');
-    Kit.showProperties([
-      // #ifdef DRIVERCENTRAL
-      { group: 'Cloud Settings', name: 'Cloud Status', value: 'License Activated', readonly: true },
-      // #endif
-      { group: 'Cloud Settings', name: 'Automatic Updates', value: 'On', choices: ['Off', 'On'] },
-      // #ifndef DRIVERCENTRAL
-      { group: 'Cloud Settings', name: 'Update Channel', value: 'Production', choices: ['Production', 'Prerelease'] },
-      // #endif
-      { group: 'Driver Settings', name: 'Driver Status', value: 'Ready', readonly: true },
-      { group: 'Driver Settings', name: 'Driver Version', value: '20261105', readonly: true },
-      // #ifdef DRIVERCENTRAL
-      { group: 'Driver Settings', name: 'Log Level', value: '3 - Info', choices: ['0 - Fatal', '1 - Error', '2 - Warning', '3 - Info', '4 - Debug'] },
-      // #else
-      { group: 'Driver Settings', name: 'Log Level', value: '3 - Info', choices: ['0 - Fatal', '1 - Error', '2 - Warning', '3 - Info', '4 - Debug', '5 - Trace', '6 - Ultra'] },
-      // #endif
-      { group: 'Driver Settings', name: 'Log Mode', value: 'Off', choices: ['Off', 'Print', 'Log', 'Print and Log'] },
-      // #ifdef DRIVERCENTRAL
-      { group: 'Driver Settings', name: 'Cloud Monitoring', value: 'Enabled', choices: ['Disabled', 'Enabled'], description: 'Sends memory and error reports to Finite Labs so we can fix driver problems.' },
-      // #endif
-      { group: 'Webhook Settings', name: 'Webhook Port', value: '49300', minimum: 0, maximum: 65535, description: 'Port for the inbound webhook HTTP server. 0 disables webhooks.' },
-      { group: 'Webhook Settings', name: 'Webhook URL', value: 'http://192.168.1.2:49300/<Webhook Name>', readonly: true, description: 'Base URL external systems call to fire webhook events.' },
-    ]);
-    return;
+Kit.initTabs(closeEditor);
+Kit.initPropertiesCard(document.getElementById('props'));
+document.getElementById('nav-meta').textContent = 'Network Requests' + (gDriverId ? ' · device ' + gDriverId : '');
+document.getElementById('req-wait').addEventListener('change', updatePublishLine);
+if (Kit.demoMode(demoAnswer)) Kit.devices.demo(DEMO_DEVICES, DEMO_VARIABLES);
+Kit.connectDriver({
+  handlers: DRIVER_HANDLERS,
+  onConnect: function () {
+    sendCommand('_GET_CONFIG');
+    browser.refresh();
   }
-  Kit.connectDriver({
-    handlers: DRIVER_HANDLERS,
-    onConnect: function () {
-      sendCommand('_GET_CONFIG');
-      sendCommand('_GET_DEVICES');
-    }
-  });
-  // Keep relative timestamps fresh
-  // Keeps the read-only properties current too.
-  setInterval(function() { if (!gEditor.open) { sendCommand('_GET_CONFIG'); renderList(); } }, 30000);
-})();
+});
+// Keeps the relative times fresh.
+setInterval(function() { if (!gEditor.open) { sendCommand('_GET_CONFIG'); renderList(); } }, 30000);
 </script>
 </body>
 </html>

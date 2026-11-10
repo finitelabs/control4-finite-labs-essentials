@@ -11,12 +11,14 @@ JSON = require("JSON")
 
 local deferred = require("deferred")
 local log = require("lib.logging")
+local page = require("lib.ui.page")
 local pageParams = require("lib.ui.page-params")
 local persist = require("lib.persist")
 local values = require("lib.values")
 local events = require("lib.events")
 local http = require("lib.http")
 local updateSettings = require("lib.update-settings")
+local devices = require("lib.ui.devices")
 local tabProperties = require("lib.ui.tab-properties")
 --#ifdef DRIVERCENTRAL
 local drivercentral = require("lib.drivercentral")
@@ -283,15 +285,13 @@ local function setResult(name, entry)
   local results = getResults()
   results[name] = entry
   persist:set(PERSIST_RESULTS, results)
-  C4:SendDataToUI("REQUEST_RESULT", {
-    data = JSON:encode({
-      name = name,
-      status = entry.status or "",
-      detail = entry.detail or "",
-      code = entry.code ~= nil and tostring(entry.code) or "",
-      response = entry.response or "",
-      ts = entry.ts or os.time(),
-    }),
+  page.send("REQUEST_RESULT", {
+    name = name,
+    status = entry.status or "",
+    detail = entry.detail or "",
+    code = entry.code ~= nil and tostring(entry.code) or "",
+    response = entry.response or "",
+    ts = entry.ts or os.time(),
   })
 end
 
@@ -655,13 +655,11 @@ local function setWebhookResult(name, entry)
   local results = getWebhookResults()
   results[name] = entry
   persist:set(PERSIST_WEBHOOK_RESULTS, results)
-  C4:SendDataToUI("WEBHOOK_RESULT", {
-    data = JSON:encode({
-      name = name,
-      from = entry.from or "",
-      payload = entry.payload or "",
-      ts = entry.ts or os.time(),
-    }),
+  page.send("WEBHOOK_RESULT", {
+    name = name,
+    from = entry.from or "",
+    payload = entry.payload or "",
+    ts = entry.ts or os.time(),
   })
 end
 
@@ -811,7 +809,6 @@ function OnServerStatusChanged(nPort, strStatus)
       string.format("Failed to listen on port %s (%s)", tostring(nPort), tostring(strStatus))
     )
   end
-  UIR._GET_CONFIG()
 end
 
 function OnServerConnectionStatusChanged(nHandle, nPort, strStatus)
@@ -948,7 +945,6 @@ function OnDriverLateInit()
 
   gInitialized = true
   UpdateProperty("Driver Status", "Ready")
-  tabProperties:follow(UIR._GET_CONFIG)
 
   --#ifdef DRIVERCENTRAL
   drivercentral:startGate(function(active)
@@ -1029,9 +1025,9 @@ function OPC.Support_Code(propertyValue)
   supportCode:enter(propertyValue)
 end
 
--- Log Level's choices change with the Support Code's hour, which runs no handler the tab follows.
+-- Log Level's choices change with the Support Code's hour, which changes no property the tab follows.
 supportCode:onChange(function()
-  UIR._GET_CONFIG()
+  UIR._GET_PROPERTIES()
 end)
 
 --- Turns Cloud Monitoring on or off.
@@ -1052,29 +1048,16 @@ function OPC.Webhook_Port(propertyValue)
     return
   end
   startWebhookServer()
+  -- The tab's webhook URLs carry the port.
+  UIR._GET_CONFIG()
 end
 
 --------------------------------------------------------------------------------
 -- Web UI Request Handlers (UIR)
 --------------------------------------------------------------------------------
 
---- Send a response to the web UI via both return value (for REST) and
---- SendDataToUI (for socket push). Returns JSON for REST callers.
---- @param command string The response command name.
---- @param data table The response data.
---- @return string JSON response for REST callers.
-local function uiRespond(command, data)
-  -- C4:SendDataToUI cannot serialize boolean values (Director throws a
-  -- basic_string construction error), so send them as strings on the socket
-  -- push. The REST return keeps real booleans via JSON encoding.
-  local safe = {}
-  for k, v in pairs(data) do
-    safe[k] = type(v) == "boolean" and tostring(v) or v
-  end
-  C4:SendDataToUI(command, safe)
-  data._command = command
-  return JSON:encode(data)
-end
+tabProperties:serve()
+devices.serve()
 
 --- Send the full request configuration and last results to the web UI.
 function UIR._GET_CONFIG()
@@ -1123,24 +1106,7 @@ function UIR._GET_CONFIG()
   table.sort(webhooks, function(a, b)
     return (a.name or "") < (b.name or "")
   end)
-  return uiRespond("CONFIG_DATA", {
-    requests = JSON:encode(requests),
-    webhooks = JSON:encode(webhooks),
-    webhookBase = webhookBaseUrl() or "",
-    properties = JSON:encode(tabProperties:list()),
-  })
-end
-
---- Set one of the driver's properties, as Composer's Properties tab would.
---- @param tParams table
-function UIR._SET_PROPERTY(tParams)
-  log:trace("UIR._SET_PROPERTY()")
-  local params = pageParams(tParams)
-  local err = tabProperties:set(params.property, params.value)
-  if err then
-    return uiRespond("PROPERTY_ERROR", { payload = JSON:encode({ property = params.property, error = err }) })
-  end
-  return UIR._GET_CONFIG()
+  page.send("CONFIG_DATA", { requests = requests, webhooks = webhooks, webhookBase = webhookBaseUrl() or "" })
 end
 
 --- Create or update a named webhook.
@@ -1150,7 +1116,7 @@ function UIR._SAVE_WEBHOOK(tParams)
   local params = pageParams(tParams)
   local name = tostring(params.name or ""):match("^%s*(.-)%s*$")
   if IsEmpty(name) then
-    return uiRespond("SAVE_RESULT", { ok = false, error = "Name is required" })
+    return page.send("SAVE_RESULT", { ok = false, error = "Name is required" })
   end
   local webhooks = getWebhooks()
   webhooks[name] = { name = name, key = tostring(params.key or "") }
@@ -1183,20 +1149,20 @@ function UIR._SAVE_REQUEST(tParams)
   local originalName = tostring(params.originalName or ""):match("^%s*(.-)%s*$")
 
   if IsEmpty(name) then
-    return uiRespond("SAVE_RESULT", { ok = false, error = "Name is required" })
+    return page.send("SAVE_RESULT", { ok = false, error = "Name is required" })
   end
   local requestType = tostring(params.type or "")
   if requestType ~= "http" and requestType ~= "tcp" and requestType ~= "udp" and requestType ~= "wol" then
-    return uiRespond("SAVE_RESULT", { ok = false, error = "Unknown request type" })
+    return page.send("SAVE_RESULT", { ok = false, error = "Unknown request type" })
   end
   if requestType == "http" and IsEmpty(tostring(params.url or "")) then
-    return uiRespond("SAVE_RESULT", { ok = false, error = "URL is required" })
+    return page.send("SAVE_RESULT", { ok = false, error = "URL is required" })
   end
   if (requestType == "tcp" or requestType == "udp") and IsEmpty(tostring(params.host or "")) then
-    return uiRespond("SAVE_RESULT", { ok = false, error = "Host is required" })
+    return page.send("SAVE_RESULT", { ok = false, error = "Host is required" })
   end
   if requestType == "wol" and IsEmpty(tostring(params.mac or "")) then
-    return uiRespond("SAVE_RESULT", { ok = false, error = "MAC address is required" })
+    return page.send("SAVE_RESULT", { ok = false, error = "MAC address is required" })
   end
 
   local headers = {}
@@ -1208,13 +1174,13 @@ function UIR._SAVE_REQUEST(tParams)
 
   local requests = getRequests()
   if not IsEmpty(originalName) and originalName ~= name then
-    return uiRespond("SAVE_RESULT", {
+    return page.send("SAVE_RESULT", {
       ok = false,
       error = "Requests cannot be renamed. Create a new request and delete this one.",
     })
   end
   if IsEmpty(originalName) and requests[name] ~= nil then
-    return uiRespond("SAVE_RESULT", { ok = false, error = "A request named '" .. name .. "' already exists" })
+    return page.send("SAVE_RESULT", { ok = false, error = "A request named '" .. name .. "' already exists" })
   end
 
   local config = {
@@ -1263,167 +1229,6 @@ function UIR._RUN_REQUEST(tParams)
   local params = pageParams(tParams)
   sendRequest(tostring(params.name or ""))
   return UIR._GET_CONFIG()
-end
-
---- Whether a proxy merely restates the device that declares it. A proxy named
---- for itself -- a security panel's areas, a receiver's tuner -- must stay its
---- own entry or it vanishes from the browser.
---- @param proxy table|nil
---- @param owner table
---- @return boolean
-local function isRestatedProxy(proxy, owner)
-  return proxy ~= nil and tostring(proxy.deviceName) == tostring(owner.deviceName)
-end
-
---- Section heading for a member of a merged entry, taken from the proxy's .c4i.
---- @param dev table
---- @param isOwner boolean
---- @return string
-local function proxySectionLabel(dev, isOwner)
-  if isOwner then
-    return "Device"
-  end
-  local file = tostring((dev or {}).driverFileName or "")
-  local base = file:match("^(.*)%.c4i$") or file:match("^(.*)%.c4z$")
-  return IsEmpty(base) and "Proxy" or base
-end
-
---- Send the device list to the web UI with display names (Room > Device).
----
---- A driver and the proxy it declares are separate project items sharing a room
---- and name, so the browser listed the same device twice, one half expanding to
---- "no variables". Those are dropped. Survivors can still collide -- a project
---- may hold many instances of one driver -- so they get the device id appended.
-function UIR._GET_DEVICES()
-  log:trace("UIR.GET_DEVICES()")
-  local devices = {}
-  local allDevices = C4:GetDevices() or {}
-
-  -- Proxy id -> owning driver id, for proxies that only restate their owner.
-  local ownerOf = {}
-  for id, dev in pairs(allDevices) do
-    for proxyId in pairs(dev.proxies or {}) do
-      local pid = tonumber(proxyId) or proxyId
-      if isRestatedProxy(allDevices[pid], dev) then
-        ownerOf[pid] = id
-      end
-    end
-  end
-
-  -- Collapse chains so a proxy of a proxy still lands in an entry.
-  local rootOf, membersOf = {}, {}
-  for id in pairs(allDevices) do
-    local root, seen = id, { [id] = true }
-    while ownerOf[root] ~= nil and not seen[ownerOf[root]] do
-      root = ownerOf[root]
-      seen[root] = true
-    end
-    rootOf[id] = root
-    membersOf[root] = membersOf[root] or {}
-    table.insert(membersOf[root], id)
-  end
-
-  for id, dev in pairs(allDevices) do
-    if rootOf[id] == id then
-      local hasVariables = false
-      for _, mid in ipairs(membersOf[id]) do
-        local ok, memberVars = pcall(C4.GetDeviceVariables, C4, mid)
-        if ok and memberVars ~= nil and next(memberVars) ~= nil then
-          hasVariables = true
-          break
-        end
-      end
-      if hasVariables then
-        devices[#devices + 1] = {
-          id = id,
-          name = dev.deviceName or ("Device " .. id),
-          roomName = dev.roomName or "",
-        }
-      end
-    end
-  end
-  local labelCounts = {}
-  for _, d in ipairs(devices) do
-    local label = d.roomName .. " > " .. d.name
-    labelCounts[label] = (labelCounts[label] or 0) + 1
-  end
-  for _, d in ipairs(devices) do
-    if labelCounts[d.roomName .. " > " .. d.name] > 1 then
-      d.name = string.format("%s (%s)", d.name, d.id)
-    end
-  end
-  table.sort(devices, function(a, b)
-    if (a.roomName or "") ~= (b.roomName or "") then
-      return (a.roomName or "") < (b.roomName or "")
-    end
-    return (a.name or "") < (b.name or "")
-  end)
-  return uiRespond("DEVICES_DATA", { devices = JSON:encode(devices) })
-end
-
---- Send variables for a specific device to the web UI.
---- @param tParams table
-function UIR._GET_DEVICE_VARIABLES(tParams)
-  log:trace("UIR.GET_DEVICE_VARIABLES()")
-  local params = pageParams(tParams)
-  local devId = tonumber(params.deviceId)
-  if not devId then
-    return
-  end
-
-  local entry = C4:GetDevices({ DeviceIds = tostring(devId) })[devId] or {}
-  local members = { { id = devId, section = proxySectionLabel(entry, true), order = 1 } }
-  local queue, seen = { { id = devId, dev = entry } }, { [devId] = true }
-  while #queue > 0 do
-    local cur = table.remove(queue, 1)
-    -- pairs() over proxies has no defined order, so walk them by id: section
-    -- order would otherwise vary between calls.
-    local childIds = {}
-    for proxyId in pairs((cur.dev or {}).proxies or {}) do
-      childIds[#childIds + 1] = tonumber(proxyId) or proxyId
-    end
-    table.sort(childIds)
-    for _, pid in ipairs(childIds) do
-      local proxy = C4:GetDevices({ DeviceIds = tostring(pid) })[pid]
-      if not seen[pid] and isRestatedProxy(proxy, cur.dev) then
-        seen[pid] = true
-        members[#members + 1] = { id = pid, section = proxySectionLabel(proxy, false), order = #members + 1 }
-        queue[#queue + 1] = { id = pid, dev = proxy }
-      end
-    end
-  end
-
-  local vars = {}
-  for _, member in ipairs(members) do
-    local ok, deviceVars = pcall(C4.GetDeviceVariables, C4, member.id)
-    if ok and deviceVars then
-      for varId, varInfo in pairs(deviceVars) do
-        vars[#vars + 1] = {
-          id = tonumber(varId),
-          deviceId = member.id,
-          section = member.section,
-          order = member.order,
-          name = varInfo.name or ("var" .. varId),
-          type = varInfo.type or "STRING",
-          value = varInfo.value,
-        }
-      end
-    end
-  end
-  -- Order on the member's position, not its label: comparing label strings ties
-  -- when a proxy's .c4i is named Device, and the owner-first rule contradicts
-  -- that tie. LuaJIT's table.sort does not reject the resulting cycle, it just
-  -- silently stops putting the device's own variables first.
-  table.sort(vars, function(a, b)
-    if a.order ~= b.order then
-      return a.order < b.order
-    end
-    return (a.name or "") < (b.name or "")
-  end)
-  return uiRespond("DEVICE_VARIABLES_DATA", {
-    deviceId = tostring(devId),
-    variables = JSON:encode(vars),
-  })
 end
 
 --------------------------------------------------------------------------------

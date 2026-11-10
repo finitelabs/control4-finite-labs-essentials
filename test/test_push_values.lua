@@ -1,5 +1,5 @@
 -- What the tabs get pushed keeps its exact text: the socket reads a param like 12.50, 007 or false as a number or a
--- boolean, so results go as one JSON string.
+-- boolean, so each push goes through lib.ui.page as one JSON string, which the kit decodes for the page.
 --
 -- Run from the driver root:
 --   make test
@@ -39,8 +39,8 @@ local function pushed(command)
     if pushes[i].command == command then
       local params = pushes[i].params
       T.eq(command .. " has only its JSON string", next(params, next(params)), nil)
-      T.eq(command .. " sends it as a string", type(params.data), "string")
-      return JSON:decode(params.data)
+      T.eq(command .. " sends it as a string", type(params.json), "string")
+      return JSON:decode(params.json)
     end
   end
   T.check(command .. " was pushed", false)
@@ -64,6 +64,12 @@ do
   local webhook = pushed("WEBHOOK_RESULT")
   T.eq("a payload like a number keeps its text", webhook.payload, "12.50")
   T.eq("a webhook's name keeps its text", webhook.name, "456")
+
+  UIR._GET_CONFIG()
+  local config = pushed("CONFIG_DATA")
+  T.eq("the config's requests come as a list, not as text", config.requests[1].name, "123")
+  T.eq("with their booleans", config.requests[1].tlsVerify, false)
+  T.eq("and the webhooks too", config.webhooks[1].name, "456")
 end
 
 T.section("Variable Expressions")
@@ -75,21 +81,21 @@ do
   T.eq("a name like a number keeps its text", result.name, "007")
   T.eq("what it renders keeps its text", result.rendered, "72.50")
 
-  UIR._EVAL_EXPRESSION(data({ id = "1", mode = "string", template = "false" }))
+  UIR._EVAL_EXPRESSION(data({ id = "1", mode = "string", expression = "false" }))
   local preview = pushed("EVAL_RESULT")
   T.eq("a preview's result keeps its text", preview.result, "false")
   T.eq("and what it renders", preview.rendered, "false")
   T.eq("and what it substitutes", preview.substituted, "false")
 end
 
-T.section("Each page reads them that way")
+T.section("Each page gets the object the driver sent")
 do
-  local requests = readFile("drivers/network_requests/www/html/index.html")
-  T.check("REQUEST_RESULT", requests:find("onRequestResult(JSON.parse(params.data))", 1, true) ~= nil)
-  T.check("WEBHOOK_RESULT", requests:find("onWebhookResult(JSON.parse(params.data))", 1, true) ~= nil)
-  local expressions = readFile("drivers/variable_expressions/www/html/index.html")
-  T.check("EXPRESSION_RESULT", expressions:find("onExpressionResult(JSON.parse(params.data))", 1, true) ~= nil)
-  T.check("EVAL_RESULT", expressions:find("onEvalResult(JSON.parse(params.data))", 1, true) ~= nil)
+  local kit = readFile("src/lib/ui/page.js")
+  T.check("the kit decodes the JSON string", kit:find("parseJson(params.json, {})", 1, true) ~= nil)
+  for _, driver in ipairs({ "network_requests", "variable_expressions" }) do
+    local page = readFile("drivers/" .. driver .. "/www/html/index.html")
+    T.check(driver .. "'s page decodes nothing again", page:find("JSON.parse(", 1, true) == nil)
+  end
 end
 
 T.finish()

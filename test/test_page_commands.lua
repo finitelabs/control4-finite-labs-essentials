@@ -26,6 +26,27 @@ end
 
 local LONG = string.rep("A long request body. ", 500)
 
+local pushes = {}
+
+--- Loads a driver and records the config it pushes to the tab.
+local function load(driver)
+  H.load(driver, H.LICENSED)
+  pushes = {}
+  function C4:SendDataToUI(command, params)
+    pushes[#pushes + 1] = { command = command, params = params }
+  end
+end
+
+--- The last config pushed, decoded.
+local function config()
+  for i = #pushes, 1, -1 do
+    if pushes[i].command == "CONFIG_DATA" then
+      return JSON:decode(pushes[i].params.json)
+    end
+  end
+  return {}
+end
+
 --- Text from every length of UTF-8, with what XML reads as markup.
 local TEXT = "caf\195\169 \230\151\165\230\156\172 \240\159\146\161 <a&b>"
 
@@ -71,24 +92,24 @@ end
 
 T.section("Network Requests saves a long body sent that way")
 do
-  H.load("network_requests", H.LICENSED)
-  local config = JSON:decode(UIR._SAVE_REQUEST(asPageSends({
+  load("network_requests")
+  UIR._SAVE_REQUEST(asPageSends({
     name = "Long",
     type = "http",
     method = "POST",
     url = "http://198.51.100.20/",
     body = LONG,
-  })))
-  local requests = JSON:decode(config.requests)
+  }))
+  local requests = config().requests or {}
   T.eq("it is saved", #requests, 1)
   T.eq("whole", requests[1].body, LONG)
 end
 
 T.section("Variable Expressions saves a long expression sent that way")
 do
-  H.load("variable_expressions", H.LICENSED)
-  local config = JSON:decode(UIR._SAVE_EXPRESSION(asPageSends({ name = "Long", mode = "string", template = LONG })))
-  local expressions = JSON:decode(config.expressions)
+  load("variable_expressions")
+  UIR._SAVE_EXPRESSION(asPageSends({ name = "Long", mode = "string", template = LONG }))
+  local expressions = config().expressions or {}
   T.eq("it is saved", #expressions, 1)
   T.eq("whole", expressions[1].template, LONG)
 end
@@ -105,7 +126,7 @@ end
 
 T.section("Text outside Latin-1, sent through the pages' encodeParams in lib/ui/page.js")
 if hasNode() then
-  H.load("network_requests", H.LICENSED)
+  load("network_requests")
   local request = fromPage("network_requests", {
     name = "Text",
     type = "http",
@@ -115,16 +136,16 @@ if hasNode() then
   })
   T.check("the page encodes it", request.DATA ~= "")
   if request.DATA ~= "" then
-    local config = JSON:decode(UIR._SAVE_REQUEST(request))
-    T.eq("Network Requests stores it exactly", named(JSON:decode(config.requests), "Text").body, TEXT)
+    UIR._SAVE_REQUEST(request)
+    T.eq("Network Requests stores it exactly", named(config().requests or {}, "Text").body, TEXT)
   end
 
-  H.load("variable_expressions", H.LICENSED)
+  load("variable_expressions")
   local expression = fromPage("variable_expressions", { name = "Text", mode = "string", template = TEXT })
   T.check("the page encodes it", expression.DATA ~= "")
   if expression.DATA ~= "" then
-    local config = JSON:decode(UIR._SAVE_EXPRESSION(expression))
-    T.eq("Variable Expressions stores it exactly", named(JSON:decode(config.expressions), "Text").template, TEXT)
+    UIR._SAVE_EXPRESSION(expression)
+    T.eq("Variable Expressions stores it exactly", named(config().expressions or {}, "Text").template, TEXT)
   end
 else
   print("SKIP: node not installed; the pages' own line was not run")
