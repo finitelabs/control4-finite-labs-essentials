@@ -116,7 +116,6 @@
 <!-- #embed ../../../../src/lib/ui/page.js -->
 <!-- #embed ../../../../src/lib/ui/variables.js -->
 <!-- #embed ../../../../src/lib/ui/expressions.js -->
-<!-- #embed ../../../../src/lib/ui/expressions-demo.js -->
 var sendCommand = Kit.sendCommand, esc = Kit.esc, gDriverId = Kit.driverId;
 
 var DRIVER_HANDLERS = {
@@ -327,6 +326,15 @@ var DEMO_VARIABLES = {
     { id: 1014, name: 'Voltage', type: 'NUMBER', value: '122' }
   ]
 };
+// The previews the demo expressions get, as the driver answers them.
+var DEMO_PREVIEWS = {
+  'abs(PARAM{96,1002} - PARAM{97,1002})': { result: '7.6', substituted: 'abs(61.8 - 54.2)',
+    rendered: 'abs([Master Bathroom > Bath Humidity Sensor > HUMIDITY] - [Upstairs Hallway > Hall Humidity Sensor > HUMIDITY])' },
+  'Espresso machine: PARAM{105,1017} W': { result: 'Espresso machine: 1342.6 W', substituted: 'Espresso machine: 1342.6 W',
+    rendered: 'Espresso machine: [Kitchen > Demo Power Strip > Outlet 5 Power] W' },
+  'PARAM{140,1003} / 24': { substituted: 'ERROR_VARIABLE_NOT_FOUND / 24', error: 'device 140 not found',
+    rendered: '[Device 140 > 1003] / 24' }
+};
 var DEMO_PROPERTIES = [
   // #ifdef DRIVERCENTRAL
   { group: 'Cloud Settings', name: 'Cloud Status', value: 'License Activated', readonly: true },
@@ -348,9 +356,13 @@ var DEMO_PROPERTIES = [
   // #endif
 ];
 
-function demoAnswer(command) {
+function demoAnswer(command, params) {
   if (command === '_GET_CONFIG') Kit.deliver('CONFIG_DATA', { expressions: DEMO_EXPRESSIONS });
   else if (command === '_GET_PROPERTIES') Kit.deliver('PROPERTIES', { properties: DEMO_PROPERTIES });
+  else if (command === '_EVAL_EXPRESSION') {
+    var preview = DEMO_PREVIEWS[params.expression] || { error: 'Opened outside Composer, only the demo expressions preview.' };
+    Kit.deliver('EVAL_RESULT', Object.assign({ id: params.id, rendered: '', substituted: '', result: '', error: '' }, preview));
+  }
 }
 
 // ============================================================
@@ -362,7 +374,6 @@ document.getElementById('nav-meta').textContent = 'Variable Expressions' + (gDri
 document.getElementById('expr-name').addEventListener('input', updatePublishLine);
 if (Kit.demoMode(demoAnswer)) {
   Kit.devices.demo(DEMO_DEVICES, DEMO_VARIABLES);
-  Kit.expressionDemo(DEMO_DEVICES, DEMO_VARIABLES);
 }
 Kit.connectDriver({
   handlers: DRIVER_HANDLERS,
