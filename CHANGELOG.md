@@ -62,6 +62,10 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 - Changed the drivers' icons and documentation header to a new Finite Labs
   Essentials mark.
+- Changed the variable browser in the Network Requests and Variable Expressions
+  tabs to list the project's agents along with its devices.
+- Changed the Variable Expressions preview to explain an error in a plain
+  sentence.
 
 ## v20260816 - 2026-08-16
 

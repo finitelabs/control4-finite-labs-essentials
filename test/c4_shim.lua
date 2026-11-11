@@ -187,8 +187,32 @@ end
 function C4:GetDriverFileName()
   return "example.c4z"
 end
-function C4:SendToDevice() end
-function C4:SendToProxy() end
+-- The controller checks the type of each argument it is handed, by place, so a nil handed as the 4th or 5th
+-- argument is refused even when nothing follows it. The messages are the controller's (4.3.0, 2026-11-10).
+function C4:SendToDevice(...)
+  local n, _, _, tParams, allowEmptyValues, logCommand = select("#", ...), ...
+  if n < 3 then
+    error("Error: Not Enough Parameters Passed (expected 3)", 0)
+  elseif type(tParams) ~= "table" then
+    error("tParams should be a table", 0)
+  elseif n >= 4 and type(allowEmptyValues) ~= "boolean" then
+    error("Error: 4th parameter must be a boolean value", 0)
+  elseif n >= 5 and type(logCommand) ~= "boolean" then
+    error("Error: 5th parameter must be a boolean value", 0)
+  end
+end
+function C4:SendToProxy(...)
+  local n, _, _, tParams, strMessage, allowEmptyValues = select("#", ...), ...
+  if n < 3 then
+    error("Error: Not Enough Parameters Passed (expected 3)", 0)
+  elseif type(tParams) ~= "table" and type(tParams) ~= "string" then
+    error("Error: 3rd parameter must be a string (strValue) or table (tParams)", 0)
+  elseif n >= 4 and type(strMessage) ~= "string" then
+    error("strCallType should be a string", 0)
+  elseif n >= 5 and type(allowEmptyValues) ~= "boolean" then
+    error("Error: 5th parameter must be a boolean value", 0)
+  end
+end
 
 ---------------------------------------------------------------------------
 -- Network bindings
@@ -1240,6 +1264,21 @@ end
 --- in the process, and under Fahrenheit a scale assertion can no longer fail.
 function ShimResetTemperatureScale()
   temperature_scale = DEFAULT_TEMPERATURE_SCALE
+end
+
+---------------------------------------------------------------------------
+-- Project properties
+-- A controller answers every name with a string: a keypad LED color as "0000ff",
+-- and "" for a name the project doesn't have, never nil. The shim answers "" for
+-- every name but TemperatureScale, which reads the scale above. A suite that
+-- needs real values, keypad LED colors among them, defines its own.
+---------------------------------------------------------------------------
+
+function C4:GetProjectProperty(name)
+  if name == "TemperatureScale" then
+    return temperature_scale
+  end
+  return ""
 end
 
 ---------------------------------------------------------------------------

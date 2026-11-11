@@ -18,6 +18,27 @@ end
 
 H.load("variable_expressions", H.LICENSED)
 
+local pushes = {}
+function C4:SendDataToUI(command, params)
+  pushes[#pushes + 1] = { command = command, params = params }
+end
+
+--- The last push of a command, decoded.
+local function pushed(command)
+  for i = #pushes, 1, -1 do
+    if pushes[i].command == command then
+      return JSON:decode(pushes[i].params.json)
+    end
+  end
+  return {}
+end
+
+--- The expressions the tab is sent.
+local function rows()
+  UIR._GET_CONFIG()
+  return pushed("CONFIG_DATA").expressions
+end
+
 --- The project's variables: device 96 and 97 hold numbers, 98 a temperature, 120 a pool and a spa, and 200 whatever
 --- text a test gives it.
 local function project(title, humidity)
@@ -57,9 +78,9 @@ local function eval(mode, template)
   debug.sethook(function()
     error("ran too long")
   end, "", 2000000)
-  local answer = JSON:decode(UIR._EVAL_EXPRESSION(data({ id = "1", mode = mode, template = template })))
+  UIR._EVAL_EXPRESSION(data({ id = "1", mode = mode, expression = template }))
   debug.sethook()
-  return JSON:decode(answer.data)
+  return pushed("EVAL_RESULT")
 end
 
 project()
@@ -136,8 +157,7 @@ do
   project('a "quoted" title')
   UIR._SAVE_EXPRESSION(data({ name = "Is Set", mode = "equation", template = "PARAM{200,Title} ~= '' and 1 or 0" }))
   T.eq("its result variable", Variables["Is Set Result"], "1")
-  local config = JSON:decode(UIR._GET_CONFIG())
-  local row = JSON:decode(config.expressions)[1]
+  local row = rows()[1]
   T.eq("its row has no error", row.error, nil)
   T.eq("its row names the variable", row.rendered:find("Title", 1, true) ~= nil, true)
   UIR._DELETE_EXPRESSION(data({ name = "Is Set" }))
@@ -173,7 +193,7 @@ do
     auto = true,
   }))
   T.eq("the second reads the first", Variables["Second Result"], "122")
-  T.eq("the first watches a variable", JSON:decode(JSON:decode(UIR._GET_CONFIG()).expressions)[1].watched, 1)
+  T.eq("the first watches a variable", rows()[1].watched, 1)
   project(nil, "70")
   UIR._RUN_EXPRESSION(data({ name = "First" }))
   T.eq("the first recalculates", Variables["First Result"], "71")
@@ -190,7 +210,7 @@ do
   UIR._SAVE_EXPRESSION(data({ name = "Gone", mode = "equation", template = "PARAM{97,1002} + 1", auto = true }))
   OnDeviceRemovedFromProject(97)
   ShimFireTimers()
-  local row = JSON:decode(JSON:decode(UIR._GET_CONFIG()).expressions)[1]
+  local row = rows()[1]
   T.check("it names the removal", tostring(row.error):find("removed", 1, true) ~= nil, row.error)
   T.eq("and keeps its last result", row.result, "46")
   UIR._DELETE_EXPRESSION(data({ name = "Gone" }))
@@ -199,13 +219,25 @@ end
 T.section("The device browser")
 do
   project()
-  local answer = JSON:decode(UIR._GET_DEVICES())
-  local devices = JSON:decode(answer.devices)
+  UIR._GET_DEVICES()
+  local devices = pushed("DEVICES_DATA").devices
   T.eq("it lists devices with variables", devices[1].name, "Attic Sensor")
-  local variables = JSON:decode(UIR._GET_DEVICE_VARIABLES(data({ deviceId = 96 })))
+  UIR._GET_DEVICE_VARIABLES(data({ deviceId = 96 }))
+  local variables = pushed("DEVICE_VARIABLES_DATA")
   T.eq("it answers for the device", variables.deviceId, "96")
-  T.eq("with its variables", #JSON:decode(variables.variables), 2)
-  T.eq("a device with no id answers nothing", UIR._GET_DEVICE_VARIABLES(data({})), nil)
+  T.eq("with its variables", #variables.variables, 2)
+  UIR._GET_DEVICE_VARIABLES(data({}))
+  T.eq("a device with no id gets no variables", pushed("DEVICE_VARIABLES_DATA").variables, {})
+end
+
+T.section("The preview evaluates only the driver's two modes")
+do
+  project()
+  T.eq(
+    "a condition reads as an equation",
+    eval("condition", "PARAM{96,1002} > 50").error,
+    "result is not a number (got boolean)"
+  )
 end
 
 T.finish()

@@ -1,0 +1,11 @@
+/* lib/ui/collapse.js's groups: a head that turns its body on a click, its caret turned while open, and the Expand
+   all / Collapse all button that sits in a card's heading. */
+.kit-collapse-head { cursor: pointer; border-radius: 5px; }
+.kit-collapse-head:hover { background: var(--surface-hover); }
+.kit-collapse-body { display: none; }
+.kit-collapse.open > .kit-collapse-body { display: block; }
+.kit-caret { width: 9px; font-size: 9px; line-height: 1; color: var(--text-muted); display: inline-flex; justify-content: center; transition: transform 0.14s ease; }
+.kit-collapse.open > .kit-collapse-head .kit-caret { transform: rotate(90deg); }
+.kit-caret.none { visibility: hidden; }
+.kit-collapse-all { text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 11px; color: var(--accent); background: none; border: none; cursor: pointer; padding: 2px; white-space: nowrap; }
+.kit-collapse-all:hover { text-decoration: underline; }

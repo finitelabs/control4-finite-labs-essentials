@@ -182,11 +182,11 @@ HTTP request.
 
 <img alt="Request editor" src="./images/ui-request-editor.png" width="640"/>
 
-1. **Search** - filters the variable browser by room, device, or variable name.
-   Matching devices expand automatically.
-1. **Variable** - click a device to load its variables with their current
-   values, then click a variable to insert its `PARAM{}` token into the field
-   you last edited. A green check marks variables the request already
+1. **Search** - filters the variable browser by room, device, agent, or variable
+   name. Matching devices expand automatically.
+1. **Variable** - click a device or agent to load its variables with their
+   current values, then click a variable to insert its `PARAM{}` token into the
+   field you last edited. A green check marks variables the request already
    references.
 1. **Name** - the name used by programming, by the events, and by the Response
    variable. It is fixed once the request has been saved: to rename, create a

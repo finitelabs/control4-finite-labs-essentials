@@ -119,8 +119,10 @@ function Events:restoreEvents()
   local usedEventIds = {}
   for _, keys in pairs(self:getEvents()) do
     for _, event in pairs(keys) do
-      usedEventIds[event.eventId] = true
-      C4:AddEvent(event.eventId, event.name, event.description)
+      if Select(event, "eventId") ~= nil then
+        usedEventIds[event.eventId] = true
+        C4:AddEvent(event.eventId, event.name, event.description)
+      end
     end
   end
   for id = EVENT_ID_START, EVENT_ID_END do
@@ -140,7 +142,9 @@ function Events:_getNextEventId()
   local currentEvents = {}
   for _, keys in pairs(self:getEvents()) do
     for _, event in pairs(keys) do
-      currentEvents[event.eventId] = true
+      if Select(event, "eventId") ~= nil then
+        currentEvents[event.eventId] = true
+      end
     end
   end
   local nextId = EVENT_ID_START

@@ -98,7 +98,9 @@ function Conditionals:_getNextConditionalId()
   local currentConditionals = {}
   for _, keys in pairs(self:getConditionals()) do
     for _, conditional in pairs(keys) do
-      currentConditionals[conditional.conditionalId] = true
+      if Select(conditional, "conditionalId") ~= nil then
+        currentConditionals[conditional.conditionalId] = true
+      end
     end
   end
   local nextId = CONDITIONAL_ID_START

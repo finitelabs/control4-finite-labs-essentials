@@ -177,11 +177,11 @@ Add Expression and Edit both open the editor in place of the list.
 
 <img alt="Expression editor" src="./images/ui-expression-editor.png" width="640"/>
 
-1. **Search** - filters the variable browser by room, device, or variable name.
-   Matching devices expand automatically.
-1. **Variable** - click a device to load its variables with their current
-   values, then click a variable to insert its `PARAM{}` token at the cursor. A
-   green check marks variables the expression already references.
+1. **Search** - filters the variable browser by room, device, agent, or variable
+   name. Matching devices expand automatically.
+1. **Variable** - click a device or agent to load its variables with their
+   current values, then click a variable to insert its `PARAM{}` token at the
+   cursor. A green check marks variables the expression already references.
 1. **Name** - names the `<Name> Result` variable and the `<Name> Calculated`
    event. Renaming an expression renames both.
 1. **Mode** - `Equation` evaluates the template as math, reading each token as

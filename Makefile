@@ -105,7 +105,7 @@ fmt-py: $(VENV_STAMP)
 
 # docs.py fmt is mdformat, keeping a GitHub alert's marker on its own line.
 fmt-md: $(VENV_STAMP)
-	@files=""; for g in ./drivers/*/www/documentation/*.md documentation/*.md *.md; do \
+	@files=""; for g in ./drivers/*/www/documentation/*.md documentation/*.md *.md resources/drivercentral/description.md; do \
 		[ -e "$$g" ] && files="$$files $$g"; \
 	done; \
 	[ -z "$$files" ] || $(VENV_PY) tools/docs.py fmt --wrap 80 $$files
@@ -127,7 +127,7 @@ check-py: $(VENV_STAMP)
 	$(VENV_BLACK) --check tools/*.py
 
 check-md: $(VENV_STAMP)
-	@files=""; for g in ./drivers/*/www/documentation/*.md documentation/*.md *.md; do \
+	@files=""; for g in ./drivers/*/www/documentation/*.md documentation/*.md *.md resources/drivercentral/description.md; do \
 		[ -e "$$g" ] && files="$$files $$g"; \
 	done; \
 	[ -z "$$files" ] || $(VENV_PY) tools/docs.py fmt --check --wrap 80 $$files
@@ -180,8 +180,8 @@ update-xml-modified: $(VENV_STAMP)
 
 # ─── Docs ─────────────────────────────────────────────────────────────────────
 
-.PHONY: docs docs-html docs-pdf docs-readme
-docs: docs-readme docs-html docs-pdf ## Generate all documentation
+.PHONY: docs docs-html docs-pdf docs-readme docs-drivercentral
+docs: docs-readme docs-html docs-pdf docs-drivercentral ## Generate all documentation
 
 
 docs-readme: preprocess $(VENV_STAMP)
@@ -190,6 +190,28 @@ docs-readme: preprocess $(VENV_STAMP)
 	$(VENV_PY) tools/docs.py readme \
 		build/$(README_BUILD)/documentation/index.md README.md
 
+
+# What a DriverCentral upload needs beyond the zip and the PDFs: the listing's
+# description, Revisions tab and images. It sits beside the zip integrators
+# download, not in it.
+docs-drivercentral: preprocess $(VENV_STAMP)
+	@rm -rf dist/drivercentral/listing && mkdir -p dist/drivercentral/listing
+	$(VENV_PY) tools/docs.py revisions \
+		build/drivercentral/documentation/index.md \
+		dist/drivercentral/listing/revisions.html
+	@if [ -f resources/drivercentral/description.md ]; then \
+		$(VENV_PY) tools/docs.py description \
+			resources/drivercentral/description.md dist/drivercentral/listing/description.html; \
+	fi
+	@if grep -q FACTS-STRIP-URL resources/drivercentral/description.md 2>/dev/null; then \
+		echo "::warning file=resources/drivercentral/description.md::The facts strip isn't uploaded to DriverCentral yet, so description.html has no facts strip. Upload banners/facts-strip-2400x136.png through the description editor and put its URL in place of FACTS-STRIP-URL."; \
+	fi
+	@cd resources/drivercentral 2>/dev/null || exit 0; \
+	for f in product-card-300x300.png banners/*.png photos/*.png; do \
+		[ -f "$$f" ] || continue; \
+		mkdir -p "$(CURDIR)/dist/drivercentral/listing/$$(dirname "$$f")"; \
+		cp "$$f" "$(CURDIR)/dist/drivercentral/listing/$$f"; \
+	done
 
 docs-html: $(VENV_STAMP)
 	@for build in $(DISTRIBUTIONS); do \
