@@ -412,6 +412,9 @@ local function sendHttp(config)
   return d
 end
 
+--- Counts TCP sends, so each one's timer is its own when a request is sent again before the last send settles.
+local tcpSends = 0
+
 --- Send a raw TCP payload, optionally waiting for the first response data.
 --- @param config table
 --- @return Deferred d Resolves { detail, response? } or rejects an error string.
@@ -429,7 +432,8 @@ local function sendTcp(config)
 
   local wait = toboolean(config.waitResponse)
   local timeoutSeconds = InRange(tointeger(config.timeout) or DEFAULT_TCP_TIMEOUT, 1, MAX_TCP_TIMEOUT)
-  local timerName = "TcpTimeout::" .. tostring(config.name)
+  tcpSends = tcpSends + 1
+  local timerName = "TcpTimeout::" .. tostring(config.name) .. "::" .. tcpSends
   local sentDetail = nil
   local buffer = ""
   local settled = false
@@ -487,6 +491,10 @@ local function sendTcp(config)
       settle(false, string.format("%s (%s)", tostring(errMsg), tostring(errCode)))
     end)
 
+  -- The timeout covers the connect too: a host that never answers it would otherwise hold the send open.
+  SetTimer(timerName, timeoutSeconds * ONE_SECOND, function()
+    settle(false, string.format("no connection to %s:%d within %ds", host, port, timeoutSeconds))
+  end)
   if client:Connect(host, port) == nil then
     settle(false, string.format("failed to connect to %s:%d", host, port))
   end

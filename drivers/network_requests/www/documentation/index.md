@@ -227,7 +227,8 @@ variables browser works the same way and is left out of the screenshot below.
 1. **Wait for a response** - TCP only. The driver holds the connection open
    until the device answers and publishes the answer to the Response variable.
    UDP is always fire and forget.
-1. **Timeout (s)** - how long to wait for that response before the send fails.
+1. **Timeout (s)** - how long to wait for the connection, and then for that
+   response, before the send fails.
 1. **Last Result** - here, a send that timed out, which fired the
    `<Name> Failed` event.
 
@@ -415,7 +416,8 @@ Monitoring is Enabled.
   validation is off by default (opt in per request), so self-signed LAN
   endpoints work without extra setup.
 - **TCP**: opens a connection, sends the payload, and either disconnects
-  immediately or waits for the response (with a timeout) before disconnecting.
+  immediately or waits for the response before disconnecting. The request's
+  timeout bounds both the connection and the wait.
 - **UDP**: sends the payload as a single datagram, fire and forget. Broadcast
   addresses are not supported.
 - **WOL**: broadcasts a standard Wake-on-LAN magic packet for the configured MAC
@@ -460,8 +462,8 @@ and response-waiting TCP requests, a read-only `<Name> Response` variable.
   server responded (any status code, including errors like 404 - check the
   response variable when the status matters).
 - `<Name> Failed` fires when the send itself fails: connection refused, host
-  unreachable, timeout waiting for a TCP response, or an unresolved `PARAM{}`
-  reference.
+  unreachable, a TCP connection or response that doesn't come within the
+  timeout, or an unresolved `PARAM{}` reference.
 - `<Name> Response` updates before the `Sent` event fires, so programming
   triggered by the event can read the fresh response.
 
