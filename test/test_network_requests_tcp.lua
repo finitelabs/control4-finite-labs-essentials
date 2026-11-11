@@ -122,6 +122,15 @@ T.eq(
   "no connection to 198.51.100.30:4352 within 12s"
 )
 
+send(silent, { waitResponse = false, timeout = 5 })
+ExecuteCommand("Send Request", { Request = "Projector" })
+ShimFireTimers()
+T.check(
+  "a request sent again before the first send settles settles both",
+  silent.clients[1].closed and silent.clients[2].closed,
+  "a send was left open"
+)
+
 T.section("A host that connects")
 local quiet = { connects = true }
 send(quiet, { waitResponse = false, timeout = 5 })
