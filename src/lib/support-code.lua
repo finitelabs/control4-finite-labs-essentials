@@ -119,7 +119,7 @@ function SupportCode:onChange(callback)
 end
 
 --- Calls `callback(open)` as the window opens and closes, alongside the driver's `onChange`, for a library whose view
---- changes with it: lib.ui.tab-properties' card, whose Log Level list does.
+--- changes with the window.
 --- @param callback fun(open: boolean)
 function SupportCode:follow(callback)
   table.insert(self._followers, callback)

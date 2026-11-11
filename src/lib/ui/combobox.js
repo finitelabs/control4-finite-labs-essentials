@@ -24,8 +24,8 @@
   var active = -1;
 
   function control(key) {
-    var all = document.querySelectorAll("[data-combo]");
-    for (var i = 0; i < all.length; i++) if (all[i].getAttribute("data-combo") === key) return all[i];
+    var all = document.querySelectorAll("[data-kit-combo]");
+    for (var i = 0; i < all.length; i++) if (all[i].getAttribute("data-kit-combo") === key) return all[i];
     return null;
   }
 
@@ -63,7 +63,7 @@
     var isOpen = key === openKey;
     var label = Kit.str(options.label);
     var html =
-      '<div class="kit-combo' + (isOpen ? " open" : "") + (options.className ? " " + options.className : "") + '" data-combo="' + Kit.esc(key) + '"' +
+      '<div class="kit-combo' + (isOpen ? " open" : "") + (options.className ? " " + options.className : "") + '" data-kit-combo="' + Kit.esc(key) + '"' +
       (options.style ? ' style="' + Kit.esc(options.style) + '"' : "") + ">" +
       '<button type="button" class="kit-combo-trigger' + (label ? "" : " placeholder") + '" aria-haspopup="listbox" aria-expanded="' + isOpen + '"' +
       ' title="' + Kit.esc(options.title || label) + '">' + Kit.esc(label || options.placeholder || "") + "</button>" +
@@ -158,8 +158,8 @@
   combobox.close = close;
 
   document.addEventListener("click", function (e) {
-    var el = e.target.closest ? e.target.closest("[data-combo]") : null;
-    var key = el ? el.getAttribute("data-combo") : null;
+    var el = e.target.closest ? e.target.closest("[data-kit-combo]") : null;
+    var key = el ? el.getAttribute("data-kit-combo") : null;
     if (key === null || !defs[key]) return close();
     if (e.target.closest(".kit-combo-trigger")) return key === openKey ? close() : open(key);
     var item = e.target.closest(".kit-combo-item");
@@ -172,7 +172,7 @@
     fill(openKey);
   });
   document.addEventListener("keydown", function (e) {
-    if (openKey === null || !e.target.closest || !e.target.closest("[data-combo]")) return;
+    if (openKey === null || !e.target.closest || !e.target.closest("[data-kit-combo]")) return;
     var key = openKey;
     var count = (shown(key) || []).length;
     if (e.key === "Escape") {

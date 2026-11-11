@@ -163,6 +163,9 @@ end
 --- @param allowEmptyValues? boolean Allows empty strings as parameter values (optional). Defaults to false.
 --- @param logCommand? boolean If false, prevents logging of the command's content (optional). Defaults to true.
 function SendToDevice(deviceId, strCommand, tParams, allowEmptyValues, logCommand)
+  if logCommand ~= nil then
+    allowEmptyValues = allowEmptyValues == true
+  end
   return C4Call("SendToDevice", deviceId, strCommand, tParams, allowEmptyValues, logCommand)
 end
 
@@ -173,6 +176,9 @@ end
 --- @param strMessage? string Overrides message type ("COMMAND" or "NOTIFY") (optional). Defaults to "COMMAND".
 --- @param allowEmptyValues? boolean Allows empty values in message parameters (optional).
 function SendToProxy(idBinding, strCommand, tParams, strMessage, allowEmptyValues)
+  if allowEmptyValues ~= nil then
+    strMessage = strMessage or "COMMAND"
+  end
   return C4Call("SendToProxy", idBinding, strCommand, tParams, strMessage, allowEmptyValues)
 end
 
@@ -184,7 +190,7 @@ end
 --- @param allowEmptyValues? boolean Allows empty strings as parameter values (optional). Defaults to false.
 --- @param logCommand? boolean If true, lets C4 log the command's content (optional). Defaults to false.
 function SendSecretToDevice(deviceId, strCommand, tParams, allowEmptyValues, logCommand)
-  return C4CallHiding("SendToDevice", 3, deviceId, strCommand, tParams, allowEmptyValues, logCommand == true)
+  return C4CallHiding("SendToDevice", 3, deviceId, strCommand, tParams, allowEmptyValues == true, logCommand == true)
 end
 
 --- SendToProxy for a message whose parameters hold a secret, such as a user code: its trace names the binding
@@ -195,6 +201,9 @@ end
 --- @param strMessage? string Overrides message type ("COMMAND" or "NOTIFY") (optional). Defaults to "COMMAND".
 --- @param allowEmptyValues? boolean Allows empty values in message parameters (optional).
 function SendSecretToProxy(idBinding, strCommand, tParams, strMessage, allowEmptyValues)
+  if allowEmptyValues ~= nil then
+    strMessage = strMessage or "COMMAND"
+  end
   return C4CallHiding("SendToProxy", 3, idBinding, strCommand, tParams, strMessage, allowEmptyValues)
 end
 
