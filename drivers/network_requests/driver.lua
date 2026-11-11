@@ -487,6 +487,10 @@ local function sendTcp(config)
       settle(false, string.format("%s (%s)", tostring(errMsg), tostring(errCode)))
     end)
 
+  -- The timeout covers the connect too: a host that never answers it would otherwise hold the send open.
+  SetTimer(timerName, timeoutSeconds * ONE_SECOND, function()
+    settle(false, string.format("no connection to %s:%d within %ds", host, port, timeoutSeconds))
+  end)
   if client:Connect(host, port) == nil then
     settle(false, string.format("failed to connect to %s:%d", host, port))
   end

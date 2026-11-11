@@ -57,6 +57,8 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   Opened or Closed programming when no contact changed.
 - Fixed Sensor Multiplexer's contact output not opening when the selected
   input's contact opened.
+- Fixed a Network Requests TCP request to a host that never answers waiting
+  forever instead of failing after its timeout.
 
 ### Changed
 
