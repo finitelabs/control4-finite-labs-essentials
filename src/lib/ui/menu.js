@@ -30,8 +30,8 @@
     var look = button.indexOf("btn-primary") >= 0 ? "btn-primary" : "btn-secondary";
     var n = Kit.esc(name);
     return (
-      '<span class="kit-split">' + button +
-      '<button type="button" class="btn ' + look + ' kit-split-arrow" data-kit-menu="' + n + '" aria-label="' +
+      '<span class="kit-splitbtn">' + button +
+      '<button type="button" class="btn ' + look + ' kit-splitbtn-arrow" data-kit-menu="' + n + '" aria-label="' +
       Kit.esc(options.label || "More") + '" aria-haspopup="menu" aria-expanded="' + open + '"></button>' +
       (open
         ? '<span class="kit-menu" role="menu">' +

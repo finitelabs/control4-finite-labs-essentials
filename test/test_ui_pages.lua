@@ -158,12 +158,24 @@ local KIT_CSS = {
   "pickgrid.css",
 }
 local kitSelectors = {}
+-- The .kit-* class a rule is about: the last one its selector names.
+local subjects, clashes = {}, {}
 for _, name in ipairs(KIT_CSS) do
   local css = read(ROOT .. "src/lib/ui/" .. name)
   if css then
     local stray = {}
     for _, selector in ipairs(selectors(css)) do
       kitSelectors[selector] = name
+      local subject
+      for class in selector:gmatch("%.kit%-[%w%-]+") do
+        subject = class
+      end
+      if subject then
+        if subjects[subject] and subjects[subject] ~= name then
+          clashes[#clashes + 1] = subject .. " in " .. subjects[subject] .. " and " .. name
+        end
+        subjects[subject] = subjects[subject] or name
+      end
       local ok = selector:find("^%.kit%-") or (name == "style.css" and BASE[selector])
       if not ok then
         stray[#stray + 1] = selector
@@ -176,6 +188,8 @@ for _, name in ipairs(KIT_CSS) do
     )
   end
 end
+
+T.eq("no two kit stylesheets style the same .kit-* class", clashes, {})
 
 T.section("pages")
 local listing = io.popen('find "' .. ROOT .. 'drivers" -path "*/www/html/*.html" 2>/dev/null')
