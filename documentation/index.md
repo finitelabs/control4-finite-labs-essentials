@@ -196,7 +196,7 @@ documentation for setting it up.
 <!-- #ifdef DRIVERCENTRAL -->
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
-   [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/utility-suite).
+   [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/finite-labs-essentials).
 1. Extract and install the desired `.c4z` driver files.
 1. Use the "Search" tab in Composer Pro to find the driver by name and add it to
    your project.
@@ -232,7 +232,7 @@ by U.S. and Foreign Patents, patents in process, and are protected by trade
 secret or copyright law. Dissemination of this information or reproduction of
 this material is strictly forbidden unless prior written permission is obtained
 from Finite Labs LLC. For the latest information, please visit
-https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
+https://drivercentral.io/platforms/control4-drivers/utility/finite-labs-essentials
 
 <!-- #endif -->
 
