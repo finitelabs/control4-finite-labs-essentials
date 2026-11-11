@@ -120,4 +120,58 @@ SendToDevice(42, "REFRESH", {})
 SendToProxy(5001, "LOCK_STATUS_CHANGED", {})
 T.eq("and nothing is added when nothing follows", { sent[1][2], sent[2][2] }, { 3, 3 })
 
+T.section("a flag given as something other than a boolean reaches C4 as one")
+sent = {}
+calls = {
+  {
+    "SendToProxy, allowing empty values with a string",
+    function()
+      SendToProxy(5001, "LOCK_STATUS_CHANGED", {}, "NOTIFY", "yes")
+    end,
+  },
+  {
+    "SendSecretToProxy, allowing empty values with a number",
+    function()
+      SendSecretToProxy(5001, "USER_ADDED", {}, "NOTIFY", 1)
+    end,
+  },
+  {
+    "SendToDevice, allowing empty values with a string",
+    function()
+      SendToDevice(42, "REFRESH", {}, "yes")
+    end,
+  },
+  {
+    "SendToDevice, asked to log with a number",
+    function()
+      SendToDevice(42, "REFRESH", {}, true, 0)
+    end,
+  },
+}
+for _, call in ipairs(calls) do
+  T.truthy("C4 accepts " .. call[1], pcall(call[2]))
+end
+T.eq(
+  "only true allows empty values",
+  { Select(sent, 1, 7), Select(sent, 2, 7), Select(sent, 3, 6), Select(sent, 4, 6) },
+  { false, false, false, true }
+)
+T.eq("and only true lets C4 log the command", Select(sent, 4, 7), false)
+
+T.section("a nil before an argument that is given is refused before it reaches C4")
+sent = {}
+T.raises("SendToProxy with no parameters before a message type", function()
+  SendToProxy(5001, "LOCK_STATUS_CHANGED", nil, "NOTIFY")
+end, "C4:SendToProxy refused: argument 3 is nil before argument 4")
+T.raises("SendSecretToDevice with no parameters", function()
+  SendSecretToDevice(42, "ARM", nil)
+end, "C4:SendToDevice refused: argument 3 is nil before argument 5")
+T.raises("SendToNetwork with no port", function()
+  SendToNetwork(6001, nil, "GET / HTTP/1.1")
+end, "C4:SendToNetwork refused: argument 2 is nil before argument 3")
+T.raises("SendUIRequest with no request", function()
+  SendUIRequest(42, nil, {})
+end, "C4:SendUIRequest refused: argument 2 is nil before argument 3")
+T.eq("and none reaches C4", sent, {})
+
 T.finish()
