@@ -1025,11 +1025,6 @@ function OPC.Support_Code(propertyValue)
   supportCode:enter(propertyValue)
 end
 
--- Log Level's choices change with the Support Code's hour, which changes no property the tab follows.
-supportCode:onChange(function()
-  UIR._GET_PROPERTIES()
-end)
-
 --- Turns Cloud Monitoring on or off.
 --- @param propertyValue string
 function OPC.Cloud_Monitoring(propertyValue)

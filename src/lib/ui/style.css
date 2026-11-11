@@ -1,8 +1,9 @@
 /* The look of a driver's custom Composer tab. A page embeds it first in its <style>, with the line
    "<!-- #embed ../../../../src/lib/ui/style.css -->", then adds only the rules for its own views after it. This is
    the house look: tokens, base, tab bar, cards, buttons, form fields, tables, text, chips and the segmented control,
-   by plain selector, and the kit's components as .kit-*. A page keeps no copy of these; plain selectors only, since
-   Composer's engine may be old. */
+   by plain selector, and a set of widgets as .kit-* that a page uses as it needs, as with a CSS framework: states,
+   tags and counts, a form grid, a switch, ranges, popovers, code boxes, messages, disclosures, a legend and layout
+   helpers. A page keeps no copy of these; plain selectors only, since Composer's engine may be old. */
 
 :root {
   --bg: #f5f5f7;
@@ -121,6 +122,9 @@ body {
 .btn-sm { padding: 3px 8px; font-size: 11px; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* A button that reads as a link, for an action inside a line of text. */
+.btn-link { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-size: 12px; cursor: pointer; }
+.btn-link:hover { text-decoration: underline; }
 
 /* Form fields. A label sits over its field; a checkbox's or radio's label is .check. A select draws its own arrow, so
    it looks the same in every engine. */
@@ -151,6 +155,25 @@ select.sm { padding-right: 24px; background-position: right 7px center; }
 input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15); }
 input:disabled, textarea:disabled, select:disabled { background-color: var(--bg); color: var(--text-muted); }
 .input-error { border-color: var(--danger) !important; }
+.input-valid { border-color: var(--success) !important; }
+/* A number with its unit inside the field's box, so every field in a column ends at the same edge. */
+.kit-unitbox { flex: 1; min-width: 0; display: flex; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.kit-unitbox:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15); }
+.kit-unitbox input, .kit-unitbox input:focus { border: 0; box-shadow: none; background: none; }
+.kit-unitbox .u { padding-right: 8px; font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+/* A range with its value read out beside it. */
+.kit-range { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.kit-range input[type="range"] { flex: 1; min-width: 0; accent-color: var(--accent); }
+.kit-range code { font-size: 12px; color: var(--text-muted); width: 36px; text-align: right; }
+/* An on/off switch: a checkbox drawn as a track; an indeterminate one sits halfway. */
+.kit-switch { position: relative; display: inline-flex; align-items: center; }
+.kit-switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.kit-switch .track { position: relative; width: 38px; height: 22px; border-radius: 22px; background: var(--border); transition: background 0.15s; flex: none; }
+.kit-switch .track::before { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: var(--shadow); transition: transform 0.15s; }
+.kit-switch input:checked + .track { background: var(--success); }
+.kit-switch input:checked + .track::before { transform: translateX(16px); }
+.kit-switch input:indeterminate + .track::before { transform: translateX(8px); opacity: 0.5; }
+.kit-switch input:focus-visible + .track { box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35); }
 
 /* Tables: fixed columns, and a sideways scroll only on a narrow page. */
 .table-wrap { overflow-x: hidden; }
@@ -185,9 +208,74 @@ tbody tr:last-child td { border-bottom: none; }
 .kit-fields > .narrow { flex: 0 1 120px; min-width: 90px; }
 .kit-foot { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 
+/* Layout helpers: a wrapping row, a row with its ends apart, two or three even columns (one on a narrow page), a row
+   of buttons, and columns a table drops on a narrower page. */
+.kit-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.kit-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.kit-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.kit-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+@media (max-width: 560px) {
+  .kit-grid-2, .kit-grid-3 { grid-template-columns: 1fr; }
+}
+.kit-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 840px) {
+  .kit-hide-md { display: none; }
+}
+@media (max-width: 720px) {
+  .kit-hide-sm { display: none; }
+}
+
+/* A form whose labels sit in one column and their controls line up in the next; a row is .kit-form-row (label, then
+   .kit-form-ctl), and a note under a control is .kit-form-note. */
+.kit-form { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 8px 14px; align-items: center; }
+.kit-form-row { display: contents; }
+.kit-form-row > label { font-size: 12px; color: var(--text-muted); font-weight: 500; margin: 0; }
+.kit-form-ctl { display: flex; align-items: center; gap: 8px; min-height: 30px; min-width: 0; }
+.kit-form-note { grid-column: 2; margin-top: -4px; font-size: 11px; line-height: 1.4; color: var(--text-muted); }
+
+/* Checkboxes in columns, each label on one line. */
+.kit-checklist { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 16px; }
+.kit-checklist label { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 12.5px; font-weight: 400; color: var(--text); padding: 3px 0; cursor: pointer; min-width: 0; }
+.kit-checklist label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* Small labels: a chip, a status dot, and the segmented control a view switches with. */
 .chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
 .chip-err { background: #fef3c7; color: #b45309; }
+.chip.blue { background: #dbeafe; color: #1d4ed8; }
+.chip.green { background: #d1fae5; color: #059669; }
+.chip.yellow { background: #fef9c3; color: #a16207; }
+.chip.purple { background: #ede9fe; color: #6d28d9; }
+.chip.gray { background: #f3f4f6; color: #6b7280; }
+.chip.red { background: #fee2e2; color: var(--danger); }
+.kit-chips { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; align-content: flex-start; }
+/* A chip that turns a choice on and off, its state in aria-pressed. */
+.kit-chip-toggle { min-height: 30px; max-width: 100%; border-radius: var(--radius); padding: 4px 9px; font: inherit; font-size: 11px; text-align: left; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); overflow-wrap: anywhere; }
+.kit-chip-toggle[aria-pressed="true"] { border-color: #93c5fd; background: #dbeafe; color: #1e3a8a; }
+.kit-chip-toggle:disabled { cursor: default; opacity: 0.6; }
+.kit-chip-toggle:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.kit-count { font-variant-numeric: tabular-nums; font-weight: 600; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 1px 9px; font-size: 12px; white-space: nowrap; }
+.kit-tag { font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; background: var(--bg); white-space: nowrap; }
+/* A state in words after its colored dot. */
+.kit-state { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.kit-state::before { content: ""; width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; background: currentColor; }
+.kit-state.ok { color: #15803d; }
+.kit-state.ok::before { background: #16a34a; }
+.kit-state.info { color: #1e40af; }
+.kit-state.info::before { background: #2563eb; }
+.kit-state.wait { color: #b45309; }
+.kit-state.wait::before { background: #d97706; }
+.kit-state.stale { color: #b45309; }
+.kit-state.stale::before { background: #fbbf24; box-shadow: 0 0 0 1px #d97706 inset; }
+.kit-state.bad { color: #b91c1c; }
+.kit-state.bad::before { background: #ef4444; }
+.kit-state.auto { color: #0369a1; }
+.kit-state.auto::before { background: #0ea5e9; }
+.kit-state.muted { color: var(--text-muted); }
+.kit-state.muted::before { background: #9ca3af; }
+.kit-state.fixed { color: #475569; }
+.kit-state.fixed::before { background: #94a3b8; }
+.kit-state.off { color: #b0b4bb; }
+.kit-state.off::before { background: #d1d5db; }
 .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
 .status-ok { background: var(--success); }
 .status-warn { background: var(--warning); }
@@ -211,6 +299,56 @@ tbody tr:last-child td { border-bottom: none; }
 .kit-tile .k { color: var(--text-muted); font-size: 11px; }
 .kit-tile .v { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .kit-tile.config { background: var(--bg); }
+/* A value's unit, a second unit after a dot, and a value still waiting. */
+.kit-tile .v small { font-size: 11px; font-weight: 500; color: var(--text-muted); margin-left: 2px; }
+.kit-tile .v .alt { font-size: 12px; font-weight: 500; color: var(--text-muted); }
+.kit-tile .v .alt::before { content: "\00b7"; margin: 0 5px; opacity: 0.55; }
+.kit-tile .v .alt small { font-size: 10px; margin-left: 1px; }
+.kit-tile .v .wait { color: var(--text-muted); font-weight: 500; }
+
+/* Text widgets: a small uppercase section label, key and value pairs (in a row, or .rows as two columns), a label
+   whose title explains it, a line of news under an action, a monospace box for output and one for typed code. */
+.kit-eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; margin: 2px 0 7px; }
+.kit-kv { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 8px; }
+.kit-kv.rows { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 18px; align-items: baseline; }
+.kit-kv .k { color: var(--text-muted); font-size: 11px; }
+.kit-kv .v { font-size: 12px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kit-tip { text-decoration: underline dotted var(--border); text-underline-offset: 2px; cursor: help; }
+.kit-msg { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+.kit-msg.sm { font-size: 11px; }
+.kit-msg.bad { color: var(--danger); }
+.kit-msg.ok { color: var(--success); }
+.kit-msg:empty { display: none; }
+.kit-pre { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius); font-family: var(--mono); font-size: 11px; color: #475569; padding: 8px 10px; margin-top: 8px; max-height: 180px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.kit-code { font-family: var(--mono); font-size: 11.5px; line-height: 1.5; min-height: 120px; resize: vertical; }
+
+/* A popover's box, which a page places itself. */
+.kit-pop { position: absolute; z-index: 50; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16); }
+
+/* A <details> section under a rule, its summary a small uppercase label. */
+.kit-disclosure { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+.kit-disclosure > summary { cursor: pointer; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; }
+.kit-disclosure[open] > summary { margin-bottom: 10px; }
+
+/* A legend: a <details> whose summary has a "?" mark, opening to groups of rows that each pair a sample with its
+   meaning. */
+.kit-legend { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 8px; }
+.kit-legend > summary { list-style: none; cursor: pointer; font-size: 11px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 5px; user-select: none; }
+.kit-legend > summary::-webkit-details-marker { display: none; }
+.kit-legend > summary::before { content: "?"; display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--border); font-size: 9px; font-weight: 700; }
+.kit-legend > summary:hover { color: var(--text); }
+.kit-legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; margin-top: 10px; }
+@media (max-width: 620px) {
+  .kit-legend-grid { grid-template-columns: 1fr; }
+}
+.kit-legend-group { display: flex; flex-direction: column; gap: 6px; }
+.kit-legend-row { display: grid; grid-template-columns: 92px 1fr; gap: 8px; align-items: baseline; font-size: 11px; color: var(--text-muted); }
+
+/* A brief highlight on something that just changed; it fades to the element's own background. */
+.kit-flash { animation: kit-flash 1.1s ease-out; }
+@keyframes kit-flash {
+  from { background-color: #dbeafe; }
+}
 
 /* The properties card: the element Kit.initPropertiesCard is given becomes .kit-props. Its fields are the house
    fields; the card adds its groups, its grid and the line under a field. */

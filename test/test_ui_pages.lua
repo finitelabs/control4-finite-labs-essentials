@@ -114,6 +114,15 @@ for _, selector in ipairs({
   ".note code",
   ".hint code",
   ".mono",
+  ".btn-link",
+  ".btn-link:hover",
+  ".input-valid",
+  ".chip.blue",
+  ".chip.green",
+  ".chip.yellow",
+  ".chip.purple",
+  ".chip.gray",
+  ".chip.red",
 }) do
   BASE[selector] = true
 end

@@ -8,13 +8,7 @@
 <!-- #embed ../../../../src/lib/ui/style.css -->
 <!-- #embed ../../../../src/lib/ui/variables.css -->
 <!-- #embed ../../../../src/lib/ui/expressions.css -->
-    @media (max-width: 840px) { .col-mode { display: none; } }
-    @media (max-width: 720px) { .col-recompute { display: none; } }
 
-    .chip-num { background: #dbeafe; color: #1d4ed8; }
-    .chip-str { background: #d1fae5; color: #059669; }
-    .chip-auto { background: #ede9fe; color: #6d28d9; }
-    .chip-man { background: #f3f4f6; color: #6b7280; }
 
     .expr-rendered { font-family: var(--mono); font-size: 10.5px; color: var(--text-muted); }
     .res { font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; }
@@ -42,10 +36,10 @@
         <thead>
           <tr>
             <th style="width:22%;">Name</th>
-            <th class="col-mode" style="width:84px;">Mode</th>
+            <th class="kit-hide-md" style="width:84px;">Mode</th>
             <th>Expression</th>
             <th style="width:16%;">Last Result</th>
-            <th class="col-recompute" style="width:88px;">Recompute</th>
+            <th class="kit-hide-sm" style="width:88px;">Recompute</th>
             <!-- Run + Edit + delete need 130px; a narrower fixed column pushes
                  the delete button past the table edge, where table-wrap clips it. -->
             <th style="width:140px;"></th>
@@ -157,18 +151,18 @@ function renderList() {
   var html = '';
   gExpressions.forEach(function(x) {
     var dot = x.error ? 'status-warn' : (x.result != null && x.result !== '' ? 'status-ok' : 'status-none');
-    var modeChip = x.mode === 'string' ? '<span class="chip chip-str">STRING</span>' : '<span class="chip chip-num">NUMBER</span>';
+    var modeChip = x.mode === 'string' ? '<span class="chip green">STRING</span>' : '<span class="chip blue">NUMBER</span>';
     var resCell;
     if (x.error) resCell = '<span class="chip chip-err" title="' + esc(x.error) + '">' + esc(shortError(x.error)) + '</span>';
     else if (x.result != null && x.result !== '') resCell = '<span class="res" title="' + esc(Kit.ago(x.ts)) + '">' + esc(x.result) + '</span>';
     else resCell = '<span class="res" style="color:var(--text-muted);">-</span>';
-    var autoChip = x.auto ? '<span class="chip chip-auto">Auto</span>' : '<span class="chip chip-man">Manual</span>';
+    var autoChip = x.auto ? '<span class="chip purple">Auto</span>' : '<span class="chip gray">Manual</span>';
     html += '<tr data-name="' + esc(x.name) + '">'
       + '<td class="trunc" title="' + esc(x.name) + '"><span class="status-dot ' + dot + '"></span><b>' + esc(x.name) + '</b></td>'
-      + '<td class="col-mode">' + modeChip + '</td>'
+      + '<td class="kit-hide-md">' + modeChip + '</td>'
       + '<td class="trunc"><span class="expr-rendered" title="' + esc(x.rendered || x.template) + '">' + esc(x.rendered || x.template) + '</span></td>'
       + '<td class="cell-result trunc">' + resCell + '</td>'
-      + '<td class="col-recompute">' + autoChip + '</td>'
+      + '<td class="kit-hide-sm">' + autoChip + '</td>'
       + '<td style="text-align:right; white-space:nowrap;">'
       + '<button class="btn btn-outline btn-sm" title="Recalculate now" data-act="run">&#9654; Run</button> '
       + '<button class="btn btn-ghost" data-act="edit">Edit</button>'

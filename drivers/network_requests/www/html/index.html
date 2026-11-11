@@ -8,12 +8,7 @@
 <!-- #embed ../../../../src/lib/ui/style.css -->
 <!-- #embed ../../../../src/lib/ui/variables.css -->
 <!-- #embed ../../../../src/lib/ui/expressions.css -->
-    @media (max-width: 840px) { .col-type { display: none; } }
 
-    .chip-http { background: #dbeafe; color: #1d4ed8; }
-    .chip-tcp { background: #d1fae5; color: #059669; }
-    .chip-udp { background: #fef9c3; color: #a16207; }
-    .chip-wol { background: #ede9fe; color: #6d28d9; }
 
     .req-target { font-family: var(--mono); font-size: 10.5px; color: var(--text-muted); }
     .res { font-family: var(--mono); font-size: 11.5px; }
@@ -22,12 +17,6 @@
     .hgrid .hdel { text-align: center; cursor: pointer; color: var(--text-muted); font-weight: 600; }
     .hgrid .hdel:hover { color: var(--danger); }
 
-    .respbox {
-      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius);
-      font-family: var(--mono); font-size: 11px; color: #475569;
-      padding: 8px 10px; margin-top: 8px;
-      max-height: 180px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere;
-    }
   </style>
 </head>
 <body>
@@ -51,7 +40,7 @@
         <thead>
           <tr>
             <th style="width:22%;">Name</th>
-            <th class="col-type" style="width:64px;">Type</th>
+            <th class="kit-hide-md" style="width:64px;">Type</th>
             <th>Target</th>
             <th style="width:24%;">Last Result</th>
             <!-- Send + Edit + delete need 136px; a narrower fixed column pushes
@@ -212,7 +201,7 @@
       <div class="card" id="last-result-card" style="display:none;">
         <h3>Last Result</h3>
         <div id="last-result-line" class="res"></div>
-        <div class="respbox" id="last-result-body" style="display:none;"></div>
+        <div class="kit-pre" id="last-result-body" style="display:none;"></div>
       </div>
 
       <div class="kit-foot">
@@ -309,6 +298,8 @@ function targetLabel(x) {
   return '';
 }
 
+var TYPE_CHIP = { http: 'blue', tcp: 'green', udp: 'yellow', wol: 'purple' };
+
 function renderList() {
   var tb = document.getElementById('req-rows');
   var empty = document.getElementById('req-empty');
@@ -321,14 +312,14 @@ function renderList() {
   var html = '';
   gRequests.forEach(function(x) {
     var dot = x.status === 'error' ? 'status-warn' : (x.status === 'ok' ? 'status-ok' : 'status-none');
-    var typeChip = '<span class="chip chip-' + esc(x.type) + '">' + esc((x.type || '').toUpperCase()) + '</span>';
+    var typeChip = '<span class="chip ' + (TYPE_CHIP[x.type] || 'gray') + '">' + esc((x.type || '').toUpperCase()) + '</span>';
     var resCell;
     if (x.status === 'error') resCell = '<span class="chip chip-err" title="' + esc(x.detail) + '">' + esc(x.detail || 'Error') + '</span>';
     else if (x.status === 'ok') resCell = '<span class="res" title="' + esc((x.response || '') + '\n' + Kit.ago(x.ts)) + '">' + esc(x.detail || 'sent') + '</span>';
     else resCell = '<span class="res" style="color:var(--text-muted);">-</span>';
     html += '<tr data-name="' + esc(x.name) + '">'
       + '<td class="trunc" title="' + esc(x.name) + '"><span class="status-dot ' + dot + '"></span><b>' + esc(x.name) + '</b></td>'
-      + '<td class="col-type">' + typeChip + '</td>'
+      + '<td class="kit-hide-md">' + typeChip + '</td>'
       + '<td class="trunc"><span class="req-target" title="' + esc(targetLabel(x)) + '">' + esc(targetLabel(x)) + '</span></td>'
       + '<td class="cell-result trunc">' + resCell + '</td>'
       + '<td style="text-align:right; white-space:nowrap;">'

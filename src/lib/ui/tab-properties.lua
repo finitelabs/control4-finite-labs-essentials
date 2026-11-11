@@ -11,6 +11,9 @@ require("drivers-common-public.global.lib")
 local log = require("lib.logging")
 local page = require("lib.ui.page")
 local pageParams = require("lib.ui.page-params")
+--#ifdef DRIVERCENTRAL
+local supportCode = require("lib.support-code")
+--#endif
 
 local SHOWN_TYPES = { LIST = true, STRING = true, RANGED_INTEGER = true }
 
@@ -138,7 +141,8 @@ function TabProperties:set(name, value)
   return "The tab cannot set " .. tostring(name) .. "."
 end
 
---- Answers the properties card's two commands. Call it once, as the driver loads.
+--- Answers the properties card's two commands, and in a DriverCentral build sends the card its list again as the
+--- Support Code opens and closes the Lua window. Call it once, as the driver loads.
 function TabProperties:serve()
   UIR._GET_PROPERTIES = function()
     page.send("PROPERTIES", { properties = self:list() })
@@ -151,6 +155,12 @@ function TabProperties:serve()
       page.send("PROPERTY_ERROR", { property = tostring(params.property), error = err })
     end
   end
+  --#ifdef DRIVERCENTRAL
+  -- The Support Code widens Log Level's list and its hour's end narrows it, and no property handler runs for either.
+  supportCode:follow(function()
+    UIR._GET_PROPERTIES()
+  end)
+  --#endif
 end
 
 --- Calls `push` after each change to a property the tab shows, wherever it was made. Call it once the load's own
