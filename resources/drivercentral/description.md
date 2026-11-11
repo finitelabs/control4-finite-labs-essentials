@@ -5,11 +5,10 @@
 *This software is neither affiliated with nor endorsed by Control4.*
 
 Utility drivers that fill common gaps in Control4 programming. Combine or switch
-sensors, make virtual sensors and relays, run relay devices from a light switch,
-build text and math from variables, and send network commands to devices that
-have no driver. Each driver installs on its own, so a project adds only the ones
-it needs, and each runs on the controller with no cloud service or extra
-hardware.
+sensors, make virtual sensors and relays, use lights as relays, build text and
+math from variables, and send network commands to devices that have no driver.
+Each driver installs on its own, so a project adds only the ones it needs, and
+each runs on the controller with no cloud service or extra hardware.
 
 ## Features
 
@@ -17,7 +16,7 @@ hardware.
   passed through at a time
 - Virtual temperature, humidity and contact sensors and relays that programming
   sets
-- Relay devices controlled from a light switch, with their state kept in step
+- Lights used as relays by other drivers, with their state kept in step
 - Text and math built from Control4 variables, recalculated when they change
 - HTTP, TCP, UDP and Wake-on-LAN commands sent from programming
 - Inbound webhooks that fire programming events with what they carry
@@ -44,8 +43,9 @@ properties and set from programming, that keep their values across restarts.
 
 ### Light Relay
 
-Gives each light you pick a relay connection, so a light switch runs a relay
-device, with the state kept in step both ways. One driver covers every light.
+Gives each light you pick a relay connection, so a driver that switches a relay
+can switch the light instead, and the light's state reports back as the relay's.
+One driver covers every light.
 
 ### Variable Expressions
 
