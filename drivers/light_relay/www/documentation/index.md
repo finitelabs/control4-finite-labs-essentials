@@ -260,8 +260,7 @@ For example, selecting "Kitchen Light" and "Living Room Light" creates:
 | Kitchen Light     | RELAY | Relay binding for Kitchen Light     |
 | Living Room Light | RELAY | Relay binding for Living Room Light |
 
-Connect these relay bindings to devices that consume relay connections (e.g.,
-fan controllers, fireplace relays).
+Connect these relay bindings to a driver that switches a relay.
 
 The relay responds to OPEN (turn light off), CLOSE (turn light on), and TOGGLE
 commands. Light state changes are reflected back as OPENED/CLOSED notifications
