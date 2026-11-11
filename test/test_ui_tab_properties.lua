@@ -143,4 +143,16 @@ sent = {}
 UIR._SET_PROPERTY({ DATA = "not base64 json" })
 T.eq("a body that does not decode is refused as no property", sent[1].data.error, "The tab cannot set nil.")
 
+T.section("The card follows the Support Code's window")
+do
+  -- No secret in a test build, so the window's change is told directly.
+  local code = require("lib.support-code")
+  sent = {}
+  code:_tell(true)
+  T.eq("opening it sends the card its list", sent[1] and sent[1].command, "PROPERTIES")
+  sent = {}
+  code:_tell(false)
+  T.eq("and so does the hour's end", sent[1] and sent[1].command, "PROPERTIES")
+end
+
 T.finish()

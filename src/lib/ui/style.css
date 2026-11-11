@@ -229,6 +229,8 @@ tbody tr:last-child td { border-bottom: none; }
    .kit-form-ctl), and a note under a control is .kit-form-note. */
 .kit-form { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 8px 14px; align-items: center; }
 .kit-form-row { display: contents; }
+/* display: contents would otherwise beat [hidden]. */
+.kit-form-row[hidden] { display: none; }
 .kit-form-row > label { font-size: 12px; color: var(--text-muted); font-weight: 500; margin: 0; }
 .kit-form-ctl { display: flex; align-items: center; gap: 8px; min-height: 30px; min-width: 0; }
 .kit-form-note { grid-column: 2; margin-top: -4px; font-size: 11px; line-height: 1.4; color: var(--text-muted); }

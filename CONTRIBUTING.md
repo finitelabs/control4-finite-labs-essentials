@@ -636,8 +636,10 @@ end
 The library clears the property at once, keeps its value out of the dispatcher's
 Trace output, and prints its answer to the Lua output whatever Log Mode is.
 While the window is open, Log Level also offers Trace and Ultra (see
-[Log Level](#log-level)). A driver that shows more while the window is open
-(extra properties) passes `supportCode:onChange(function(open) ... end)`.
+[Log Level](#log-level)). A web tab's properties card follows the window by
+itself, once the driver calls `lib.ui.tab-properties`' `serve()`. A driver that
+shows more elsewhere while the window is open passes
+`supportCode:onChange(function(open) ... end)`.
 
 ### Log Level
 
@@ -797,7 +799,9 @@ such as `drivers/tplink_light/www/documentation/index.md` in
 others, so a page keeps only its own views and its driver only its own commands:
 
 - `style.css`: the house look, from the tab bar and cards to form fields,
-  tables, chips, the segmented switch and a list beside its editor
+  tables, chips, the segmented switch and a list beside its editor, and a set of
+  `.kit-*` widgets and layout helpers to use as needed, as with a CSS framework:
+  states, tags, counts, a form grid, a switch, popovers and more
 - `page.js`: the page's link to its driver, the live-link and demo banners, the
   tabs, the properties card and demo mode
 - `variables.js` and `variables.css`: the variable browser, with
@@ -805,6 +809,9 @@ others, so a page keeps only its own views and its driver only its own commands:
 - `expressions.js` and `expressions.css`: the expression editor, with its
   highlighting, help and live preview, and `lib.ui.expression-tab` on the
   driver's side
+- `collapse.js`, `menu.js`, `combobox.js`, `color.js` and `pickgrid.js`, each
+  with its stylesheet: groups that fold with Expand all, a button with a menu, a
+  searchable dropdown, a color picker, and a picture grid with a drop zone
 - `lib.ui.page`, `lib.ui.page-params` and `lib.ui.tab-properties`: the driver's
   side of the link and the properties card
 
