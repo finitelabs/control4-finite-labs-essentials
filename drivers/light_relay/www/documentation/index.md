@@ -21,10 +21,10 @@ ______________________________________________________________________
 
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
 
-Dynamically creates relay connections for one or more selected light devices
-using a single driver instance. This enables controlling devices that use relay
-drivers (e.g., fans, fireplaces) from a light switch, with bidirectional state
-synchronization.
+Gives each light you pick a relay connection, so a driver that switches a relay
+can switch the light instead. Closing the relay turns the light on and opening
+it turns the light off, and the light's state reports back as the relay's. One
+driver instance covers all of a project's lights.
 
 # <span style="color:#059669">Index</span>
 
@@ -260,8 +260,7 @@ For example, selecting "Kitchen Light" and "Living Room Light" creates:
 | Kitchen Light     | RELAY | Relay binding for Kitchen Light     |
 | Living Room Light | RELAY | Relay binding for Living Room Light |
 
-Connect these relay bindings to devices that consume relay connections (e.g.,
-fan controllers, fireplace relays).
+Connect these relay bindings to a driver that switches a relay.
 
 The relay responds to OPEN (turn light off), CLOSE (turn light on), and TOGGLE
 commands. Light state changes are reflected back as OPENED/CLOSED notifications
