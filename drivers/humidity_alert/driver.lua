@@ -762,6 +762,9 @@ local function registerReferenceHumidityHandlers(binding)
     -- Another sensor reads a few points apart: only its own changes may be compared.
     forgetReference()
     showStatus()
+    if bIsBound then
+      SendToProxy(binding.bindingId, "GET_VALUE", {})
+    end
   end
 end
 
@@ -783,6 +786,9 @@ local function registerReferenceTemperatureHandlers(binding)
     -- Readings paired with the old temperature cannot be compared with ones that have none.
     forgetReference()
     showStatus()
+    if bIsBound then
+      SendToProxy(binding.bindingId, "GET_VALUE", {})
+    end
   end
 end
 

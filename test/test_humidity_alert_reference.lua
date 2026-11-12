@@ -126,6 +126,20 @@ T.eq("beside a fan relay, the other connections keep their ids", coreIds(), core
 setProperty("Control Method", "None")
 T.eq("and the reference inputs outlive the relay", input("reference_humidity") ~= nil, true)
 
+T.section("humidity_alert reference: a bind of a reference input asks the sensor for its value at once")
+fresh(ENABLED)
+for _, key in ipairs({ "reference_humidity", "reference_temperature" }) do
+  local id = input(key)
+  local asked = H.run(function()
+    OnBindingChanged(id, "", true, 503, 1)
+  end)
+  T.eq(key .. " bound", asked:find("proxy " .. id .. " GET_VALUE", 1, true) ~= nil, true)
+  local unasked = H.run(function()
+    OnBindingChanged(id, "", false, 503, 1)
+  end)
+  T.eq(key .. " unbound asks nothing", unasked:find("GET_VALUE", 1, true), nil)
+end
+
 T.section("humidity_alert reference: its reports correct the room's and start nothing")
 fresh(ENABLED)
 T.eq("a reference report", reference(47, 21), "")
