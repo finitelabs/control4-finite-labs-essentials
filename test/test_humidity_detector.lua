@@ -425,4 +425,58 @@ state = midShower()
 Detector.tick(state, settings, (20 - 59) * 60)
 T.eq("an hour back does not stretch it", state.maxDeadline, (18 + 60 - 60) * 60)
 
+T.section("a room that stops drying short of its target ends there")
+local plateau = F.line({
+  { t = 0, rh = 50, c = 22 },
+  { t = 30, rh = 50, c = 22 },
+  { t = 34, rh = 90, c = 22 },
+  { t = 40, rh = 90, c = 22 },
+  { t = 50, rh = 76, c = 22 },
+  { t = 150, rh = 76, c = 22 },
+})
+T.eq("stopped falling with a third of the rise gone", events(plateau), "started Rise @31; cleared @75")
+T.eq(
+  "a plateau just under the peak is a shower still running",
+  events(F.line({
+    { t = 0, rh = 50, c = 22 },
+    { t = 30, rh = 50, c = 22 },
+    { t = 34, rh = 90, c = 22 },
+    { t = 36, rh = 86, c = 22 },
+    { t = 150, rh = 86, c = 22 },
+  })),
+  "started Rise @31; cleared @91; timed_out @91"
+)
+
+T.section("after a time-out in a humid room, the hold-off's larger rise applies to every start")
+local humidAfter = F.line({
+  { t = 0, rh = 50, c = 22 },
+  { t = 30, rh = 50, c = 22 },
+  { t = 31, rh = 85, c = 22 },
+  { t = 94, rh = 85, c = 22 },
+  { t = 95, rh = 92, c = 22 },
+  { t = 130, rh = 92, c = 22 },
+})
+T.eq("threshold", events(humidAfter, { mode = THRESHOLD }), "started Threshold @31; cleared @91; timed_out @91")
+T.eq("rise or threshold", events(humidAfter, { mode = EITHER }), "started Rise @31; cleared @91; timed_out @91")
+
+T.section("a manual hold outlasts the maximum")
+state = Detector.newState()
+settings = F.settings()
+Detector.sample(state, settings, 0, 50, 22)
+Detector.sample(state, settings, 29 * 60, 50, 22)
+T.eq("a shower starts an alert", Detector.sample(state, settings, 30 * 60, 90, 22)[1].reason, "Rise")
+ticks(state, settings, 31, 84)
+Detector.sample(state, settings, 84 * 60, 90, 22)
+T.eq("Start Alert on an active alert changes nothing yet", #Detector.startManual(state, settings, 85 * 60, 30 * 60), 0)
+T.eq("the maximum passes and the alert holds", #ticks(state, settings, 86, 114), 0)
+local held = ticks(state, settings, 115, 116)
+T.eq("it ends when the hold does, and is not a time-out", { #held, held[1].type }, { 1, "cleared" })
+
+state = Detector.newState()
+Detector.sample(state, settings, 0, 45, 22)
+Detector.startManual(state, settings, 60, 30 * 60)
+Detector.startManual(state, settings, 120, 5 * 60)
+T.eq("a second, shorter Start Alert does not shorten the first", #ticks(state, settings, 3, 30), 0)
+T.eq("which still ends on time", #ticks(state, settings, 31, 32), 1)
+
 T.finish()

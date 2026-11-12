@@ -73,7 +73,9 @@ local SETTLE_TIME = 15 * 60
 --- @type number
 local SETTLE_FALL = 1
 
---- Settled only counts once this share of the rise is gone.
+--- Settled counts once this share of the Recovery setting's fall has happened:
+--- a room that stops drying short of its target ends there, a plateau near the
+--- peak does not.
 --- @type number
 local SETTLE_SHARE = 0.5
 
@@ -446,15 +448,17 @@ end
 --- Whether the humidity has stopped falling, judged from samples alone: a
 --- quiet sensor proves nothing.
 --- @param state HumidityState
+--- @param settings HumiditySettings
 --- @param now number
 --- @param rh number
 --- @param current number
 --- @return boolean settled True when it has.
-local function isSettled(state, now, rh, current)
+local function isSettled(state, settings, now, rh, current)
   if rh >= SATURATED then
     return false
   end
-  if current >= state.startLevel + SETTLE_SHARE * (state.peak - state.startLevel) then
+  local remaining = 1 - SETTLE_SHARE * settings.recoveryPercent / 100
+  if current > state.startLevel + remaining * (state.peak - state.startLevel) then
     return false
   end
   local anchor = nil
@@ -501,7 +505,7 @@ local function sampleDuringAlert(state, settings, now, rh, c, changes)
     end
     local remaining = 1 - settings.recoveryPercent / 100
     local recovered = rh < SATURATED and current <= state.startLevel + remaining * (state.peak - state.startLevel)
-    if recovered or isSettled(state, now, rh, current) then
+    if recovered or isSettled(state, settings, now, rh, current) then
       state.reasons[Detector.Reason.RISE] = nil
     end
   elseif usesRise(settings) then
@@ -544,8 +548,8 @@ local function sampleWhileClear(state, settings, now, rh, c, changes)
     state.latched = false
   end
 
+  local factor = (holding or inLeakGuard(state, now)) and HOLD_OFF_FACTOR or 1
   if usesRise(settings) then
-    local factor = (holding or inLeakGuard(state, now)) and HOLD_OFF_FACTOR or 1
     local rising, startLevel, refC, current = isRise(state, settings, now, rh, c, factor)
     if rising then
       addReason(state, settings, now, Detector.Reason.RISE, changes)
@@ -562,7 +566,7 @@ local function sampleWhileClear(state, settings, now, rh, c, changes)
       if not holding then
         addReason(state, settings, now, Detector.Reason.THRESHOLD, changes)
       end
-    elseif isRise(state, settings, now, rh, c, 1) then
+    elseif isRise(state, settings, now, rh, c, factor) then
       -- A shower in a room that stayed humid still gets its alert.
       state.latched = false
       addReason(state, settings, now, Detector.Reason.THRESHOLD, changes)
@@ -588,7 +592,13 @@ local function timeCheck(state, settings, now, changes)
         end
       end
       if state.active and state.maxDeadline ~= nil and now >= state.maxDeadline then
-        if hasDetectedReason(state) or not state.reasons[Detector.Reason.MANUAL] then
+        if state.reasons[Detector.Reason.MANUAL] then
+          -- A manual hold outlasts the maximum: only what was detected ends there.
+          state.reasons = { [Detector.Reason.MANUAL] = true }
+          state.maxDeadline = nil
+          state.ceiling = nil
+          state.latched = usesThreshold(settings)
+        else
           endAlert(state, settings, now, hasDetectedReason(state), changes)
         end
       end
@@ -685,7 +695,7 @@ function Detector.startManual(state, settings, now, seconds)
   advance(state, now)
   timeCheck(state, settings, now, changes)
   addReason(state, settings, now, Detector.Reason.MANUAL, changes)
-  state.manualUntil = now + seconds
+  state.manualUntil = math.max(state.manualUntil or 0, now + seconds)
   return changes
 end
 
