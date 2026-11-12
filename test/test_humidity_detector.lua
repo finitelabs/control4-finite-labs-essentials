@@ -473,6 +473,29 @@ local held = ticks(state, settings, 115, 116)
 T.eq("it ends when the hold does, and is not a time-out", { #held, held[1].type }, { 1, "cleared" })
 
 state = Detector.newState()
+settings = F.settings({ mode = EITHER })
+Detector.sample(state, settings, 0, 50, 22)
+Detector.sample(state, settings, 29 * 60, 50, 22)
+Detector.sample(state, settings, 30 * 60, 90, 22)
+local humidHold = {}
+for minute = 31, 150 do
+  if minute == 85 then
+    Detector.startManual(state, settings, minute * 60, 30 * 60)
+  end
+  local changes = minute % 5 == 0 and Detector.sample(state, settings, minute * 60, 90, 22)
+    or Detector.tick(state, settings, minute * 60)
+  for _, change in ipairs(changes) do
+    humidHold[#humidHold + 1] = change.type .. " @" .. minute
+  end
+end
+T.eq(
+  "in a room still above Alert Above, the level does not start a second maximum",
+  table.concat(humidHold, "; "),
+  "cleared @115"
+)
+settings = F.settings()
+
+state = Detector.newState()
 Detector.sample(state, settings, 0, 45, 22)
 Detector.startManual(state, settings, 60, 30 * 60)
 Detector.startManual(state, settings, 120, 5 * 60)
