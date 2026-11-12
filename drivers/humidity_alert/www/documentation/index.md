@@ -301,8 +301,8 @@ See [Switching a Device](#switching-a-device) for what it does with the device.
 
 The Fan Relay connection exists only while Control Method is Relay, and each
 selector shows only for its own method. A hidden selector keeps its selection. A
-fan the alert turned on that a change here leaves unselected is turned off, and
-the alert carries on.
+device the alert turned on that a change here leaves unselected is turned off,
+and the alert carries on.
 
 #### Light Switches
 
@@ -456,25 +456,25 @@ while the controller was down ends within a minute of the start.
 ## The Reference Sensor
 
 Weather, cooking and a damp evening raise the humidity of the whole house, the
-bathroom included. A second sensor somewhere else in the house lets the driver
-tell that from moisture made in the room. Set Reference Sensor to Enabled and
-connect Reference Humidity, and Reference Temperature when the same sensor gives
-one. The reference is a correction to the Detection Mode in use, not a mode of
-its own:
+room included. A second sensor somewhere else in the house lets the driver tell
+that from moisture made in the room. Set Reference Sensor to Enabled and connect
+Reference Humidity, and Reference Temperature when the same sensor gives one.
+The reference is a correction to the Detection Mode in use, not a mode of its
+own:
 
 - **In Rise**, whatever the reference rose over the same minutes is taken off
   the room's rise. When the house and the room climb together, no alert starts.
   A reference that falls changes nothing: it never makes the room's rise larger.
 - **In Threshold**, a humidity at or above Alert Above starts an alert only when
   the room is also at least 8 points wetter than the reference. A humid week
-  does not run a fan. Once an alert has started, it ends as it would without a
+  raises no alert. Once an alert has started, it ends as it would without a
   reference.
 
 Any temperature and humidity sensor elsewhere in the house can be the reference.
-The best place is where the fan's replacement air comes from: the hall or the
-bedroom outside the bathroom door. It does not need to be the same model as the
-room's sensor. In Rise only changes are compared, so two sensors that read a few
-points apart do no harm.
+The best place is where the room's air comes from when it is replaced: for a
+bathroom with an exhaust fan, the hall or the bedroom outside its door. It does
+not need to be the same model as the room's sensor. In Rise only changes are
+compared, so two sensors that read a few points apart do no harm.
 
 A reference report never starts or ends an alert. A reference that reports only
 changes may stay quiet for hours, and its last reading stands until the Sensor
@@ -483,9 +483,9 @@ from the room's sensor alone, exactly as it does with Reference Sensor Disabled.
 The first report after the driver starts or the reference is connected is where
 its changes are measured from.
 
-A door left open lets the hall share a shower. The rise the reference sees is
-taken off the room's, so an alert starts a little later, and not at all when the
-reference follows the room to within the Rise Amount.
+A door left open lets the reference share the room's moisture. The rise the
+reference sees is taken off the room's, so an alert starts a little later, and
+not at all when the reference follows the room to within the Rise Amount.
 
 ## Known Limits
 
@@ -503,8 +503,8 @@ reference follows the room to within the Rise Amount.
   temperature from another room makes the comparison worse, not better.
 - A sensor in an exhaust fan's housing reads wet whenever the fan is off, from
   air that leaks back down the duct. In Threshold it can then read 8 points
-  above the reference with no shower, so the reference corrects less there. Use
-  Rise for such a sensor.
+  above the reference with nothing adding moisture, so the reference corrects
+  less there. Use Rise for such a sensor.
 
 # <span style="color:#059669">Switching a Device</span>
 

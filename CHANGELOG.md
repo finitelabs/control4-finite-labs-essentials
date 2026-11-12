@@ -22,14 +22,14 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Added
 
-- Added Humidity Alert, a driver that raises an alert when a shower lifts a
-  room's humidity and holds it for as long as an exhaust fan should run. It
-  closes a contact output while the alert is active, and offers Rise, Threshold
-  and Rise or Threshold detection.
-- Humidity Alert can switch a fan itself, with no Control4 programming: its
-  Control Method property picks a relay connection, light switches or a fan
-  speed controller. It turns off only the fans it turned on, and a fan switched
-  off during an alert ends that alert.
+- Added Humidity Alert, a driver that raises an alert when something adds
+  moisture to a room and its humidity rises, and holds it until the room has
+  dried out. It closes a contact output while the alert is active, and offers
+  Rise, Threshold and Rise or Threshold detection.
+- Humidity Alert can switch a device itself, a bathroom exhaust fan for example,
+  with no Control4 programming: its Control Method property picks a relay
+  connection, light switches or a fan speed controller. It turns off only what
+  it turned on, and a device switched off during an alert ends that alert.
 - Humidity Alert can correct for the rest of the house: with Reference Sensor
   Enabled it takes a second humidity and temperature sensor, and humidity the
   whole house shares neither counts as a rise nor starts a threshold alert.
