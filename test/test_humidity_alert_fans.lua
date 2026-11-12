@@ -288,6 +288,22 @@ T.eq(
   "device 400 OFF; device 401 OFF; contact STATE_CLOSED"
 )
 T.eq("the end sends only the contact", command("Clear Alert"), "contact OPENED; event Alert Cleared")
+fresh(RELAY)
+report(75)
+relayTells("CLOSED")
+local relayId = tostring(relay())
+local restart = H.run(function()
+  ShimPersistLand()
+  H.load("humidity_alert", H.LICENSED, { ["Control Method"] = "None" })
+  H.reads(1)
+end)
+T.eq(
+  "a restart that finds Control Method None opens the relay first",
+  restart:find("proxy " .. relayId .. " OPEN", 1, true) ~= nil,
+  true
+)
+T.eq("and then removes its connection", relay(), nil)
+T.eq("the end sends only the contact", command("Clear Alert"), "contact OPENED; event Alert Cleared")
 
 T.section("humidity_alert fans: an alert that ended while the controller was down turns its fans off at the first tick")
 fresh(LIGHTS)

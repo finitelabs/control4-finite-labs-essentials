@@ -587,17 +587,19 @@ end
 -- Readings
 --------------------------------------------------------------------------------
 
---- The newest temperature, unless it is older than the sensor may stay silent.
+--- A sensor's newest temperature, unless it is older than the sensor may stay silent.
+--- @param celsius number|nil
+--- @param at integer|nil When it was reported.
 --- @return number|nil celsius
-local function freshCelsius()
-  if lastCelsius == nil or lastCelsiusTime == nil then
+local function freshCelsius(celsius, at)
+  if celsius == nil or at == nil then
     return nil
   end
   local timeout = settings().sensorTimeoutSeconds
-  if timeout > 0 and now() - lastCelsiusTime > timeout then
+  if timeout > 0 and now() - at > timeout then
     return nil
   end
-  return lastCelsius
+  return celsius
 end
 
 --- Hand the waiting humidity report to the detector, with the newest temperature.
@@ -607,7 +609,7 @@ local function takeSample()
   if rh == nil or not licensed() then
     return
   end
-  local changes = Detector.sample(state, settings(), now(), rh, freshCelsius())
+  local changes = Detector.sample(state, settings(), now(), rh, freshCelsius(lastCelsius, lastCelsiusTime))
   if state.active and state.lastRh ~= nil and (rawPeak == nil or state.lastRh > rawPeak) then
     rawPeak = state.lastRh
   end
@@ -648,13 +650,7 @@ local function takeReference()
   if rh == nil or not licensed() then
     return
   end
-  local celsius = referenceCelsius
-  local timeout = settings().sensorTimeoutSeconds
-  if celsius ~= nil and timeout > 0 and now() - (referenceCelsiusTime or 0) > timeout then
-    celsius = nil
-  end
-  -- It corrects the room's next sample and starts or ends nothing itself.
-  Detector.reference(state, now(), rh, celsius)
+  Detector.reference(state, now(), rh, freshCelsius(referenceCelsius, referenceCelsiusTime))
   showStatus()
 end
 
@@ -839,7 +835,7 @@ local function reconcileConnections()
   if contact then
     registerContactHandlers(contact)
   end
-  reconcileFanRelay()
+  -- The Fan Relay is left to configureFans, which must send a fan it drops an OPEN before deleting it.
   reconcileReference()
 end
 
