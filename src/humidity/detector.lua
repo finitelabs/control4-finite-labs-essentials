@@ -107,6 +107,10 @@ local MAX_DOWNTIME = 24 * 60 * 60
 --- @type number
 local BUCKET = 60
 
+--- A threshold start needs the room this many points wetter than the reference.
+--- @type number
+local REFERENCE_MARGIN = 8
+
 --- @class HumiditySettings
 --- @field enabled boolean False ends any alert and starts none.
 --- @field mode HumidityMode How an alert may start.
@@ -124,6 +128,11 @@ local BUCKET = 60
 --- @field c number|nil Temperature in degrees Celsius, when the sensor gave one.
 --- @field rest boolean True when taken outside an alert and its hold-off.
 
+--- @class ReferenceSample
+--- @field t number When it was taken, in seconds.
+--- @field rh number Relative humidity in percent, as the reference sensor reported it.
+--- @field c number|nil Temperature in degrees Celsius, when that sensor gave one.
+
 --- @class HumidityChange
 --- @field type HumidityChangeType What happened.
 --- @field reason HumidityReason|nil Why, for a start.
@@ -131,6 +140,7 @@ local BUCKET = 60
 --- @class HumidityState
 --- @field seed boolean True when the next sample only sets a baseline.
 --- @field history HumiditySample[] Recent samples, oldest first.
+--- @field refHistory ReferenceSample[]|nil Recent reference samples, oldest first; working memory like `history`.
 --- @field stale boolean True while the sensor has been silent too long.
 --- @field active boolean True while an alert is active.
 --- @field reason string Why the alert started, "" when clear.
@@ -229,6 +239,9 @@ local function shiftTimes(state, delta)
   state.leakGuardUntil = shifted(state.leakGuardUntil, delta)
   state.floorTime = shifted(state.floorTime, delta)
   for _, sample in ipairs(state.history) do
+    sample.t = sample.t + delta
+  end
+  for _, sample in ipairs(state.refHistory or {}) do
     sample.t = sample.t + delta
   end
 end
@@ -350,6 +363,65 @@ local function restingHigh(state, now, low, refC)
   return high
 end
 
+--- The reference sample in force, unless the reference has been silent longer
+--- than a sensor may be. A quiet reference is a steady room, so its last value
+--- stands until then.
+--- @param state HumidityState
+--- @param settings HumiditySettings
+--- @param now number
+--- @return ReferenceSample|nil reference The sample, nil with no usable reference.
+local function referenceInForce(state, settings, now)
+  local refHistory = state.refHistory
+  local last = refHistory and refHistory[#refHistory]
+  if last == nil then
+    return nil
+  end
+  if settings.sensorTimeoutSeconds > 0 and now - last.t > settings.sensorTimeoutSeconds then
+    return nil
+  end
+  return last
+end
+
+--- How much the reference room rose since a moment in the past: the part of
+--- the room's own rise that the whole house shares. Only changes are compared,
+--- so two sensors that read a few points apart do no harm.
+--- @param state HumidityState
+--- @param settings HumiditySettings
+--- @param now number
+--- @param since number The time the room's rise is measured from.
+--- @return number rise The reference's rise in points, never below 0.
+local function referenceRise(state, settings, now, since)
+  local current = referenceInForce(state, settings, now)
+  if current == nil then
+    return 0
+  end
+  -- The value in force at that moment; with none that old, the oldest known.
+  local base = state.refHistory[1]
+  for _, sample in ipairs(state.refHistory) do
+    if sample.t <= since then
+      base = sample
+    end
+  end
+  -- A reference that dried out says nothing about this room, so it never adds to the rise.
+  return math.max(0, valueAt(current.rh, current.c, base.c) - base.rh)
+end
+
+--- Whether the room is wetter than the reference by the margin a threshold
+--- start needs. With no usable reference there is nothing to compare.
+--- @param state HumidityState
+--- @param settings HumiditySettings
+--- @param now number
+--- @param rh number
+--- @param c number|nil
+--- @return boolean above True when it is, or when no reference is in use.
+local function aboveReference(state, settings, now, rh, c)
+  local reference = referenceInForce(state, settings, now)
+  if reference == nil then
+    return true
+  end
+  return rh - valueAt(reference.rh, reference.c, c) >= REFERENCE_MARGIN
+end
+
 --- Whether a sample is a rise that may start an alert.
 --- @param state HumidityState
 --- @param settings HumiditySettings
@@ -372,7 +444,8 @@ local function isRise(state, settings, now, rh, c, factor)
   end
   local current = valueAt(rh, c, refC)
   local aged = math.max(1, math.min(OLD_BASELINE_FACTOR, age / RISE_WINDOW))
-  if current - low.rh < settings.riseAmount * aged * factor then
+  local shared = referenceRise(state, settings, now, now - age)
+  if current - low.rh - shared < settings.riseAmount * aged * factor then
     return false
   end
   -- Climbing back to a level the room already rested at is not a shower.
@@ -534,7 +607,7 @@ local function sampleDuringAlert(state, settings, now, rh, c, changes)
       if rh <= clearLevel(settings) then
         state.reasons[Detector.Reason.THRESHOLD] = nil
       end
-    elseif rh >= settings.alertAbove and not state.latched then
+    elseif rh >= settings.alertAbove and not state.latched and aboveReference(state, settings, now, rh, c) then
       addReason(state, settings, now, Detector.Reason.THRESHOLD, changes)
     end
   end
@@ -570,7 +643,7 @@ local function sampleWhileClear(state, settings, now, rh, c, changes)
     end
   end
 
-  if usesThreshold(settings) and rh >= settings.alertAbove then
+  if usesThreshold(settings) and rh >= settings.alertAbove and aboveReference(state, settings, now, rh, c) then
     if state.active then
       if not state.latched then
         addReason(state, settings, now, Detector.Reason.THRESHOLD, changes)
@@ -684,6 +757,56 @@ function Detector.sample(state, settings, now, rh, celsius)
   return changes
 end
 
+--- A report from the reference sensor, somewhere else in the house. It starts
+--- and ends nothing: it only corrects how the room's next samples are judged.
+--- @param state HumidityState The state, changed in place.
+--- @param now number The time, in seconds.
+--- @param rh number|nil Relative humidity in percent.
+--- @param celsius number|nil Temperature from the same sensor, in degrees Celsius.
+function Detector.reference(state, now, rh, celsius)
+  advance(state, now)
+  if type(rh) ~= "number" or not (rh > 0 and rh <= 100) then
+    return
+  end
+  local c = celsius
+  if type(c) ~= "number" or not (c >= 0 and c <= 50) then
+    c = nil
+  end
+  local refHistory = state.refHistory or {}
+  state.refHistory = refHistory
+  local sample = { t = now, rh = rh, c = c }
+  local last = refHistory[#refHistory]
+  if last ~= nil and math.floor(last.t / BUCKET) == math.floor(now / BUCKET) then
+    refHistory[#refHistory] = sample
+  else
+    refHistory[#refHistory + 1] = sample
+  end
+  -- Keep the one value in force when the resting memory opens: a quiet sensor's only sample.
+  while #refHistory > 1 and refHistory[2].t < now - REST_WINDOW do
+    table.remove(refHistory, 1)
+  end
+end
+
+--- The reference sensor was unbound or changed: its readings no longer count.
+--- @param state HumidityState The state, changed in place.
+function Detector.dropReference(state)
+  state.refHistory = nil
+end
+
+--- The reference reading the room is being corrected with.
+--- @param state HumidityState The state.
+--- @param settings HumiditySettings The current settings.
+--- @param now number The time, in seconds.
+--- @return number|nil rh Its humidity, nil when no reference is in use.
+--- @return boolean silent True when there is one but it has been silent too long.
+function Detector.referenceReading(state, settings, now)
+  local reference = referenceInForce(state, settings, now)
+  if reference ~= nil then
+    return reference.rh, false
+  end
+  return nil, state.refHistory ~= nil and #state.refHistory > 0
+end
+
 --- The passing of time. Call it about once a minute, and after a setting
 --- changes.
 --- @param state HumidityState The state, changed in place.
@@ -788,6 +911,8 @@ function Detector.restart(state, now)
     state.fanRestUntil = nil
   end
   state.history = state.history or {}
+  -- The reference must be heard again: its stored readings have no known age.
+  state.refHistory = nil
   state.seed = true
   state.lastNow = now
 end

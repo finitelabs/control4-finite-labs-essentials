@@ -210,6 +210,7 @@ end
 --- @field untilMinute? number Keep ticking to this minute after the last point.
 --- @field fanStops? boolean Tell the detector when the recorded fan stopped.
 --- @field fanRuns? boolean Tell the detector when the recorded fan started and stopped.
+--- @field reference? TracePoint[] What the reference sensor reports, each point at its minute.
 
 --- Feed a trace to the detector as a driver would: a tick every minute, each
 --- point as a sample at its minute.
@@ -229,11 +230,17 @@ function F.replay(trace, settings, opts)
     end
   end
   local index = 1
+  local refIndex = 1
+  local reference = opts.reference or {}
   local fanWasOn = false
   local lastMinute = math.max(trace[#trace].t, opts.untilMinute or 0)
   for minute = trace[1].t, lastMinute do
     local now = minute * 60
     note(Detector.tick(state, settings, now), minute)
+    while reference[refIndex] ~= nil and reference[refIndex].t <= minute do
+      Detector.reference(state, now, reference[refIndex].rh, reference[refIndex].c)
+      refIndex = refIndex + 1
+    end
     while trace[index] ~= nil and trace[index].t <= minute do
       local point = trace[index]
       if (opts.fanStops or opts.fanRuns) and fanWasOn and point.fan == 0 then
