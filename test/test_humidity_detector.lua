@@ -55,14 +55,24 @@ T.eq("through a sensor that reports 6 point changes", events(F.onChange(leakLoop
 T.eq("through a sensor that reports every 5 minutes", events(F.everyMinutes(leakLoop, 5)), "")
 
 T.section("recorded: a shower starts one alert, at its first rising sample, and ends it once")
--- The first rising sample is minute 18. The room is back to a quarter of its
--- rise at minute 77, and the 60 minute maximum ends the run-on at minute 78.
-T.eq("rise", events(shower), "started Rise @18; cleared @78")
-T.eq("told when the recorded fan stopped", events(shower, nil, { fanStops = true }), "started Rise @18; cleared @78")
+-- The first rising sample is minute 18. Half the rise is gone at minute 50, so
+-- the run-on ends at minute 60. A quarter is not reached until minute 77.
+T.eq("rise", events(shower), "started Rise @18; cleared @60")
+T.eq(
+  "asked to wait for three quarters of the rise, the maximum ends it first",
+  events(shower, { recoveryPercent = 75 }),
+  "started Rise @18; cleared @78"
+)
+T.eq("told when the recorded fan stopped", events(shower, nil, { fanStops = true }), "started Rise @18; cleared @60")
 T.eq("the creep of 2 points over 80 minutes after it starts nothing", count(shower, nil, "started"), 1)
-T.eq("with no temperature", events(F.withoutTemperature(shower)), "started Rise @18; cleared @78; timed_out @78")
+T.eq("with no temperature", events(F.withoutTemperature(shower)), "started Rise @18; cleared @60")
+T.eq(
+  "with no temperature and three quarters asked, it times out",
+  events(F.withoutTemperature(shower), { recoveryPercent = 75 }),
+  "started Rise @18; cleared @78; timed_out @78"
+)
 T.eq("threshold", events(shower, { mode = THRESHOLD }), "started Threshold @21; cleared @61")
-T.eq("rise or threshold", events(shower, { mode = EITHER }), "started Rise @18; cleared @78")
+T.eq("rise or threshold", events(shower, { mode = EITHER }), "started Rise @18; cleared @61")
 T.eq(
   "a shorter maximum ends it sooner, and says so",
   events(shower, { maxAlertSeconds = 30 * 60 }),
@@ -70,9 +80,9 @@ T.eq(
 )
 
 T.section("recorded: the same shower through slow sensors")
-T.eq("6 point changes or hourly", events(F.onChange(shower, 6, 60)), "started Rise @18; cleared @78; timed_out @78")
-T.eq("every 5 minutes", events(F.everyMinutes(shower, 5)), "started Rise @20; cleared @80; timed_out @80")
-T.eq("every 10 minutes", events(F.everyMinutes(shower, 10)), "started Rise @20; cleared @80; timed_out @80")
+T.eq("6 point changes or hourly", events(F.onChange(shower, 6, 60)), "started Rise @18; cleared @67")
+T.eq("every 5 minutes", events(F.everyMinutes(shower, 5)), "started Rise @20; cleared @60")
+T.eq("every 10 minutes", events(F.everyMinutes(shower, 10)), "started Rise @20; cleared @60")
 
 T.section("a dry winter shower")
 local winter = F.line({
@@ -84,8 +94,8 @@ local winter = F.line({
   { t = 90, rh = 34, c = 21.5 },
   { t = 180, rh = 31, c = 21 },
 })
-T.eq("rise", events(winter), "started Rise @31; cleared @73")
-T.eq("6 point changes or hourly", events(F.onChange(winter, 6, 60)), "started Rise @32; cleared @87")
+T.eq("rise", events(winter), "started Rise @31; cleared @65")
+T.eq("6 point changes or hourly", events(F.onChange(winter, 6, 60)), "started Rise @32; cleared @67")
 
 T.section("humid weather is not a shower")
 local drift = F.line({
@@ -124,7 +134,7 @@ local conditioned = F.line({
   { t = 60, rh = 58, c = 24.5 },
   { t = 120, rh = 51, c = 24 },
 })
-T.eq("air-conditioned", events(conditioned), "started Rise @31; cleared @69")
+T.eq("air-conditioned", events(conditioned), "started Rise @31; cleared @64")
 local humidHouse = F.line({
   { t = 0, rh = 75, c = 26 },
   { t = 30, rh = 75, c = 26 },
@@ -133,7 +143,7 @@ local humidHouse = F.line({
   { t = 60, rh = 80, c = 26.5 },
   { t = 120, rh = 76, c = 26 },
 })
-T.eq("at 75 percent", events(humidHouse), "started Rise @32; cleared @70")
+T.eq("at 75 percent", events(humidHouse), "started Rise @32; cleared @64")
 T.eq(
   "at 75 percent, rise or threshold: one alert, ended by the maximum",
   events(humidHouse, { mode = EITHER }),
@@ -205,7 +215,7 @@ local soonAfter = F.line({
 T.eq(
   "one that starts during the hold-off still starts at once",
   events(soonAfter),
-  "started Rise @11; cleared @48; started Rise @63; cleared @101"
+  "started Rise @11; cleared @43; started Rise @63; cleared @96"
 )
 
 T.section("what does not count as a rise")
@@ -257,7 +267,7 @@ local doorOpen = F.line({
   { t = 70, rh = 47, c = 22 },
   { t = 130, rh = 45, c = 22 },
 })
-T.eq("is caught once it passes the Rise Amount", events(doorOpen), "started Rise @36; cleared @79")
+T.eq("is caught once it passes the Rise Amount", events(doorOpen), "started Rise @36; cleared @72")
 
 T.section("readings that cannot be real, and long silences")
 local state = Detector.newState()

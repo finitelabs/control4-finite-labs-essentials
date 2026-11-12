@@ -194,6 +194,7 @@ function F.settings(overrides)
     riseAmount = 6,
     alertAbove = 80,
     clearBelow = 70,
+    recoveryPercent = 50,
     runOnSeconds = 10 * 60,
     maxAlertSeconds = 60 * 60,
     sensorTimeoutSeconds = 24 * 60 * 60,

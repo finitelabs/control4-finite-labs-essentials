@@ -65,10 +65,6 @@ local BASELINE_MAX_AGE = 2 * 60 * 60
 --- @type number
 local REST_WINDOW = 2 * 60 * 60
 
---- The share of a rise that may remain when the room counts as recovered.
---- @type number
-local RECOVERY = 0.25
-
 --- Two samples this far apart judge whether the humidity has stopped falling.
 --- @type number
 local SETTLE_TIME = 15 * 60
@@ -81,7 +77,7 @@ local SETTLE_FALL = 1
 --- @type number
 local SETTLE_SHARE = 0.5
 
---- A reading at or above this is a wet sensor, never a settled room.
+--- A reading at or above this is a wet sensor, never a settled or recovered room.
 --- @type number
 local SATURATED = 95
 
@@ -115,6 +111,7 @@ local BUCKET = 60
 --- @field riseAmount number The rise, in points, that starts an alert.
 --- @field alertAbove number The level at or above which a threshold alert starts.
 --- @field clearBelow number The level at or below which a threshold alert ends.
+--- @field recoveryPercent number The share of a rise, in percent, that must be gone for the room to count as recovered.
 --- @field runOnSeconds number How long an alert lasts after its reasons are gone.
 --- @field maxAlertSeconds number The longest a detected alert lasts.
 --- @field sensorTimeoutSeconds number Silence after which the sensor is stale; 0 never.
@@ -502,7 +499,8 @@ local function sampleDuringAlert(state, settings, now, rh, c, changes)
         state.maxDeadline = math.min(now + settings.maxAlertSeconds, state.ceiling)
       end
     end
-    local recovered = current <= state.startLevel + RECOVERY * (state.peak - state.startLevel)
+    local remaining = 1 - settings.recoveryPercent / 100
+    local recovered = rh < SATURATED and current <= state.startLevel + remaining * (state.peak - state.startLevel)
     if recovered or isSettled(state, now, rh, current) then
       state.reasons[Detector.Reason.RISE] = nil
     end
