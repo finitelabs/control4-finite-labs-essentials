@@ -18,6 +18,15 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Removed
 -->
 
+## Unreleased
+
+### Added
+
+- Added Humidity Alert, a driver that raises an alert when a shower lifts a
+  room's humidity and holds it for as long as an exhaust fan should run. It
+  closes a contact output while the alert is active, and offers Rise, Threshold
+  and Rise or Threshold detection.
+
 <!-- #ifdef DRIVERCENTRAL -->
 
 ## v20261112 - 2026-11-12

@@ -1,0 +1,362 @@
+<devicedata>
+  <name>Humidity Alert</name>
+  <version/>
+  <manufacturer>Finite Labs</manufacturer>
+  <model>Humidity Alert</model>
+  <creator>Derek Miller</creator>
+  <small image_source="c4z">icons/device_sm.png</small>
+  <large image_source="c4z">icons/device_lg.png</large>
+  <control>lua_gen</control>
+  <driver>DriverWorks</driver>
+  <copyright>Copyright 2026 Finite Labs, LLC. All rights reserved.</copyright>
+  <created>11/12/2026 12:00:00 PM</created>
+  <modified/>
+  <combo>true</combo>
+  <minimum_os_version>3.3.0</minimum_os_version>
+  <composer_categories>
+    <category>Sensors</category>
+  </composer_categories>
+  <conditionals>
+    <conditional>
+      <id>1</id>
+      <name>ALERT_ACTIVE</name>
+      <type>BOOL</type>
+      <condition_statement>Alert state</condition_statement>
+      <description>NAME alert is STRING</description>
+      <true_text>Active</true_text>
+      <false_text>Clear</false_text>
+    </conditional>
+    <conditional>
+      <id>2</id>
+      <name>HUMIDITY_SENSOR_STALE</name>
+      <type>BOOL</type>
+      <condition_statement>Humidity sensor state</condition_statement>
+      <description>NAME humidity sensor is STRING</description>
+      <true_text>Stale</true_text>
+      <false_text>Reporting</false_text>
+    </conditional>
+  </conditionals>
+  <events>
+    <event>
+      <id>1</id>
+      <name>Alert Started</name>
+      <description>When NAME starts an alert</description>
+    </event>
+    <event>
+      <id>2</id>
+      <name>Alert Cleared</name>
+      <description>When NAME clears its alert</description>
+    </event>
+    <event>
+      <id>3</id>
+      <name>Alert Timed Out</name>
+      <description>When NAME ends an alert at its maximum time</description>
+    </event>
+    <event>
+      <id>4</id>
+      <name>Humidity Sensor Stale</name>
+      <description>When the humidity sensor of NAME stops reporting</description>
+    </event>
+  </events>
+  <config>
+    <script file="driver.lua" jit="1"/>
+    <documentation file="www/documentation/index.html"/>
+    <properties>
+      <property>
+        <name>Cloud Settings</name>
+        <type>LABEL</type>
+        <default>Cloud Settings</default>
+      </property>
+      <!-- #ifdef DRIVERCENTRAL -->
+      <property>
+        <name>Cloud Status</name>
+        <default/>
+        <type>STRING</type>
+        <readonly>true</readonly>
+      </property>
+      <!-- #endif -->
+      <property>
+        <name>Automatic Updates</name>
+        <type>LIST</type>
+        <items>
+          <item>Off</item>
+          <item>On</item>
+        </items>
+        <default>On</default>
+      </property>
+      <!-- #ifndef DRIVERCENTRAL -->
+      <property>
+        <name>Update Channel</name>
+        <type>LIST</type>
+        <default>Production</default>
+        <items>
+          <item>Production</item>
+          <item>Prerelease</item>
+        </items>
+      </property>
+      <!-- #endif -->
+      <property>
+        <name>Driver Settings</name>
+        <type>LABEL</type>
+        <default>Driver Settings</default>
+      </property>
+      <property>
+        <name>Driver Status</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Driver Version</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Log Level</name>
+        <type>DYNAMIC_LIST</type>
+        <default>3 - Info</default>
+      </property>
+      <property>
+        <name>Log Mode</name>
+        <type>LIST</type>
+        <default>Off</default>
+        <items>
+          <item>Off</item>
+          <item>Print</item>
+          <item>Log</item>
+          <item>Print and Log</item>
+        </items>
+      </property>
+      <!-- #ifdef DRIVERCENTRAL -->
+      <property>
+        <name>Support Code</name>
+        <type>STRING</type>
+        <default/>
+        <description>Enter only a code from Finite Labs support. It opens the Lua window for an hour.</description>
+        <password>true</password>
+      </property>
+      <property>
+        <name>Cloud Monitoring</name>
+        <type>LIST</type>
+        <default>Enabled</default>
+        <items>
+          <item>Disabled</item>
+          <item>Enabled</item>
+        </items>
+        <description>Sends memory and error reports to Finite Labs so we can fix driver problems.</description>
+      </property>
+      <!-- #endif -->
+      <property>
+        <name>Detection Settings</name>
+        <type>LABEL</type>
+        <default>Detection Settings</default>
+      </property>
+      <property>
+        <name>Detection</name>
+        <type>LIST</type>
+        <default>Enabled</default>
+        <items>
+          <item>Enabled</item>
+          <item>Disabled</item>
+        </items>
+        <description>Turns detection on or off. Disabled ends any alert and starts none.</description>
+      </property>
+      <property>
+        <name>Detection Mode</name>
+        <type>LIST</type>
+        <default>Rise</default>
+        <items>
+          <item>Rise</item>
+          <item>Threshold</item>
+          <item>Rise or Threshold</item>
+        </items>
+        <description>How the driver decides that an alert starts.</description>
+      </property>
+      <property>
+        <name>Rise Amount</name>
+        <type>RANGED_INTEGER</type>
+        <minimum>2</minimum>
+        <maximum>30</maximum>
+        <default>6</default>
+        <description>Humidity rise, in points, that starts an alert. Lower is more sensitive.</description>
+      </property>
+      <property>
+        <name>Recovery</name>
+        <type>RANGED_INTEGER</type>
+        <minimum>10</minimum>
+        <maximum>95</maximum>
+        <default>50</default>
+        <description>Percent of the rise that must be gone before the alert can end.</description>
+      </property>
+      <property>
+        <name>Alert Above</name>
+        <type>RANGED_INTEGER</type>
+        <minimum>30</minimum>
+        <maximum>100</maximum>
+        <default>80</default>
+        <description>Humidity, in percent, at or above which an alert starts.</description>
+      </property>
+      <property>
+        <name>Clear Below</name>
+        <type>RANGED_INTEGER</type>
+        <minimum>20</minimum>
+        <maximum>97</maximum>
+        <default>70</default>
+        <description>Humidity, in percent, at or below which a threshold alert ends.</description>
+      </property>
+      <property>
+        <name>Timing Settings</name>
+        <type>LABEL</type>
+        <default>Timing Settings</default>
+      </property>
+      <property>
+        <name>Run-On Time</name>
+        <type>RANGED_INTEGER</type>
+        <minimum>0</minimum>
+        <maximum>120</maximum>
+        <default>10</default>
+        <description>Minutes the alert stays active after the humidity has recovered.</description>
+      </property>
+      <property>
+        <name>Maximum Alert Time</name>
+        <type>RANGED_INTEGER</type>
+        <minimum>5</minimum>
+        <maximum>240</maximum>
+        <default>60</default>
+        <description>Minutes after which an alert ends, even if the room is still humid.</description>
+      </property>
+      <property>
+        <name>Sensor Timeout</name>
+        <type>RANGED_INTEGER</type>
+        <minimum>0</minimum>
+        <maximum>168</maximum>
+        <default>24</default>
+        <description>Hours without a humidity report before the sensor is stale. 0 is never.</description>
+      </property>
+      <property>
+        <name>Status</name>
+        <type>LABEL</type>
+        <default>Status</default>
+      </property>
+      <property>
+        <name>Alert</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Humidity</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Temperature</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Dew Point</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Start Humidity</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Peak Humidity</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+    </properties>
+    <actions>
+      <!-- #ifndef DRIVERCENTRAL -->
+      <action>
+        <name>Update Drivers</name>
+        <command>Update_Drivers</command>
+      </action>
+      <!-- #endif -->
+      <action>
+        <name>Reset Driver</name>
+        <command>Reset_Driver</command>
+        <params>
+          <param>
+            <name>Are You Sure?</name>
+            <type>LIST</type>
+            <items>
+              <item>No</item>
+              <item>Yes</item>
+            </items>
+          </param>
+        </params>
+      </action>
+      <action>
+        <name>Start Alert</name>
+        <command>Start_Alert</command>
+        <params>
+          <param>
+            <name>Minutes</name>
+            <type>RANGED_INTEGER</type>
+            <minimum>1</minimum>
+            <maximum>240</maximum>
+            <default>20</default>
+          </param>
+        </params>
+      </action>
+      <action>
+        <name>Clear Alert</name>
+        <command>Clear_Alert</command>
+      </action>
+      <action>
+        <name>Enable Detection</name>
+        <command>Enable_Detection</command>
+      </action>
+      <action>
+        <name>Disable Detection</name>
+        <command>Disable_Detection</command>
+      </action>
+      <!-- #ifdef DRIVERCENTRAL -->
+      <action>
+        <name>Diagnostics Snapshot</name>
+        <command>DiagnosticsSnapshot</command>
+      </action>
+      <!-- #endif -->
+    </actions>
+    <commands>
+      <command>
+        <name>Start Alert</name>
+        <description>Start an alert on NAME for PARAM1 minutes</description>
+        <params>
+          <param>
+            <name>Minutes</name>
+            <type>RANGED_INTEGER</type>
+            <minimum>1</minimum>
+            <maximum>240</maximum>
+            <default>20</default>
+          </param>
+        </params>
+      </command>
+      <command>
+        <name>Clear Alert</name>
+        <description>Clear the alert on NAME</description>
+      </command>
+      <command>
+        <name>Enable Detection</name>
+        <description>Enable detection on NAME</description>
+      </command>
+      <command>
+        <name>Disable Detection</name>
+        <description>Disable detection on NAME</description>
+      </command>
+    </commands>
+  </config>
+  <capabilities/>
+  <connections/>
+</devicedata>

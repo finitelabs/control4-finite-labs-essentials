@@ -26,6 +26,7 @@ standalone and can be installed individually or together.
   - [Light Relay](#light-relay)
   - [Variable Expressions](#variable-expressions)
   - [Network Requests](#network-requests)
+  - [Humidity Alert](#humidity-alert)
 
 - [Installation](#installation)
 
@@ -158,6 +159,24 @@ tab, then fire them from programming with a single Send Request command.
   `<Name> Payload` variable, guarded by an optional key
 - Requests, webhooks, and last results persist across driver restarts
 
+## Humidity Alert
+
+Raise an alert when a shower lifts a room's humidity, and hold it for as long as
+an exhaust fan should run. The driver reads a humidity and an optional
+temperature connection and closes a contact output while the alert is active. It
+looks for a jump above the level the room was resting at, so it needs no
+adjustment between a dry winter and a humid summer.
+
+**Key features:**
+
+- Detection modes: Rise, Threshold, Rise or Threshold
+- Follows the moisture in the air when the sensor's temperature is connected
+- Ends an alert when the room has recovered, with a run-on time and a maximum
+- Works with fast sensors and with battery sensors that report only large
+  changes
+- Contact output that fires programming once at the start and once at the end
+- Events, conditionals, variables and commands for programming
+
 # <span style="color:#059669">Installation</span>
 
 ## Installing the Drivers
@@ -200,6 +219,15 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 ### Removed
 - Removed
 -->
+
+## Unreleased
+
+### Added
+
+- Added Humidity Alert, a driver that raises an alert when a shower lifts a
+  room's humidity and holds it for as long as an exhaust fan should run. It
+  closes a contact output while the alert is active, and offers Rise, Threshold
+  and Rise or Threshold detection.
 
 ## v20261112 - 2026-11-12
 
