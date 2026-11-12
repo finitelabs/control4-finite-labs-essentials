@@ -32,13 +32,12 @@ you choose.
 
 ### Sensor Multiplexer
 
-Passes one of several named groups of sensors through to its outputs, picked
-from programming, to give a thermostat a different temperature source in each
-mode.
+Passes one of several named groups of sensors through to a single set of
+outputs, switched from programming.
 
 ### Device Programmer
 
-Virtual temperature, humidity and contact sensors and relays, named in its
+Virtual temperature, humidity, contact and relay devices, named in its
 properties and set from programming, that keep their values across restarts.
 
 ### Light Relay
