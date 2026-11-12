@@ -25,10 +25,10 @@ Raise an alert when something adds moisture to a room and its humidity rises,
 and hold it until the room has dried out again. A shower, a bath, cooking or a
 running dryer all count. This driver reads a HUMIDITY_VALUE and an optional
 TEMPERATURE_VALUE connection from another Control4 driver and closes a
-CONTACT_SENSOR output while the alert is active, for Control4 programming to act
-on, running a bathroom exhaust fan for example. It works through the seasons,
-because it looks for a jump above the level the room was resting at rather than
-for a fixed number.
+CONTACT_SENSOR output while the alert is active. Control4 programming can act on
+the alert, or the driver can switch a device itself, a bathroom exhaust fan for
+example. It works through the seasons, because it looks for a jump above the
+level the room was resting at rather than for a fixed number.
 
 # <span style="color:#059669">Index</span>
 
@@ -46,13 +46,13 @@ for a fixed number.
     - [Driver Settings](#driver-settings)
     - [Detection Settings](#detection-settings)
     - [Timing Settings](#timing-settings)
-    - [Fan Settings](#fan-settings)
+    - [Output Settings](#output-settings)
     - [Status](#status)
   - [Driver Actions](#driver-actions)
 - [How It Decides](#how-it-decides)
   - [Known Limits](#known-limits)
-- [Switching a Fan](#switching-a-fan)
-  - [Sharing a Fan with a Timer Driver](#sharing-a-fan-with-a-timer-driver)
+- [Switching a Device](#switching-a-device)
+  - [Sharing a Device with a Timer Driver](#sharing-a-device-with-a-timer-driver)
 - [Programming](#programming)
   - [Connections](#connections)
   - [Events](#events)
@@ -87,9 +87,9 @@ for a fixed number.
   report only large changes
 - A contact output that fires Control4 programming once when an alert starts and
   once when it ends
-- Switches a fan itself, with no Control4 programming: by a relay, by light
+- Switches a device itself, with no Control4 programming: by a relay, by light
   switches or by a fan speed controller
-- Turns off only the fans it turned on, and treats a fan switched off during an
+- Turns off only what it turned on, and treats a device switched off during an
   alert as the end of that alert
 - Events, conditionals, variables and commands for Control4 programming
 
@@ -271,12 +271,12 @@ Hours without a humidity report before the sensor counts as stale. A sensor that
 reports only when its reading changes can be silent for hours in a steady room,
 so keep this long. 0 never marks it stale.
 
-### Fan Settings
+### Output Settings
 
 #### Control Method \[ **_None_** | Relay | Light Switch | Fan Speed Controller \]
 
-How the driver switches a fan during an alert. See
-[Switching a Fan](#switching-a-fan) for what it does with the fan.
+How the driver switches a device during an alert, an exhaust fan for example.
+See [Switching a Device](#switching-a-device) for what it does with the device.
 
 - **None**: the driver switches nothing. Use the Alert Contact connection or the
   driver's events.
@@ -293,13 +293,13 @@ selector shows only for its own method. A hidden selector keeps its selection.
 
 #### Light Switches
 
-The light switches that run the room's fans. Shown while Control Method is Light
-Switch. Select every switch the alert should turn on.
+The light switches the alert turns on, the switches of a room's exhaust fans for
+example. Shown while Control Method is Light Switch.
 
 #### Fan Controller
 
-The fan speed controller that runs the room's fan. Shown while Control Method is
-Fan Speed Controller.
+The fan speed controller the alert turns on. Shown while Control Method is Fan
+Speed Controller.
 
 ### Status
 
@@ -444,48 +444,51 @@ while the controller was down ends within a minute of the start.
 - The Temperature connection must come from the same sensor as Humidity. A
   temperature from another room makes the comparison worse, not better.
 
-# <span style="color:#059669">Switching a Fan</span>
+# <span style="color:#059669">Switching a Device</span>
 
-With a Control Method chosen, the driver runs the fan itself:
+With a Control Method chosen, the driver switches the selected devices itself.
+Most often that is a room's exhaust fan, but it can be anything a relay, a light
+switch or a fan speed controller runs.
 
-- When an alert starts, it turns on every selected fan that is off. Those fans
-  are the alert's own.
-- When the alert ends, it turns off the fans it turned on, and no others. A fan
-  that was already running when the alert started is left running.
-- A fan the alert turned on that is switched off during the alert, at the wall
-  or by anything else, ends the alert. The driver turns off the alert's other
-  fans, and for the next 15 minutes only a clearly larger rise starts a new
-  alert.
-- A fan that was already running when the alert started and that stops during
+- When an alert starts, it turns on every selected device that is off. Those
+  devices are the alert's own.
+- When the alert ends, it turns off the devices it turned on, and no others. A
+  device that was already on when the alert started is left on.
+- A device the alert turned on that is switched off during the alert, at the
+  wall or by anything else, ends the alert. The driver turns off the alert's
+  other devices, and for the next 15 minutes only a clearly larger rise starts a
+  new alert.
+- A device that was already on when the alert started and that goes off during
   the alert is turned back on, once, and is the alert's own from then. Switched
   off again, it ends the alert.
-- With no alert, the driver never switches a fan. A fan someone turns on by hand
-  runs until they turn it off.
-- When a selected fan stops for any reason, the driver expects the humidity
-  reading to move for a few minutes and does not take a small climb for a
-  shower. This matters for a sensor mounted in the fan's own housing, which
-  reads the room's air while the fan runs and air from the duct once it stops.
-- A controller restart leaves the fans as they are. An alert that is still
-  active after the restart turns its fans off when it ends.
+- With no alert, the driver never switches a device. A device someone turns on
+  by hand stays on until they turn it off.
+- When a selected device goes off for any reason, the driver expects the
+  humidity reading to move for a few minutes and does not take a small climb for
+  a new rise. This matters for a sensor mounted in an exhaust fan's own housing,
+  which reads the room's air while the fan runs and air from the duct once it
+  stops.
+- A controller restart leaves the devices as they are. An alert that is still
+  active after the restart turns its devices off when it ends.
 
 Turning Detection off, unbinding the Humidity connection, Reset Driver and a
-lapsed license each end the alert and turn its fans off.
+lapsed license each end the alert and turn its devices off.
 
-## Sharing a Fan with a Timer Driver
+## Sharing a Device with a Timer Driver
 
-A fan can also be run by a countdown timer driver that watches the same switch.
-Two things about such a timer matter here:
+A device, most often a fan, can also be run by a countdown timer driver that
+watches the same switch. Two things about such a timer matter here:
 
-- Some timers start their own countdown whenever the fan turns on, and turn the
-  fan off when it runs out. If that happens during an alert, this driver sees
-  its fan switched off and ends the alert, even if the room is still humid.
-  Leave that option off on the timer, or set its time at least as long as
-  Maximum Alert Time.
-- A timer that was already running the fan when an alert starts keeps control of
-  it. If the timer turns the fan off while the alert is still active, this
+- Some timers start their own countdown whenever the device turns on, and turn
+  it off when it runs out. If that happens during an alert, this driver sees its
+  device switched off and ends the alert, even if the room is still humid. Leave
+  that option off on the timer, or set its time at least as long as Maximum
+  Alert Time.
+- A timer that was already running the device when an alert starts keeps control
+  of it. If the timer turns the device off while the alert is still active, this
   driver turns it back on once and runs it to the end of the alert.
 
-The two never switch the fan back and forth: after any fan of the alert is
+The two never switch the device back and forth: after any device of the alert is
 switched off, the alert is over.
 
 # <span style="color:#059669">Programming</span>
