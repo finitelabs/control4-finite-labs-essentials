@@ -77,9 +77,6 @@ local FAN_RELAY_KEY = "relay"
 --- @type integer
 local VAR_DEVICE_ON = 1000
 
---- A fan that has not shown a commanded state after this long is no longer waited for.
---- @type number
-
 --- A humidity report waits this long for its sensor's temperature report.
 --- @type number
 local PAIR_WAIT = 3 * ONE_SECOND
@@ -454,7 +451,7 @@ local function configureFans()
   if anyFanOn() then
     Detector.fanStarted(state, now())
   elseif state.fanRunning then
-    -- A fan that ran when the state was saved and no longer does stopped while the driver was down.
+    -- No selected fan runs any longer: it stopped while the driver was down, or is no longer selected.
     Detector.fanStopped(state, now())
   end
   if gInitialized and state.active and licensed() then
