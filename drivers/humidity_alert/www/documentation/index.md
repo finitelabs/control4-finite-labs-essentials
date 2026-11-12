@@ -300,7 +300,9 @@ See [Switching a Device](#switching-a-device) for what it does with the device.
   at, and off.
 
 The Fan Relay connection exists only while Control Method is Relay, and each
-selector shows only for its own method. A hidden selector keeps its selection.
+selector shows only for its own method. A hidden selector keeps its selection. A
+fan the alert turned on that a change here leaves unselected is turned off, and
+the alert carries on.
 
 #### Light Switches
 
@@ -560,7 +562,7 @@ switched off, the alert is over.
 | Humidity              | HUMIDITY_VALUE    | Input     | The room's humidity sensor. Required.                                               |
 | Temperature           | TEMPERATURE_VALUE | Input     | The same sensor's temperature. Optional.                                            |
 | Alert Contact         | CONTACT_SENSOR    | Output    | Closed while an alert is active, else open.                                         |
-| Fan Relay             | RELAY             | Output    | Closed by the driver during an alert. Exists while Control Method is Relay.         |
+| Fan Relay             | RELAY             | Input     | Closed by the driver during an alert. Exists while Control Method is Relay.         |
 | Reference Humidity    | HUMIDITY_VALUE    | Input     | A humidity sensor elsewhere in the house. Exists while Reference Sensor is Enabled. |
 | Reference Temperature | TEMPERATURE_VALUE | Input     | The same sensor's temperature. Optional. Exists while Reference Sensor is Enabled.  |
 

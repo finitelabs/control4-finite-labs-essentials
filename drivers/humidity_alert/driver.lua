@@ -445,6 +445,12 @@ local function configureFans()
         or (
           key == FAN_RELAY_KEY and { name = "the fan relay" } or { name = "device " .. key, deviceId = tointeger(key) }
         )
+      -- Forgotten before the off goes out, so its answer is not taken for someone switching it off.
+      if fan.deviceId ~= nil then
+        UnregisterVariableListener(fan.deviceId, VAR_DEVICE_ON)
+      end
+      fans[key] = nil
+      owned[key] = nil
       sendFan(fan, false)
     end
   end

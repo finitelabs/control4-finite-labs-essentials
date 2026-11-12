@@ -305,6 +305,30 @@ T.eq(
 T.eq("and then removes its connection", relay(), nil)
 T.eq("the end sends only the contact", command("Clear Alert"), "contact OPENED; event Alert Cleared")
 
+T.section(
+  "humidity_alert fans: a fan dropped from the selection mid-alert is turned off, and its off does not end the alert"
+)
+for _, method in ipairs({ "None", "Light Switch" }) do
+  fresh(RELAY)
+  report(75)
+  relayTells("CLOSED")
+  local id = relay()
+  -- A relay that answers its OPEN at once, as a relay on the same controller does.
+  local send = SendToProxy
+  SendToProxy = function(bindingId, name, params, ...)
+    send(bindingId, name, params, ...)
+    if bindingId == id and name == "OPEN" then
+      ReceivedFromProxy(id, "OPENED", {})
+    end
+  end
+  local changed = H.run(function()
+    UpdateProperty("Control Method", method, true)
+  end)
+  SendToProxy = send
+  T.eq("Relay to " .. method .. ": the relay is opened", changed:find("proxy " .. id .. " OPEN", 1, true) ~= nil, true)
+  T.eq("and the alert carries on", Properties["Alert"], "Active (Rise)")
+end
+
 T.section("humidity_alert fans: an alert that ended while the controller was down turns its fans off at the first tick")
 fresh(LIGHTS)
 command("Start Alert", { Minutes = "5" })
