@@ -5,9 +5,9 @@ code in this repository.
 
 Seven independent Control4 DriverWorks drivers built on one shared library:
 `sensor_aggregator`, `sensor_multiplexer`, `device_programmer`, `light_relay`,
-`variable_expressions`, `network_requests`, `humidity_alert`. Each builds for two distributions
-selected by preprocessor directives: `oss` (self-updates from GitHub releases)
-and `drivercentral` (DriverCentral cloud licensing).
+`variable_expressions`, `network_requests`, `humidity_alert`. Each builds for
+two distributions selected by preprocessor directives: `oss` (self-updates from
+GitHub releases) and `drivercentral` (DriverCentral cloud licensing).
 
 `README.md` describes what each driver does. `CONTRIBUTING.md` documents the
 layout, the toolchain and the build pipeline. This file holds what neither says.
