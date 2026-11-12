@@ -79,7 +79,6 @@ local VAR_DEVICE_ON = 1000
 
 --- A fan that has not shown a commanded state after this long is no longer waited for.
 --- @type number
-local FAN_COMMAND_WAIT = 30 * ONE_SECOND
 
 --- A humidity report waits this long for its sensor's temperature report.
 --- @type number
@@ -131,7 +130,6 @@ local SETTING_DEFAULTS = {
 --- @field deviceId integer|nil The light or fan controller, nil for the relay connection.
 --- @field name string What the log calls it.
 --- @field on boolean|nil Whether it runs, nil when not known yet.
---- @field pending boolean[] The states the driver's own commands still expect, oldest first.
 
 --- The detector's state.
 --- @type HumidityState
@@ -267,23 +265,14 @@ local function sendFan(fan, on)
   end
 end
 
---- Command a selected fan, and expect the state that command asks for: the
---- report that follows is then the driver's own doing, not a hand at the switch.
+--- Command a selected fan.
 --- @param key string
 --- @param on boolean
 local function commandFan(key, on)
   local fan = fans[key]
-  if fan == nil then
-    return
+  if fan ~= nil then
+    sendFan(fan, on)
   end
-  fan.pending[#fan.pending + 1] = on
-  sendFan(fan, on)
-  SetTimer("FanCommand" .. key, FAN_COMMAND_WAIT, function()
-    if fans[key] == fan and #fan.pending > 0 then
-      log:warn("%s did not report the state it was sent; no longer waiting for it", fan.name)
-      fan.pending = {}
-    end
-  end)
 end
 
 --- An alert started: turn on every selected fan that is off. Those are the alert's own.
@@ -315,9 +304,6 @@ local function onFanState(key, on, isChange)
   if fan == nil then
     return
   end
-  if fan.pending[1] == on then
-    table.remove(fan.pending, 1)
-  end
   local was = fan.on
   fan.on = on
   if was == on then
@@ -340,19 +326,20 @@ local function onFanState(key, on, isChange)
     log:info("%s was turned off during the alert; ending the alert", fan.name)
     owned[key] = nil
     endAlert()
-  elseif not owned[key] then
+  else
     -- Whatever ran this fan has finished with it, or the driver's own off from the last alert landed
     -- late: the alert still needs it. It is the alert's from here, so a second off ends the alert.
     log:info("%s stopped during the alert; turning it back on", fan.name)
     owned[key] = true
     commandFan(key, true)
+    -- Saved at once: a restart must still know this fan is the alert's to turn off.
+    saveState()
   end
 end
 
 --- Stop watching the selected fans.
 local function forgetFans()
   for key, fan in pairs(fans) do
-    CancelTimer("FanCommand" .. key)
     if fan.deviceId ~= nil then
       UnregisterVariableListener(fan.deviceId, VAR_DEVICE_ON)
     end
@@ -369,7 +356,6 @@ local function watchDevice(deviceId, name)
     deviceId = deviceId,
     name = name,
     on = toboolean(C4:GetDeviceVariable(deviceId, VAR_DEVICE_ON)),
-    pending = {},
   }
   RegisterVariableListener(deviceId, VAR_DEVICE_ON, function(_, _, strValue)
     onFanState(key, toboolean(strValue), true)
@@ -394,7 +380,6 @@ local function registerFanRelayHandlers(binding)
     if fan ~= nil then
       -- Another relay, or none: what the last one showed says nothing about it.
       fan.on = nil
-      fan.pending = {}
     end
     if not bIsBound then
       owned[FAN_RELAY_KEY] = nil
@@ -454,7 +439,7 @@ local function configureFans()
 
   if method == METHOD_RELAY then
     local before = previous[FAN_RELAY_KEY]
-    fans[FAN_RELAY_KEY] = { name = "the fan relay", on = before and before.on or nil, pending = {} }
+    fans[FAN_RELAY_KEY] = { name = "the fan relay", on = before and before.on or nil }
   else
     for key, name in pairs(devices) do
       watchDevice(tointeger(key), name)
@@ -468,6 +453,9 @@ local function configureFans()
   end
   if anyFanOn() then
     Detector.fanStarted(state, now())
+  elseif state.fanRunning then
+    -- A fan that ran when the state was saved and no longer does stopped while the driver was down.
+    Detector.fanStopped(state, now())
   end
   if gInitialized and state.active and licensed() then
     engageFans()
@@ -778,10 +766,6 @@ function OnDriverInit()
   fans = {}
   -- An alert that outlasted the downtime is restored as it was and ended by the first tick.
   Detector.restart(state, now())
-  -- Whether a fan runs is read again in late init: one that stopped while the driver was down is stopped.
-  if state.fanRunning then
-    Detector.fanStopped(state, now())
-  end
   lastContactState = nil
   pendingHumidity = nil
   lastCelsius = nil

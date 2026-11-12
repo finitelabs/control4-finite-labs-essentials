@@ -237,23 +237,6 @@ T.eq(
   "contact CLOSED; device 400 ON; device 401 ON; event Alert Started"
 )
 
-T.section("humidity_alert fans: a fan that never shows the state it was sent is not waited for, nor sent again")
-fresh(LIGHTS)
-report(75)
-T.eq(
-  "minutes pass with no report from the fans",
-  did(function()
-    minutes(3)
-  end),
-  ""
-)
-shows(LIGHT_A, true)
-T.eq(
-  "a later off is then a hand at the switch",
-  shows(LIGHT_A, false),
-  "contact OPENED; device 401 OFF; event Alert Cleared"
-)
-
 T.section("humidity_alert fans: a restart keeps the alert's fans its own")
 fresh(LIGHTS)
 report(75)
@@ -262,6 +245,20 @@ shows(LIGHT_B, true)
 T.eq("a restart commands nothing", start(LIGHTS), "contact STATE_CLOSED")
 T.eq(
   "the end still turns them off",
+  command("Clear Alert"),
+  "contact OPENED; device 400 OFF; device 401 OFF; event Alert Cleared"
+)
+
+T.section("humidity_alert fans: a fan taken over is still the alert's after a restart")
+fresh(LIGHTS)
+shows(LIGHT_B, true)
+report(75)
+shows(LIGHT_A, true)
+T.eq("it stops mid-alert: the alert takes it over", shows(LIGHT_B, false), "device 401 ON")
+shows(LIGHT_B, true)
+start(LIGHTS)
+T.eq(
+  "the alert's end turns off both",
   command("Clear Alert"),
   "contact OPENED; device 400 OFF; device 401 OFF; event Alert Cleared"
 )
