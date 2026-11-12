@@ -14,8 +14,7 @@ each runs on the controller with no cloud service or extra hardware.
 
 - Several sensors combined into one reading, or one named group of sensors
   passed through at a time
-- Virtual temperature, humidity and contact sensors and relays that programming
-  sets
+- Virtual temperature, humidity, contact and relay devices that programming sets
 - Lights used as relays by other drivers, with their state kept in step
 - Text and math built from Control4 variables, recalculated when they change
 - HTTP, TCP, UDP and Wake-on-LAN commands sent from programming
