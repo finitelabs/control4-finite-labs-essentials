@@ -7,8 +7,8 @@
 06-expression-editor|img=page-expr-editor.png&fit=1&t=Every%20reference%2C%20every%20value&s=See%20each%20variable%20an%20expression%20reads%2C%20its%20current%20value%2C%20and%20the%20result.
 07-string-expressions|img=page-string-editor.png&end=470&t=Text%20from%20variables&s=String%20expressions%20build%20text%20from%20Control4%20variables.
 08-sensor-aggregation|img=composer-aggregator.png&fit=1&t=Sensor%20aggregation&s=Combine%20several%20temperature%2C%20humidity%20or%20contact%20sensors%20into%20one%20reading.
-09-virtual-devices|img=composer-programmer.png&fit=1&t=Virtual%20devices&s=Name%20temperature%2C%20humidity%20and%20contact%20sensors%20and%20relays%2C%20and%20set%20them%20from%20Control4%20programming.
-10-sensor-multiplexer|img=composer-multiplexer.png&fit=1&t=Sensor%20multiplexer&s=Pick%20which%20group%20of%20sensors%20a%20thermostat%20reads%2C%20from%20Control4%20programming.
+09-virtual-devices|img=composer-programmer.png&fit=1&t=Virtual%20devices&s=Name%20temperature%2C%20humidity%2C%20contact%20and%20relay%20devices%2C%20then%20set%20them%20from%20Control4%20programming.
+10-sensor-multiplexer|img=composer-multiplexer.png&fit=1&t=Sensor%20multiplexer&s=Switch%20which%20group%20of%20sensors%20feeds%20one%20set%20of%20outputs%2C%20from%20Control4%20programming.
 11-light-relay|img=composer-lightrelay-picker.png&fit=1&t=Lights%20as%20relays&s=Any%20light%20can%20be%20a%20relay%20that%20other%20drivers%20switch%2C%20with%20its%20state%20reported%20back.
 12-connections|img=composer-connections.png&fit=1&t=Connections&s=Virtual%20sensors%2C%20the%20aggregator%20and%20the%20multiplexer%20connect%20like%20any%20Control4%20device.
 13-programming|img=composer-programming-events.png&fit=1&t=Programming&s=Every%20request%20and%20webhook%20has%20its%20own%20events%2C%20and%20each%20utility%20adds%20commands.

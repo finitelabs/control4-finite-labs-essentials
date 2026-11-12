@@ -18,19 +18,20 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Removed
 -->
 
-## v20261112 - 2026-11-12
-
 <!-- #ifdef DRIVERCENTRAL -->
+
+## v20261112 - 2026-11-12
 
 ### Added
 
-- Added a Support Code property to every driver, which lets Finite Labs support
-  open the driver's Lua tab and its Trace and Ultra log levels for an hour.
-- Added Cloud Monitoring, Enabled by default, which sends Finite Labs each
-  driver's memory use every hour and each error it hits, and a Diagnostics
-  Snapshot action.
+- Added the Device Programmer, Light Relay, Network Requests, Sensor Aggregator,
+  Sensor Multiplexer and Variable Expressions drivers to DriverCentral.
 
 <!-- #endif -->
+
+<!-- #ifndef DRIVERCENTRAL -->
+
+## v20261112 - 2026-11-12
 
 ### Fixed
 
@@ -116,3 +117,5 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Initial release of Sensor Aggregator.
 - Initial release of Sensor Multiplexer.
 - Initial release of Variable Expressions.
+
+<!-- #endif -->

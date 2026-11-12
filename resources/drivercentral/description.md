@@ -14,8 +14,7 @@ each runs on the controller with no cloud service or extra hardware.
 
 - Several sensors combined into one reading, or one named group of sensors
   passed through at a time
-- Virtual temperature, humidity and contact sensors and relays that programming
-  sets
+- Virtual temperature, humidity, contact and relay devices that programming sets
 - Lights used as relays by other drivers, with their state kept in step
 - Text and math built from Control4 variables, recalculated when they change
 - HTTP, TCP, UDP and Wake-on-LAN commands sent from programming
@@ -32,13 +31,12 @@ you choose.
 
 ### Sensor Multiplexer
 
-Passes one of several named groups of sensors through to its outputs, picked
-from programming, to give a thermostat a different temperature source in each
-mode.
+Passes one of several named groups of sensors through to a single set of
+outputs, switched from programming.
 
 ### Device Programmer
 
-Virtual temperature, humidity and contact sensors and relays, named in its
+Virtual temperature, humidity, contact and relay devices, named in its
 properties and set from programming, that keep their values across restarts.
 
 ### Light Relay
