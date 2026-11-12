@@ -263,6 +263,32 @@ T.eq(
   "contact OPENED; device 400 OFF; device 401 OFF; event Alert Cleared"
 )
 
+T.section("humidity_alert fans: a fan dropped from the selection while the driver was down is still turned off")
+fresh(LIGHTS)
+report(75)
+shows(LIGHT_A, true)
+shows(LIGHT_B, true)
+T.eq(
+  "a restart that finds Light Switches holding only one of them",
+  start({ ["Control Method"] = "Light Switch", ["Light Switches"] = "400" }),
+  "device 401 OFF; contact STATE_CLOSED"
+)
+T.eq(
+  "the end turns off the one still selected",
+  command("Clear Alert"),
+  "contact OPENED; device 400 OFF; event Alert Cleared"
+)
+fresh(LIGHTS)
+report(75)
+shows(LIGHT_A, true)
+shows(LIGHT_B, true)
+T.eq(
+  "a restart that finds Control Method None",
+  start({ ["Control Method"] = "None", ["Light Switches"] = "400,401" }),
+  "device 400 OFF; device 401 OFF; contact STATE_CLOSED"
+)
+T.eq("the end sends only the contact", command("Clear Alert"), "contact OPENED; event Alert Cleared")
+
 T.section("humidity_alert fans: an alert that ended while the controller was down turns its fans off at the first tick")
 fresh(LIGHTS)
 command("Start Alert", { Minutes = "5" })

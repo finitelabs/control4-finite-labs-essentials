@@ -434,11 +434,18 @@ local function configureFans()
   local method = Properties["Control Method"]
   local devices = selectedDevices(method)
 
-  -- A fan the alert turned on that is no longer selected is turned off while it can still be reached.
-  for _, key in ipairs(fanKeys()) do
+  -- A fan the alert turned on that is no longer selected is turned off while it can still be reached,
+  -- also when it left the selection while the driver was down and so has no entry in fans yet.
+  local ownedKeys = TableKeys(owned)
+  table.sort(ownedKeys)
+  for _, key in ipairs(ownedKeys) do
     local stays = (key == FAN_RELAY_KEY and method == METHOD_RELAY) or devices[key] ~= nil
-    if owned[key] and not stays and gInitialized and state.active then
-      sendFan(fans[key], false)
+    if not stays and state.active then
+      local fan = fans[key]
+        or (
+          key == FAN_RELAY_KEY and { name = "the fan relay" } or { name = "device " .. key, deviceId = tointeger(key) }
+        )
+      sendFan(fan, false)
     end
   end
   local previous = fans
