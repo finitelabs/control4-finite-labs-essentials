@@ -161,11 +161,11 @@ tab, then fire them from programming with a single Send Request command.
 
 ## Humidity Alert
 
-Raise an alert when a shower lifts a room's humidity, and hold it for as long as
-an exhaust fan should run. The driver reads a humidity and an optional
-temperature connection and closes a contact output while the alert is active. It
-looks for a jump above the level the room was resting at, so it needs no
-adjustment between a dry winter and a humid summer.
+Raise an alert when something adds moisture to a room and its humidity rises,
+and hold it until the room has dried out. The driver reads a humidity and an
+optional temperature connection and closes a contact output while the alert is
+active. It looks for a jump above the level the room was resting at, so it needs
+no adjustment between a dry winter and a humid summer.
 
 **Key features:**
 
@@ -224,10 +224,10 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Added
 
-- Added Humidity Alert, a driver that raises an alert when a shower lifts a
-  room's humidity and holds it for as long as an exhaust fan should run. It
-  closes a contact output while the alert is active, and offers Rise, Threshold
-  and Rise or Threshold detection.
+- Added Humidity Alert, a driver that raises an alert when something adds
+  moisture to a room and its humidity rises, and holds it until the room has
+  dried out. It closes a contact output while the alert is active, and offers
+  Rise, Threshold and Rise or Threshold detection.
 
 ## v20261112 - 2026-11-12
 

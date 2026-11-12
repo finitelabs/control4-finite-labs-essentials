@@ -536,7 +536,7 @@ function OnDriverLateInit()
   --#ifdef DRIVERCENTRAL
   drivercentral:startGate(function(active)
     if not active then
-      -- A fan that programming turned on must be turned off: end the alert, and say nothing else.
+      -- A device that programming turned on must be turned off: end the alert, and say nothing else.
       if state.active then
         endAlert(true)
       end
@@ -750,7 +750,7 @@ function EC.Reset_Driver(params)
   end
   log:print("Resetting driver to initial state")
 
-  -- The contact goes with its binding, so a fan an alert turned on is turned off first.
+  -- The contact goes with its binding, so a device an alert turned on is turned off first.
   if state.active and licensed() then
     endAlert()
   end

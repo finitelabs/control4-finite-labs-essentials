@@ -21,12 +21,14 @@ ______________________________________________________________________
 
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
 
-Raise an alert when a shower, or anything else that adds moisture, lifts a
-room's humidity, and hold it for as long as an exhaust fan should run. This
-driver reads a HUMIDITY_VALUE and an optional TEMPERATURE_VALUE connection from
-another Control4 driver and closes a CONTACT_SENSOR output while the alert is
-active. It works through the seasons, because it looks for a jump above the
-level the room was resting at rather than for a fixed number.
+Raise an alert when something adds moisture to a room and its humidity rises,
+and hold it until the room has dried out again. A shower, a bath, cooking or a
+running dryer all count. This driver reads a HUMIDITY_VALUE and an optional
+TEMPERATURE_VALUE connection from another Control4 driver and closes a
+CONTACT_SENSOR output while the alert is active, for Control4 programming to act
+on, running a bathroom exhaust fan for example. It works through the seasons,
+because it looks for a jump above the level the room was resting at rather than
+for a fixed number.
 
 # <span style="color:#059669">Index</span>
 
@@ -70,13 +72,13 @@ level the room was resting at rather than for a fixed number.
 
 # <span style="color:#059669">Features</span>
 
-- Detects a shower from a jump in humidity, in a dry winter and a humid summer
-  alike
+- Detects moisture added to a room from a jump in humidity, in a dry winter and
+  a humid summer alike
 - Three detection modes: Rise, Threshold, Rise or Threshold
 - Uses the sensor's temperature, when connected, to follow the moisture in the
   air instead of the relative humidity alone
 - Ends an alert when the room has recovered, with a run-on time and a maximum
-- Holds off after an alert, so the rebound when a fan stops does not start
+- Holds off after an alert, so the climb that can follow it does not start
   another
 - Works with sensors that report every few seconds and with battery sensors that
   report only large changes
@@ -215,7 +217,8 @@ change this property.
 How the driver decides that an alert starts.
 
 - **Rise** starts an alert when the humidity jumps above the level the room was
-  resting at. Use it for showers. It needs no adjustment between seasons.
+  resting at. Use it for moisture that comes and goes, a shower for example. It
+  needs no adjustment between seasons.
 - **Threshold** starts an alert when the humidity is at or above Alert Above.
   Use it for a room whose normal humidity stays well below that level all year.
 - **Rise or Threshold** starts an alert on either one.
@@ -225,14 +228,14 @@ Settings the chosen mode does not use are hidden and keep their values.
 #### Rise Amount \[ 2 - 30, default: **_6_** \]
 
 The rise in humidity, in percentage points, that starts an alert in the Rise
-modes. Lower it to catch smaller rises. Raise it if alerts start without a
-shower.
+modes. Lower it to catch smaller rises. Raise it if alerts start when nothing
+has added moisture.
 
 #### Recovery \[ 10 - 95, default: **_50_** \]
 
 The percent of the rise that must be gone before the alert can end. At 50, an
 alert that started at 45 % and peaked at 95 % can end once the humidity is back
-at 70 %. A higher value runs the fan longer.
+at 70 %. A higher value keeps the alert active longer.
 
 #### Alert Above \[ 30 - 100, default: **_80_** \]
 
@@ -253,7 +256,7 @@ Minutes the alert stays active after the humidity has recovered.
 #### Maximum Alert Time \[ 5 - 240, default: **_60_** \]
 
 Minutes after which an alert ends, even if the room is still humid. A second
-shower during an alert can extend it, to twice this time at most.
+rise during an alert can extend it, to twice this time at most.
 
 #### Sensor Timeout \[ 0 - 168, default: **_24_** \]
 
@@ -359,12 +362,12 @@ Amount above it. Two things keep ordinary changes from counting:
   moves the humidity slowly does not start an alert, even through a sensor that
   reports in large steps.
 
-**Temperature.** A shower warms the room, and warm air shows a lower relative
-humidity for the same moisture. With the Temperature connection bound to the
-same sensor as Humidity, the driver compares the moisture in the air, so a room
-that only warms or cools does not look like a change. A humidity report is
-paired with the temperature reported with it. Every value the driver shows is
-the humidity the sensor reported.
+**Temperature.** Hot water and cooking warm a room as they add moisture, and
+warm air shows a lower relative humidity for the same moisture. With the
+Temperature connection bound to the same sensor as Humidity, the driver compares
+the moisture in the air, so a room that only warms or cools does not look like a
+change. A humidity report is paired with the temperature reported with it. Every
+value the driver shows is the humidity the sensor reported.
 
 **The end.** An alert can end when the Recovery share of the rise is gone, or
 when the humidity has stopped falling and at least half the rise is gone. It
@@ -374,14 +377,15 @@ Maximum Alert Time.
 
 **After an alert.** For 15 minutes a new alert needs twice the Rise Amount, and
 the level the room settles at becomes the new resting level. Humidity often
-climbs for a while when a fan stops, and that climb does not start the fan
-again.
+climbs for a while when an exhaust fan stops, and that climb does not start
+another alert.
 
 **A threshold.** In the Threshold modes an alert starts at Alert Above and ends
 at Clear Below. When a threshold alert reaches the Maximum Alert Time while the
 room is still above Alert Above, the threshold waits until the humidity has
-fallen to Clear Below before it can start another, so a humid day runs a fan
-once and not all day. A rise still starts an alert in Rise or Threshold.
+fallen to Clear Below before it can start another, so a humid day raises one
+alert and not one after another. A rise still starts an alert in Rise or
+Threshold.
 
 **Restarts.** The first report after the driver starts, or after the Humidity
 connection is bound, only sets the resting level. An alert that was active when
@@ -390,10 +394,10 @@ while the controller was down ends within a minute of the start.
 
 ## Known Limits
 
-- A sensor that sends its first report ten minutes into a shower cannot start an
+- A sensor that sends its first report ten minutes into a rise cannot start an
   alert sooner than that.
 - A constant source of moisture in the room, a humidifier or laundry drying,
-  starts an alert each time the fan lets the humidity climb again.
+  starts a new alert each time the humidity climbs again after one ends.
 - A steam session longer than the Maximum Alert Time loses the alert at the
   maximum. Raise the Maximum Alert Time for such a room.
 - Without a Temperature connection, a room that cools quickly can read as a rise
@@ -432,7 +436,7 @@ contact its state without firing programming.
 | Humidity Sensor Stale | When no humidity report came within the Sensor Timeout   |
 
 Every Alert Started is followed by exactly one Alert Cleared. Programming that
-turns a fan on at Alert Started and off at Alert Cleared never leaves it on.
+turns a device on at Alert Started and off at Alert Cleared never leaves it on.
 
 ## Conditionals
 
