@@ -356,7 +356,6 @@ local function registerHumidityHandlers(binding)
       endAlert()
     end
     if bIsBound then
-      -- A sensor that reports only changes may stay silent for hours after a bind.
       SendToProxy(binding.bindingId, "GET_VALUE", {})
     end
   end
