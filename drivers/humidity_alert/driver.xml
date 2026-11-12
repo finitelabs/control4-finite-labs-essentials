@@ -235,6 +235,43 @@
         <description>Hours without a humidity report before the sensor is stale. 0 is never.</description>
       </property>
       <property>
+        <name>Fan Settings</name>
+        <type>LABEL</type>
+        <default>Fan Settings</default>
+      </property>
+      <property>
+        <name>Control Method</name>
+        <type>LIST</type>
+        <default>None</default>
+        <items>
+          <item>None</item>
+          <item>Relay</item>
+          <item>Light Switch</item>
+          <item>Fan Speed Controller</item>
+        </items>
+        <description>How the driver switches a fan during an alert. None uses the contact only.</description>
+      </property>
+      <property>
+        <name>Light Switches</name>
+        <type>DEVICE_SELECTOR</type>
+        <items>
+          <item>light.c4i</item>
+          <item>light_v2.c4i</item>
+          <item>outlet_light.c4i</item>
+        </items>
+        <multiselect>true</multiselect>
+        <description>The switches turned on when an alert starts and off when it ends.</description>
+      </property>
+      <property>
+        <name>Fan Controller</name>
+        <type>DEVICE_SELECTOR</type>
+        <items>
+          <item>fan.c4i</item>
+        </items>
+        <multiselect>false</multiselect>
+        <description>The fan controller turned on when an alert starts and off when it ends.</description>
+      </property>
+      <property>
         <name>Status</name>
         <type>LABEL</type>
         <default>Status</default>

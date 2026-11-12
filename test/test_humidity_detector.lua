@@ -417,6 +417,33 @@ end
 T.eq("the climb after it stops is held to the larger rise", events(longRun, nil, { fanStops = true }), "")
 T.eq("not told of the fan, the same climb reads as a rise", count(longRun, nil, "started"), 1)
 
+-- The recorded afternoon with its first fan run stretched past the two hours the
+-- resting level is remembered: the rest before it, 150 minutes of fan, then the
+-- recorded climb as outdoor air leaks back.
+local stretched = {}
+for i = 1, 14 do
+  stretched[#stretched + 1] = leakLoop[i]
+end
+for minute = 14, 163 do
+  stretched[#stretched + 1] = { t = minute, rh = 46, c = leakLoop[18].c, fan = 1 }
+end
+for i = 19, 25 do
+  local point = leakLoop[i]
+  stretched[#stretched + 1] = { t = 164 + (i - 19), rh = point.rh, c = point.c, fan = 0 }
+end
+T.eq(
+  "recorded, with a fan run past two hours: told of the run, nothing starts",
+  events(stretched, nil, { fanRuns = true }),
+  ""
+)
+T.eq(
+  "told only of the stop, the level it rested at is forgotten",
+  count(stretched, nil, "started", { fanStops = true }),
+  1
+)
+T.eq("the afternoon as recorded, told of every run", events(leakLoop, nil, { fanRuns = true }), "")
+T.eq("the recorded shower, told of every run", events(shower, nil, { fanRuns = true }), "started Rise @18; cleared @60")
+
 T.section("a clock that jumps while the driver runs")
 state = midShower()
 T.eq("an hour forward does not end the alert", #Detector.tick(state, settings, (20 + 61) * 60), 0)
@@ -501,5 +528,19 @@ Detector.startManual(state, settings, 60, 30 * 60)
 Detector.startManual(state, settings, 120, 5 * 60)
 T.eq("a second, shorter Start Alert does not shorten the first", #ticks(state, settings, 3, 30), 0)
 T.eq("which still ends on time", #ticks(state, settings, 31, 32), 1)
+
+T.section("a Detection Mode changed in the middle of an alert")
+local before, after = {}, {}
+for _, point in ipairs(winter) do
+  local part = point.t <= 40 and before or after
+  part[#part + 1] = point
+end
+local startedAs, midAlert = F.replay(before, F.settings())
+T.eq("a shower starts a rise alert", table.concat(startedAs, "; "), "started Rise @31")
+T.eq(
+  "changed to Threshold, the alert keeps its reason and ends as it would have",
+  table.concat((F.replay(after, F.settings({ mode = THRESHOLD }), { state = midAlert })), "; "),
+  "cleared @65"
+)
 
 T.finish()

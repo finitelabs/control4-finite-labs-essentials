@@ -34,6 +34,13 @@ you choose.
 Passes one of several named groups of sensors through to a single set of
 outputs, switched from programming.
 
+### Humidity Alert
+
+Raises an alert when a shower lifts a room's humidity and holds it for as long
+as an exhaust fan should run, in a dry winter and a humid summer alike. It
+closes a contact, and can switch the fan itself by a relay, light switches or a
+fan speed controller.
+
 ### Device Programmer
 
 Virtual temperature, humidity, contact and relay devices, named in its

@@ -209,6 +209,7 @@ end
 --- @field state? HumidityState A state to continue from.
 --- @field untilMinute? number Keep ticking to this minute after the last point.
 --- @field fanStops? boolean Tell the detector when the recorded fan stopped.
+--- @field fanRuns? boolean Tell the detector when the recorded fan started and stopped.
 
 --- Feed a trace to the detector as a driver would: a tick every minute, each
 --- point as a sample at its minute.
@@ -235,8 +236,11 @@ function F.replay(trace, settings, opts)
     note(Detector.tick(state, settings, now), minute)
     while trace[index] ~= nil and trace[index].t <= minute do
       local point = trace[index]
-      if opts.fanStops and fanWasOn and point.fan == 0 then
+      if (opts.fanStops or opts.fanRuns) and fanWasOn and point.fan == 0 then
         Detector.fanStopped(state, now)
+      end
+      if opts.fanRuns and not fanWasOn and point.fan == 1 then
+        Detector.fanStarted(state, now)
       end
       fanWasOn = point.fan == 1
       note(Detector.sample(state, settings, now, point.rh, point.c), minute)

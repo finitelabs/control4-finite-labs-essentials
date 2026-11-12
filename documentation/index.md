@@ -190,6 +190,8 @@ no adjustment between a dry winter and a humid summer.
 - Works with fast sensors and with battery sensors that report only large
   changes
 - Contact output that fires programming once at the start and once at the end
+- Switches a fan itself by a relay, light switches or a fan speed controller,
+  and turns off only the fans it turned on
 - Events, conditionals, variables and commands for programming
 
 # <span style="color:#059669">Installation</span>
