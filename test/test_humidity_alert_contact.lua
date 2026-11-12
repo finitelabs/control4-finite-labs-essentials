@@ -184,6 +184,18 @@ local unbound = told(function()
 end)
 T.eq("unbound", unbound, "OPENED; event Alert Cleared")
 
+T.section("humidity_alert: a bind of a sensor asks it for its value at once")
+for _, input in ipairs({ { humidityInput(), "HUMIDITY_VALUE" }, { temperatureInput(), "TEMPERATURE_VALUE" } }) do
+  local asked = H.run(function()
+    OnBindingChanged(input[1], input[2], true, 502, 1)
+  end)
+  T.eq(input[2] .. " bound", asked:find("proxy " .. input[1] .. " GET_VALUE", 1, true) ~= nil, true)
+  local unasked = H.run(function()
+    OnBindingChanged(input[1], input[2], false, 502, 1)
+  end)
+  T.eq(input[2] .. " unbound asks nothing", unasked:find("GET_VALUE", 1, true), nil)
+end
+
 T.section("humidity_alert: a bind of the contact tells the state silently")
 command("Start Alert", { Minutes = "30" })
 local bound = told(function()

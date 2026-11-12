@@ -355,6 +355,10 @@ local function registerHumidityHandlers(binding)
     if not bIsBound and state.active and licensed() then
       endAlert()
     end
+    if bIsBound then
+      -- A sensor that reports only changes may stay silent for hours after a bind.
+      SendToProxy(binding.bindingId, "GET_VALUE", {})
+    end
   end
 end
 
@@ -375,6 +379,9 @@ local function registerTemperatureHandlers(binding)
     log:trace("OBC[%s](%s, %s, %s)", binding.bindingId, idBinding, _strClass, bIsBound)
     lastCelsius = nil
     lastCelsiusTime = nil
+    if bIsBound then
+      SendToProxy(binding.bindingId, "GET_VALUE", {})
+    end
   end
 end
 
