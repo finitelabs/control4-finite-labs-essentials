@@ -429,7 +429,7 @@ change. A humidity report is paired with the temperature reported with it. Every
 value the driver shows is the humidity the sensor reported.
 
 **The end.** An alert can end when the Recovery share of the rise is gone, or
-when the humidity has stopped falling and at least half the rise is gone. It
+when the humidity has stopped falling with at least half of that share gone. It
 then stays active for the Run-On Time. A sensor that still reads 95 % or more is
 wet and never counts as recovered. Whatever the room does, the alert ends at the
 Maximum Alert Time.
