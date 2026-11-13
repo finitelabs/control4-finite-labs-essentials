@@ -206,6 +206,16 @@
         <description>Humidity, in percent, at or below which a threshold alert ends.</description>
       </property>
       <property>
+        <name>Reference Sensor</name>
+        <type>LIST</type>
+        <default>Disabled</default>
+        <items>
+          <item>Disabled</item>
+          <item>Enabled</item>
+        </items>
+        <description>Adds inputs from another room so whole-house humidity changes are ignored.</description>
+      </property>
+      <property>
         <name>Timing Settings</name>
         <type>LABEL</type>
         <default>Timing Settings</default>
@@ -308,6 +318,12 @@
       </property>
       <property>
         <name>Peak Humidity</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Reference</name>
         <type>STRING</type>
         <default/>
         <readonly>true</readonly>

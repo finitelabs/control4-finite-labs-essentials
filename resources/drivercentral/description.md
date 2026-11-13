@@ -40,7 +40,8 @@ Raises an alert when something adds moisture to a room and its humidity rises,
 and holds it until the room has dried out, in a dry winter and a humid summer
 alike. It closes a contact for Control4 programming, and can switch a device
 itself, a bathroom exhaust fan for example, by a relay, light switches or a fan
-speed controller.
+speed controller. A second sensor elsewhere in the house keeps humidity the
+whole house shares from counting as the room's.
 
 ### Device Programmer
 

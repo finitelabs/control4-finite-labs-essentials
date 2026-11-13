@@ -186,6 +186,8 @@ no adjustment between a dry winter and a humid summer.
 
 - Detection modes: Rise, Threshold, Rise or Threshold
 - Follows the moisture in the air when the sensor's temperature is connected
+- Optional reference sensor elsewhere in the house, so humidity the whole house
+  shares does not count as the room's
 - Ends an alert when the room has recovered, with a run-on time and a maximum
 - Works with fast sensors and with battery sensors that report only large
   changes

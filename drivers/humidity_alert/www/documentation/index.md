@@ -50,6 +50,7 @@ level the room was resting at rather than for a fixed number.
     - [Status](#status)
   - [Driver Actions](#driver-actions)
 - [How It Decides](#how-it-decides)
+  - [The Reference Sensor](#the-reference-sensor)
   - [Known Limits](#known-limits)
 - [Switching a Device](#switching-a-device)
   - [Sharing a Device with a Timer Driver](#sharing-a-device-with-a-timer-driver)
@@ -80,6 +81,8 @@ level the room was resting at rather than for a fixed number.
 - Three detection modes: Rise, Threshold, Rise or Threshold
 - Uses the sensor's temperature, when connected, to follow the moisture in the
   air instead of the relative humidity alone
+- An optional reference sensor elsewhere in the house, so humidity the whole
+  house shares does not count as the room's
 - Ends an alert when the room has recovered, with a run-on time and a maximum
 - Holds off after an alert, so the climb that can follow it does not start
   another
@@ -254,6 +257,14 @@ modes.
 The humidity, in percent, at or below which a threshold alert ends. The driver
 treats it as at least 3 below Alert Above.
 
+#### Reference Sensor \[ **_Disabled_** | Enabled \]
+
+Enabled adds the Reference Humidity and Reference Temperature connections, for a
+sensor somewhere else in the house. The driver then leaves out of its decision
+whatever the house and the room share. See
+[The Reference Sensor](#the-reference-sensor). Disabled removes both
+connections.
+
 ### Timing Settings
 
 #### Run-On Time \[ 0 - 120, default: **_10_** \]
@@ -280,16 +291,18 @@ See [Switching a Device](#switching-a-device) for what it does with the device.
 
 - **None**: the driver switches nothing. Use the Alert Contact connection or the
   driver's events.
-- **Relay**: adds a Fan Relay connection. The driver closes the relay when an
-  alert starts and opens it when the alert ends.
+- **Relay**: adds a Relay connection. The driver closes the relay when an alert
+  starts and opens it when the alert ends.
 - **Light Switch**: shows the Light Switches property. The driver turns the
   selected switches on and off.
 - **Fan Speed Controller**: shows the Fan Controller property. The driver turns
   the selected fan controller on, at the speed the controller itself turns on
   at, and off.
 
-The Fan Relay connection exists only while Control Method is Relay, and each
-selector shows only for its own method. A hidden selector keeps its selection.
+The Relay connection exists only while Control Method is Relay, and each
+selector shows only for its own method. A hidden selector keeps its selection. A
+device the alert turned on that a change here leaves unselected is turned off,
+and the alert carries on.
 
 #### Light Switches
 
@@ -328,6 +341,17 @@ The humidity the room was resting at when the active alert started.
 #### Peak Humidity (read-only)
 
 The highest humidity the sensor reported during the active alert.
+
+#### Reference (read-only)
+
+What the reference sensor is doing for the driver:
+
+| Value                 | Meaning                                                                      |
+| --------------------- | ---------------------------------------------------------------------------- |
+| Not used              | Reference Sensor is Disabled.                                                |
+| Waiting for a reading | The reference has not reported since it was connected or the driver started. |
+| In use: 47 %          | The room's reports are being corrected with this reference humidity.         |
+| Silent, not in use    | The reference has not reported within the Sensor Timeout.                    |
 
 ## Driver Actions
 
@@ -407,7 +431,7 @@ change. A humidity report is paired with the temperature reported with it. Every
 value the driver shows is the humidity the sensor reported.
 
 **The end.** An alert can end when the Recovery share of the rise is gone, or
-when the humidity has stopped falling and at least half the rise is gone. It
+when the humidity has stopped falling with at least half of that share gone. It
 then stays active for the Run-On Time. A sensor that still reads 95 % or more is
 wet and never counts as recovered. Whatever the room does, the alert ends at the
 Maximum Alert Time.
@@ -429,6 +453,40 @@ connection is bound, only sets the resting level. An alert that was active when
 the controller restarted is still active afterwards, and one whose time ran out
 while the controller was down ends within a minute of the start.
 
+## The Reference Sensor
+
+Weather, cooking and a damp evening raise the humidity of the whole house, the
+room included. A second sensor somewhere else in the house lets the driver tell
+that from moisture made in the room. Set Reference Sensor to Enabled and connect
+Reference Humidity, and Reference Temperature when the same sensor gives one.
+The reference is a correction to the Detection Mode in use, not a mode of its
+own:
+
+- **In Rise**, whatever the reference rose over the same minutes is taken off
+  the room's rise. When the house and the room climb together, no alert starts.
+  A reference that falls changes nothing: it never makes the room's rise larger.
+- **In Threshold**, a humidity at or above Alert Above starts an alert only when
+  the room is also at least 8 points wetter than the reference. A humid week
+  raises no alert. Once an alert has started, it ends as it would without a
+  reference.
+
+Any temperature and humidity sensor elsewhere in the house can be the reference.
+The best place is where the room's air comes from when it is replaced: for a
+bathroom with an exhaust fan, the hall or the bedroom outside its door. It does
+not need to be the same model as the room's sensor. In Rise only changes are
+compared, so two sensors that read a few points apart do no harm.
+
+A reference report never starts or ends an alert. A reference that reports only
+changes may stay quiet for hours, and its last reading stands until the Sensor
+Timeout has passed. After that, or with nothing connected, the driver decides
+from the room's sensor alone, exactly as it does with Reference Sensor Disabled.
+The first report after the driver starts or the reference is connected is where
+its changes are measured from.
+
+A door left open lets the reference share the room's moisture. The rise the
+reference sees is taken off the room's, so an alert starts a little later, and
+not at all when the reference follows the room to within the Rise Amount.
+
 ## Known Limits
 
 - A sensor that sends its first report ten minutes into a rise cannot start an
@@ -443,6 +501,10 @@ while the controller was down ends within a minute of the start.
   adjustment.
 - The Temperature connection must come from the same sensor as Humidity. A
   temperature from another room makes the comparison worse, not better.
+- A sensor in an exhaust fan's housing reads wet whenever the fan is off, from
+  air that leaks back down the duct. In Threshold it can then read 8 points
+  above the reference with nothing adding moisture, so the reference corrects
+  less there. Use Rise for such a sensor.
 
 # <span style="color:#059669">Switching a Device</span>
 
@@ -495,12 +557,14 @@ switched off, the alert is over.
 
 ## Connections
 
-| Connection    | Class             | Direction | Description                                                                 |
-| ------------- | ----------------- | --------- | --------------------------------------------------------------------------- |
-| Humidity      | HUMIDITY_VALUE    | Input     | The room's humidity sensor. Required.                                       |
-| Temperature   | TEMPERATURE_VALUE | Input     | The same sensor's temperature. Optional.                                    |
-| Alert Contact | CONTACT_SENSOR    | Output    | Closed while an alert is active, else open.                                 |
-| Fan Relay     | RELAY             | Output    | Closed by the driver during an alert. Exists while Control Method is Relay. |
+| Connection            | Class             | Direction | Description                                                                         |
+| --------------------- | ----------------- | --------- | ----------------------------------------------------------------------------------- |
+| Humidity              | HUMIDITY_VALUE    | Input     | The room's humidity sensor. Required.                                               |
+| Temperature           | TEMPERATURE_VALUE | Input     | The same sensor's temperature. Optional.                                            |
+| Alert Contact         | CONTACT_SENSOR    | Output    | Closed while an alert is active, else open.                                         |
+| Relay                 | RELAY             | Input     | Closed by the driver during an alert. Exists while Control Method is Relay.         |
+| Reference Humidity    | HUMIDITY_VALUE    | Input     | A humidity sensor elsewhere in the house. Exists while Reference Sensor is Enabled. |
+| Reference Temperature | TEMPERATURE_VALUE | Input     | The same sensor's temperature. Optional. Exists while Reference Sensor is Enabled.  |
 
 Connect Alert Contact to a contact sensor driver to see the alert as a device
 and to run Control4 programming from its Opened and Closed events, or program on

@@ -55,7 +55,7 @@ local function contact()
   return bindings:getDynamicBinding("Output", "contact").bindingId
 end
 
---- The fan relay connection's id, nil while it does not exist.
+--- The Relay connection's id, nil while it does not exist.
 local function relay()
   local binding = bindings:getDynamicBinding("Output", "fan_relay")
   return binding and binding.bindingId or nil
@@ -143,7 +143,7 @@ end
 
 T.section("humidity_alert fans: the Control Method decides which connection and selector exist")
 fresh()
-T.eq("None has no fan relay connection", relay(), nil)
+T.eq("None has no Relay connection", relay(), nil)
 T.eq("and hides both selectors", { attribs["Light Switches"], attribs["Fan Controller"] }, { 1, 1 })
 setProperty("Control Method", "Relay")
 T.eq("Relay makes the connection", relay() ~= nil, true)
@@ -262,6 +262,73 @@ T.eq(
   command("Clear Alert"),
   "contact OPENED; device 400 OFF; device 401 OFF; event Alert Cleared"
 )
+
+T.section("humidity_alert fans: a fan dropped from the selection while the driver was down is still turned off")
+fresh(LIGHTS)
+report(75)
+shows(LIGHT_A, true)
+shows(LIGHT_B, true)
+T.eq(
+  "a restart that finds Light Switches holding only one of them",
+  start({ ["Control Method"] = "Light Switch", ["Light Switches"] = "400" }),
+  "device 401 OFF; contact STATE_CLOSED"
+)
+T.eq(
+  "the end turns off the one still selected",
+  command("Clear Alert"),
+  "contact OPENED; device 400 OFF; event Alert Cleared"
+)
+fresh(LIGHTS)
+report(75)
+shows(LIGHT_A, true)
+shows(LIGHT_B, true)
+T.eq(
+  "a restart that finds Control Method None",
+  start({ ["Control Method"] = "None", ["Light Switches"] = "400,401" }),
+  "device 400 OFF; device 401 OFF; contact STATE_CLOSED"
+)
+T.eq("the end sends only the contact", command("Clear Alert"), "contact OPENED; event Alert Cleared")
+fresh(RELAY)
+report(75)
+relayTells("CLOSED")
+local relayId = tostring(relay())
+local restart = H.run(function()
+  ShimPersistLand()
+  H.load("humidity_alert", H.LICENSED, { ["Control Method"] = "None" })
+  H.reads(1)
+end)
+T.eq(
+  "a restart that finds Control Method None opens the relay first",
+  restart:find("proxy " .. relayId .. " OPEN", 1, true) ~= nil,
+  true
+)
+T.eq("and then removes its connection", relay(), nil)
+T.eq("the end sends only the contact", command("Clear Alert"), "contact OPENED; event Alert Cleared")
+
+T.section(
+  "humidity_alert fans: a fan dropped from the selection mid-alert is turned off, and its off does not end the alert"
+)
+for _, method in ipairs({ "None", "Light Switch" }) do
+  fresh(RELAY)
+  report(75)
+  relayTells("CLOSED")
+  local id = relay()
+  -- A relay that answers its OPEN at once, as a relay on the same controller does.
+  local send = SendToProxy
+  SendToProxy = function(bindingId, name, params, ...)
+    send(bindingId, name, params, ...)
+    if bindingId == id and name == "OPEN" then
+      ReceivedFromProxy(id, "OPENED", {})
+    end
+  end
+  local changed = H.run(function()
+    UpdateProperty("Control Method", method, true)
+  end)
+  SendToProxy = send
+  T.eq("Relay to " .. method .. ": the relay is opened", changed:find("proxy " .. id .. " OPEN", 1, true) ~= nil, true)
+  T.eq("and is not closed again", changed:find("proxy " .. id .. " CLOSE", 1, true), nil)
+  T.eq("and the alert carries on", Properties["Alert"], "Active (Rise)")
+end
 
 T.section("humidity_alert fans: an alert that ended while the controller was down turns its fans off at the first tick")
 fresh(LIGHTS)

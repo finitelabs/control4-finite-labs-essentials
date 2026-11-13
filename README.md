@@ -171,6 +171,8 @@ no adjustment between a dry winter and a humid summer.
 
 - Detection modes: Rise, Threshold, Rise or Threshold
 - Follows the moisture in the air when the sensor's temperature is connected
+- Optional reference sensor elsewhere in the house, so humidity the whole house
+  shares does not count as the room's
 - Ends an alert when the room has recovered, with a run-on time and a maximum
 - Works with fast sensors and with battery sensors that report only large
   changes
@@ -234,6 +236,9 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   with no Control4 programming: its Control Method property picks a relay
   connection, light switches or a fan speed controller. It turns off only what
   it turned on, and a device switched off during an alert ends that alert.
+- Humidity Alert can correct for the rest of the house: with Reference Sensor
+  Enabled it takes a second humidity and temperature sensor, and humidity the
+  whole house shares neither counts as a rise nor starts a threshold alert.
 
 ## v20261112 - 2026-11-12
 

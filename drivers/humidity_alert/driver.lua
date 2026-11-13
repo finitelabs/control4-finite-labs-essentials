@@ -47,6 +47,8 @@ local NS_OUTPUT = "Output"
 --- Binding keys
 local INPUT_HUMIDITY = "humidity"
 local INPUT_TEMPERATURE = "temperature"
+local INPUT_REFERENCE_HUMIDITY = "reference_humidity"
+local INPUT_REFERENCE_TEMPERATURE = "reference_temperature"
 local OUTPUT_CONTACT = "contact"
 local OUTPUT_FAN_RELAY = "fan_relay"
 
@@ -106,6 +108,7 @@ local SETTING_DEFAULTS = {
   ["Recovery"] = "50",
   ["Alert Above"] = "80",
   ["Clear Below"] = "70",
+  ["Reference Sensor"] = "Disabled",
   ["Run-On Time"] = "10",
   ["Maximum Alert Time"] = "60",
   ["Sensor Timeout"] = "24",
@@ -145,6 +148,16 @@ local lastCelsiusTime = nil
 --- A humidity report waiting to be paired with a temperature.
 --- @type number|nil
 local pendingHumidity = nil
+
+--- The reference sensor's newest temperature report, in degrees Celsius, and when it came.
+--- @type number|nil
+local referenceCelsius = nil
+--- @type number|nil
+local referenceCelsiusTime = nil
+
+--- A reference humidity report waiting to be paired with a temperature.
+--- @type number|nil
+local pendingReference = nil
 
 --- The state last told to the contact output (nil until one is told).
 --- @type boolean|nil
@@ -192,7 +205,7 @@ end
 local function saveState()
   local stored = {}
   for key, value in pairs(state) do
-    if key ~= "history" then
+    if key ~= "history" and key ~= "refHistory" then
       stored[key] = value
     end
   end
@@ -359,7 +372,7 @@ local function watchDevice(deviceId, name)
   end)
 end
 
---- Register the handlers of the fan relay connection.
+--- Register the handlers of the Relay connection.
 --- @param binding Binding
 local function registerFanRelayHandlers(binding)
   RFP[binding.bindingId] = function(idBinding, strCommand, _tParams, _args)
@@ -384,10 +397,10 @@ local function registerFanRelayHandlers(binding)
   end
 end
 
---- Make or remove the fan relay connection as the Control Method asks.
+--- Make or remove the Relay connection as the Control Method asks.
 local function reconcileFanRelay()
   if Properties["Control Method"] == METHOD_RELAY then
-    local relay = bindings:getOrAddDynamicBinding(NS_OUTPUT, OUTPUT_FAN_RELAY, "CONTROL", false, "Fan Relay", "RELAY")
+    local relay = bindings:getOrAddDynamicBinding(NS_OUTPUT, OUTPUT_FAN_RELAY, "CONTROL", false, "Relay", "RELAY")
     if relay then
       registerFanRelayHandlers(relay)
     end
@@ -421,11 +434,22 @@ local function configureFans()
   local method = Properties["Control Method"]
   local devices = selectedDevices(method)
 
-  -- A fan the alert turned on that is no longer selected is turned off while it can still be reached.
-  for _, key in ipairs(fanKeys()) do
+  -- A fan the alert turned on that is no longer selected is turned off while it can still be reached,
+  -- also when it left the selection while the driver was down and so has no entry in fans yet.
+  local ownedKeys = TableKeys(owned)
+  table.sort(ownedKeys)
+  for _, key in ipairs(ownedKeys) do
     local stays = (key == FAN_RELAY_KEY and method == METHOD_RELAY) or devices[key] ~= nil
-    if owned[key] and not stays and gInitialized and state.active then
-      sendFan(fans[key], false)
+    if not stays and state.active then
+      local fan = fans[key]
+        or (key == FAN_RELAY_KEY and { name = "the relay" } or { name = "device " .. key, deviceId = tointeger(key) })
+      -- Forgotten before the off goes out, so its answer is not taken for someone switching it off.
+      if fan.deviceId ~= nil then
+        UnregisterVariableListener(fan.deviceId, VAR_DEVICE_ON)
+      end
+      fans[key] = nil
+      owned[key] = nil
+      sendFan(fan, false)
     end
   end
   local previous = fans
@@ -436,7 +460,7 @@ local function configureFans()
 
   if method == METHOD_RELAY then
     local before = previous[FAN_RELAY_KEY]
-    fans[FAN_RELAY_KEY] = { name = "the fan relay", on = before and before.on or nil }
+    fans[FAN_RELAY_KEY] = { name = "the relay", on = before and before.on or nil }
   else
     for key, name in pairs(devices) do
       watchDevice(tointeger(key), name)
@@ -497,6 +521,18 @@ local function showStatus()
   UpdateProperty("Dew Point", temperatureText(dewPoint), true)
   UpdateProperty("Start Humidity", humidityText(state.active and state.startLevel or nil), true)
   UpdateProperty("Peak Humidity", humidityText(state.active and rawPeak or nil), true)
+  local reference = "Not used"
+  if Properties["Reference Sensor"] == "Enabled" then
+    local rh, silent = Detector.referenceReading(state, settings(), now())
+    if rh ~= nil then
+      reference = "In use: " .. humidityText(rh)
+    elseif silent then
+      reference = "Silent, not in use"
+    else
+      reference = "Waiting for a reading"
+    end
+  end
+  UpdateProperty("Reference", reference, true)
 
   local rise = 0
   if state.active and state.startLevel ~= nil and state.lastRh ~= nil then
@@ -555,17 +591,19 @@ end
 -- Readings
 --------------------------------------------------------------------------------
 
---- The newest temperature, unless it is older than the sensor may stay silent.
+--- A sensor's newest temperature, unless it is older than the sensor may stay silent.
+--- @param celsius number|nil
+--- @param at integer|nil When it was reported.
 --- @return number|nil celsius
-local function freshCelsius()
-  if lastCelsius == nil or lastCelsiusTime == nil then
+local function freshCelsius(celsius, at)
+  if celsius == nil or at == nil then
     return nil
   end
   local timeout = settings().sensorTimeoutSeconds
-  if timeout > 0 and now() - lastCelsiusTime > timeout then
+  if timeout > 0 and now() - at > timeout then
     return nil
   end
-  return lastCelsius
+  return celsius
 end
 
 --- Hand the waiting humidity report to the detector, with the newest temperature.
@@ -575,7 +613,7 @@ local function takeSample()
   if rh == nil or not licensed() then
     return
   end
-  local changes = Detector.sample(state, settings(), now(), rh, freshCelsius())
+  local changes = Detector.sample(state, settings(), now(), rh, freshCelsius(lastCelsius, lastCelsiusTime))
   if state.active and state.lastRh ~= nil and (rawPeak == nil or state.lastRh > rawPeak) then
     rawPeak = state.lastRh
   end
@@ -598,6 +636,43 @@ end
 local function onTemperature(celsius)
   lastCelsius = celsius
   lastCelsiusTime = now()
+end
+
+--- Forget what the reference sensor said: it was unbound, changed or turned off.
+local function forgetReference()
+  Detector.dropReference(state)
+  pendingReference = nil
+  referenceCelsius = nil
+  referenceCelsiusTime = nil
+  CancelTimer("PairReference")
+end
+
+--- Hand the waiting reference report to the detector, with that sensor's newest temperature.
+local function takeReference()
+  local rh = pendingReference
+  pendingReference = nil
+  if rh == nil or not licensed() then
+    return
+  end
+  Detector.reference(state, now(), rh, freshCelsius(referenceCelsius, referenceCelsiusTime))
+  showStatus()
+end
+
+--- A reference humidity report. It waits a moment for the same sensor's temperature, as the room's does.
+--- @param rh number
+local function onReferenceHumidity(rh)
+  local waiting = pendingReference ~= nil
+  pendingReference = rh
+  if not waiting then
+    SetTimer("PairReference", PAIR_WAIT, takeReference)
+  end
+end
+
+--- A reference temperature report. It never makes a sample of its own.
+--- @param celsius number
+local function onReferenceTemperature(celsius)
+  referenceCelsius = celsius
+  referenceCelsiusTime = now()
 end
 
 --------------------------------------------------------------------------------
@@ -667,6 +742,92 @@ local function registerContactHandlers(binding)
   end
 end
 
+--- Register the handlers of the reference humidity input.
+--- @param binding Binding
+local function registerReferenceHumidityHandlers(binding)
+  RFP[binding.bindingId] = function(idBinding, strCommand, tParams, _args)
+    log:trace("RFP[%s](%s, %s, %s)", binding.bindingId, idBinding, strCommand, tParams)
+    if strCommand == "VALUE_CHANGED" then
+      local value = tofinite(Select(tParams, "VALUE"))
+      if value then
+        onReferenceHumidity(value)
+      end
+    end
+  end
+
+  OBC[binding.bindingId] = function(idBinding, _strClass, bIsBound, _otherDeviceId, _otherBindingId)
+    log:trace("OBC[%s](%s, %s, %s)", binding.bindingId, idBinding, _strClass, bIsBound)
+    -- Another sensor reads a few points apart: only its own changes may be compared.
+    forgetReference()
+    showStatus()
+    if bIsBound then
+      SendToProxy(binding.bindingId, "GET_VALUE", {})
+    end
+  end
+end
+
+--- Register the handlers of the reference temperature input.
+--- @param binding Binding
+local function registerReferenceTemperatureHandlers(binding)
+  RFP[binding.bindingId] = function(idBinding, strCommand, tParams, _args)
+    log:trace("RFP[%s](%s, %s, %s)", binding.bindingId, idBinding, strCommand, tParams)
+    if strCommand == "VALUE_CHANGED" then
+      local value = CelsiusFromParams(tParams, "CELSIUS")
+      if value then
+        onReferenceTemperature(value)
+      end
+    end
+  end
+
+  OBC[binding.bindingId] = function(idBinding, _strClass, bIsBound, _otherDeviceId, _otherBindingId)
+    log:trace("OBC[%s](%s, %s, %s)", binding.bindingId, idBinding, _strClass, bIsBound)
+    -- Readings paired with the old temperature cannot be compared with ones that have none.
+    forgetReference()
+    showStatus()
+    if bIsBound then
+      SendToProxy(binding.bindingId, "GET_VALUE", {})
+    end
+  end
+end
+
+--- Make or remove the reference inputs as the Reference Sensor property asks.
+local function reconcileReference()
+  if Properties["Reference Sensor"] == "Enabled" then
+    local humidity = bindings:getOrAddDynamicBinding(
+      NS_INPUT,
+      INPUT_REFERENCE_HUMIDITY,
+      "CONTROL",
+      false,
+      "Reference Humidity",
+      "HUMIDITY_VALUE"
+    )
+    if humidity then
+      registerReferenceHumidityHandlers(humidity)
+    end
+    local temperature = bindings:getOrAddDynamicBinding(
+      NS_INPUT,
+      INPUT_REFERENCE_TEMPERATURE,
+      "CONTROL",
+      false,
+      "Reference Temperature",
+      "TEMPERATURE_VALUE"
+    )
+    if temperature then
+      registerReferenceTemperatureHandlers(temperature)
+    end
+  else
+    for _, key in ipairs({ INPUT_REFERENCE_HUMIDITY, INPUT_REFERENCE_TEMPERATURE }) do
+      local binding = bindings:getDynamicBinding(NS_INPUT, key)
+      if binding then
+        RFP[binding.bindingId] = nil
+        OBC[binding.bindingId] = nil
+        bindings:deleteBinding(NS_INPUT, key)
+      end
+    end
+    forgetReference()
+  end
+end
+
 --- Make the connections the settings call for, in one fixed order, and wire their handlers.
 local function reconcileConnections()
   local humidity =
@@ -684,12 +845,18 @@ local function reconcileConnections()
   if contact then
     registerContactHandlers(contact)
   end
-  reconcileFanRelay()
+  -- The Relay connection is left to configureFans, which must send a dropped relay an OPEN before deleting it.
+  reconcileReference()
 end
 
 --- Ask each input for its value now: a sensor that reports only changes may stay silent for hours.
 local function requestReadings()
-  for _, key in ipairs({ INPUT_HUMIDITY, INPUT_TEMPERATURE }) do
+  for _, key in ipairs({
+    INPUT_HUMIDITY,
+    INPUT_TEMPERATURE,
+    INPUT_REFERENCE_HUMIDITY,
+    INPUT_REFERENCE_TEMPERATURE,
+  }) do
     local binding = bindings:getDynamicBinding(NS_INPUT, key)
     if binding then
       SendToProxy(binding.bindingId, "GET_VALUE", {})
@@ -767,6 +934,9 @@ function OnDriverInit()
   pendingHumidity = nil
   lastCelsius = nil
   lastCelsiusTime = nil
+  pendingReference = nil
+  referenceCelsius = nil
+  referenceCelsiusTime = nil
   lastSaved = now()
 
   createVariables()
@@ -957,6 +1127,15 @@ function OPC.Sensor_Timeout(propertyValue)
   evaluate()
 end
 
+function OPC.Reference_Sensor(propertyValue)
+  log:trace("OPC.Reference_Sensor('%s')", propertyValue)
+  reconcileReference()
+  if gInitialized and licensed() then
+    showStatus()
+    requestReadings()
+  end
+end
+
 function OPC.Control_Method(propertyValue)
   log:trace("OPC.Control_Method('%s')", propertyValue)
   configureFans()
@@ -1049,6 +1228,7 @@ function EC.Reset_Driver(params)
     endAlert()
   end
   CancelTimer("PairSample")
+  CancelTimer("PairReference")
   forgetFans()
 
   -- Reset all dynamic state
@@ -1061,6 +1241,9 @@ function EC.Reset_Driver(params)
   pendingHumidity = nil
   lastCelsius = nil
   lastCelsiusTime = nil
+  pendingReference = nil
+  referenceCelsius = nil
+  referenceCelsiusTime = nil
   lastContactState = nil
 
   -- Reset properties to defaults

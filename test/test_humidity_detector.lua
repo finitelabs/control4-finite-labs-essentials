@@ -543,4 +543,157 @@ T.eq(
   "cleared @65"
 )
 
+T.section("a reference sensor: what the whole house shares is not this room's rise")
+-- A front moves the house from 50 to 62 in an hour, seen by two sensors that report 6 point changes.
+local front = F.line({
+  { t = 0, rh = 50, c = 22 },
+  { t = 30, rh = 50, c = 22 },
+  { t = 50, rh = 62, c = 22 },
+  { t = 120, rh = 62, c = 22 },
+})
+local frontSteps = F.onChange(front, 6, 720)
+T.eq("alone, a step sensor turns the front into a rise", events(frontSteps), "started Rise @50")
+T.eq("with the reference stepping too, nothing starts", events(frontSteps, nil, { reference = frontSteps }), "")
+local offset = {}
+for i, point in ipairs(frontSteps) do
+  offset[i] = { t = point.t, rh = point.rh - 6, c = point.c }
+end
+T.eq("a reference that reads 6 points lower cancels it the same", events(frontSteps, nil, { reference = offset }), "")
+T.eq("and one with no temperature", events(frontSteps, nil, { reference = F.withoutTemperature(frontSteps) }), "")
+
+local steady = { { t = 0, rh = 44, c = 21 }, { t = 60, rh = 44, c = 21 } }
+T.eq(
+  "a shower with a steady reference starts as it does alone",
+  events(shower, nil, { reference = steady }),
+  events(shower)
+)
+T.eq(
+  "a reference 6 points off changes nothing",
+  events(shower, nil, { reference = { { t = 0, rh = 50, c = 21 } } }),
+  events(shower)
+)
+T.eq(
+  "a reference that dries out adds nothing to a small rise",
+  events(
+    F.line({
+      { t = 0, rh = 50, c = 22 },
+      { t = 30, rh = 50, c = 22 },
+      { t = 34, rh = 54, c = 22 },
+      { t = 60, rh = 54, c = 22 },
+    }),
+    nil,
+    { reference = F.line({ { t = 0, rh = 50, c = 22 }, { t = 30, rh = 50, c = 22 }, { t = 34, rh = 40, c = 22 } }) }
+  ),
+  ""
+)
+
+T.section("a reference sensor: a door left open shares the shower with the hall")
+local openDoor = F.line({
+  { t = 0, rh = 50, c = 22 },
+  { t = 30, rh = 50, c = 22 },
+  { t = 40, rh = 70, c = 23 },
+  { t = 50, rh = 70, c = 23 },
+  { t = 80, rh = 52, c = 22 },
+})
+local hall = F.line({
+  { t = 0, rh = 50, c = 22 },
+  { t = 30, rh = 50, c = 22 },
+  { t = 40, rh = 58, c = 22 },
+  { t = 80, rh = 52, c = 22 },
+})
+T.eq("alone", events(openDoor), "started Rise @33; cleared @76")
+T.eq(
+  "the hall taking 8 of the 20 points delays the start",
+  events(openDoor, nil, { reference = hall }),
+  "started Rise @34; cleared @76"
+)
+local sameAir = F.line({
+  { t = 0, rh = 50, c = 22 },
+  { t = 30, rh = 50, c = 22 },
+  { t = 40, rh = 68, c = 23 },
+  { t = 50, rh = 68, c = 23 },
+  { t = 80, rh = 52, c = 22 },
+})
+T.eq(
+  "a hall that follows the room within the Rise Amount prevents it",
+  events(openDoor, nil, { reference = sameAir }),
+  ""
+)
+
+T.section("a reference sensor: a fixed level needs the room wetter than the house")
+local humidWeek = F.line({
+  { t = 0, rh = 60, c = 24 },
+  { t = 120, rh = 84, c = 24 },
+  { t = 400, rh = 84, c = 24 },
+})
+T.eq(
+  "alone, the level starts a run",
+  events(humidWeek, { mode = THRESHOLD }),
+  "started Threshold @100; cleared @160; timed_out @160"
+)
+T.eq("with the house as humid, nothing starts", events(humidWeek, { mode = THRESHOLD }, { reference = humidWeek }), "")
+local dryHall = { { t = 0, rh = 55, c = 24 } }
+T.eq(
+  "with a dry house, it starts as alone",
+  events(humidWeek, { mode = THRESHOLD }, { reference = dryHall }),
+  "started Threshold @100; cleared @160; timed_out @160"
+)
+T.eq(
+  "7 points wetter than the house is not enough",
+  events(humidWeek, { mode = THRESHOLD }, { reference = { { t = 0, rh = 77, c = 24 } } }),
+  ""
+)
+T.eq(
+  "a warmer hall holds more water at the same reading, so the room is not wetter",
+  events(humidWeek, { mode = THRESHOLD }, { reference = { { t = 0, rh = 70, c = 28 } } }),
+  ""
+)
+T.eq(
+  "without the hall's temperature the readings are compared as they are",
+  events(humidWeek, { mode = THRESHOLD }, { reference = { { t = 0, rh = 70 } } }),
+  "started Threshold @100; cleared @160; timed_out @160"
+)
+
+T.section("a reference sensor that goes silent is not used")
+T.eq(
+  "its last reading stands while it is quiet",
+  events(
+    humidWeek,
+    { mode = THRESHOLD, sensorTimeoutSeconds = 24 * 60 * 60 },
+    { reference = { { t = 0, rh = 84, c = 24 } } }
+  ),
+  ""
+)
+T.eq(
+  "past the Sensor Timeout the level decides alone",
+  events(
+    humidWeek,
+    { mode = THRESHOLD, sensorTimeoutSeconds = 3 * 60 * 60 },
+    { reference = { { t = 0, rh = 84, c = 24 } } }
+  ),
+  "started Threshold @181; cleared @241; timed_out @241"
+)
+state = Detector.newState()
+settings = F.settings()
+Detector.reference(state, 0, 47, 21)
+T.eq("the reading in use", { Detector.referenceReading(state, settings, 60) }, { 47, false })
+Detector.reference(state, 60, 0, 21)
+T.eq("a reading that cannot be real changes nothing", { Detector.referenceReading(state, settings, 60) }, { 47, false })
+T.eq("silent past the timeout", { Detector.referenceReading(state, settings, 25 * 60 * 60) }, { nil, true })
+Detector.dropReference(state)
+T.eq("dropped", { Detector.referenceReading(state, settings, 60) }, { nil, false })
+Detector.reference(state, 0, 47, 21)
+Detector.restart(state, 120)
+T.eq("after a restart it must be heard again", { Detector.referenceReading(state, settings, 180) }, { nil, false })
+
+state = Detector.newState()
+settings = F.settings({ mode = THRESHOLD })
+Detector.sample(state, settings, 0, 60, 24)
+Detector.reference(state, 0, 84, 24)
+Detector.startManual(state, settings, 60, 5 * 60)
+Detector.sample(state, settings, 120, 84, 24)
+T.eq("during an alert too, a level the house shares adds no reason", state.reasons[Detector.Reason.THRESHOLD], nil)
+settings = F.settings()
+T.eq("a reference report starts nothing", #select(1, F.replay(steady, F.settings(), { reference = shower })), 0)
+
 T.finish()
