@@ -326,6 +326,7 @@ for _, method in ipairs({ "None", "Light Switch" }) do
   end)
   SendToProxy = send
   T.eq("Relay to " .. method .. ": the relay is opened", changed:find("proxy " .. id .. " OPEN", 1, true) ~= nil, true)
+  T.eq("and is not closed again", changed:find("proxy " .. id .. " CLOSE", 1, true), nil)
   T.eq("and the alert carries on", Properties["Alert"], "Active (Rise)")
 end
 
