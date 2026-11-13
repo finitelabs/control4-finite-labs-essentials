@@ -326,7 +326,6 @@ function defaultTokTarget() {
   return null;
 }
 
-// Each editor's browser inserts into, and ticks from, its own panel's fields.
 var browser = Kit.variableBrowser(document.getElementById('vb'), {
   target: function (last) {
     return last && document.getElementById('panel-editor').contains(last) ? last : defaultTokTarget();
@@ -540,7 +539,6 @@ function setWebhookContentType(type) {
   });
 }
 
-// The publish line, and the warning for a response anyone on the network can read.
 function updateWebhookLines() {
   var name = document.getElementById('hook-name').value.trim() || 'Webhook';
   var hasResponse = responseEditor.value() !== '';
@@ -643,7 +641,6 @@ function openEditor(req) {
   document.getElementById('req-name').focus();
 }
 
-// Back to the list from either editor.
 function closeEditor() {
   gEditor.open = false;
   gHook.open = false;
