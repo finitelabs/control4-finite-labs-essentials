@@ -372,7 +372,7 @@ local function watchDevice(deviceId, name)
   end)
 end
 
---- Register the handlers of the fan relay connection.
+--- Register the handlers of the Relay connection.
 --- @param binding Binding
 local function registerFanRelayHandlers(binding)
   RFP[binding.bindingId] = function(idBinding, strCommand, _tParams, _args)
@@ -397,10 +397,10 @@ local function registerFanRelayHandlers(binding)
   end
 end
 
---- Make or remove the fan relay connection as the Control Method asks.
+--- Make or remove the Relay connection as the Control Method asks.
 local function reconcileFanRelay()
   if Properties["Control Method"] == METHOD_RELAY then
-    local relay = bindings:getOrAddDynamicBinding(NS_OUTPUT, OUTPUT_FAN_RELAY, "CONTROL", false, "Fan Relay", "RELAY")
+    local relay = bindings:getOrAddDynamicBinding(NS_OUTPUT, OUTPUT_FAN_RELAY, "CONTROL", false, "Relay", "RELAY")
     if relay then
       registerFanRelayHandlers(relay)
     end
@@ -442,9 +442,7 @@ local function configureFans()
     local stays = (key == FAN_RELAY_KEY and method == METHOD_RELAY) or devices[key] ~= nil
     if not stays and state.active then
       local fan = fans[key]
-        or (
-          key == FAN_RELAY_KEY and { name = "the fan relay" } or { name = "device " .. key, deviceId = tointeger(key) }
-        )
+        or (key == FAN_RELAY_KEY and { name = "the relay" } or { name = "device " .. key, deviceId = tointeger(key) })
       -- Forgotten before the off goes out, so its answer is not taken for someone switching it off.
       if fan.deviceId ~= nil then
         UnregisterVariableListener(fan.deviceId, VAR_DEVICE_ON)
@@ -462,7 +460,7 @@ local function configureFans()
 
   if method == METHOD_RELAY then
     local before = previous[FAN_RELAY_KEY]
-    fans[FAN_RELAY_KEY] = { name = "the fan relay", on = before and before.on or nil }
+    fans[FAN_RELAY_KEY] = { name = "the relay", on = before and before.on or nil }
   else
     for key, name in pairs(devices) do
       watchDevice(tointeger(key), name)
@@ -847,7 +845,7 @@ local function reconcileConnections()
   if contact then
     registerContactHandlers(contact)
   end
-  -- The Fan Relay is left to configureFans, which must send a fan it drops an OPEN before deleting it.
+  -- The Relay connection is left to configureFans, which must send a dropped relay an OPEN before deleting it.
   reconcileReference()
 end
 

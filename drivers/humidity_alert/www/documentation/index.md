@@ -291,15 +291,15 @@ See [Switching a Device](#switching-a-device) for what it does with the device.
 
 - **None**: the driver switches nothing. Use the Alert Contact connection or the
   driver's events.
-- **Relay**: adds a Fan Relay connection. The driver closes the relay when an
-  alert starts and opens it when the alert ends.
+- **Relay**: adds a Relay connection. The driver closes the relay when an alert
+  starts and opens it when the alert ends.
 - **Light Switch**: shows the Light Switches property. The driver turns the
   selected switches on and off.
 - **Fan Speed Controller**: shows the Fan Controller property. The driver turns
   the selected fan controller on, at the speed the controller itself turns on
   at, and off.
 
-The Fan Relay connection exists only while Control Method is Relay, and each
+The Relay connection exists only while Control Method is Relay, and each
 selector shows only for its own method. A hidden selector keeps its selection. A
 device the alert turned on that a change here leaves unselected is turned off,
 and the alert carries on.
@@ -562,7 +562,7 @@ switched off, the alert is over.
 | Humidity              | HUMIDITY_VALUE    | Input     | The room's humidity sensor. Required.                                               |
 | Temperature           | TEMPERATURE_VALUE | Input     | The same sensor's temperature. Optional.                                            |
 | Alert Contact         | CONTACT_SENSOR    | Output    | Closed while an alert is active, else open.                                         |
-| Fan Relay             | RELAY             | Input     | Closed by the driver during an alert. Exists while Control Method is Relay.         |
+| Relay                 | RELAY             | Input     | Closed by the driver during an alert. Exists while Control Method is Relay.         |
 | Reference Humidity    | HUMIDITY_VALUE    | Input     | A humidity sensor elsewhere in the house. Exists while Reference Sensor is Enabled. |
 | Reference Temperature | TEMPERATURE_VALUE | Input     | The same sensor's temperature. Optional. Exists while Reference Sensor is Enabled.  |
 

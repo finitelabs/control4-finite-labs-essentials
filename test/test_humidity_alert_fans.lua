@@ -55,7 +55,7 @@ local function contact()
   return bindings:getDynamicBinding("Output", "contact").bindingId
 end
 
---- The fan relay connection's id, nil while it does not exist.
+--- The Relay connection's id, nil while it does not exist.
 local function relay()
   local binding = bindings:getDynamicBinding("Output", "fan_relay")
   return binding and binding.bindingId or nil
@@ -143,7 +143,7 @@ end
 
 T.section("humidity_alert fans: the Control Method decides which connection and selector exist")
 fresh()
-T.eq("None has no fan relay connection", relay(), nil)
+T.eq("None has no Relay connection", relay(), nil)
 T.eq("and hides both selectors", { attribs["Light Switches"], attribs["Fan Controller"] }, { 1, 1 })
 setProperty("Control Method", "Relay")
 T.eq("Relay makes the connection", relay() ~= nil, true)

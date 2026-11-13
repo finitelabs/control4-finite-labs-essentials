@@ -122,7 +122,7 @@ T.eq("Disabled removes both", { input("reference_humidity"), input("reference_te
 T.eq("the other connections keep their ids", coreIds(), core)
 setProperty("Control Method", "Relay")
 setProperty("Reference Sensor", "Enabled")
-T.eq("beside a fan relay, the other connections keep their ids", coreIds(), core)
+T.eq("beside a relay, the other connections keep their ids", coreIds(), core)
 setProperty("Control Method", "None")
 T.eq("and the reference inputs outlive the relay", input("reference_humidity") ~= nil, true)
 
