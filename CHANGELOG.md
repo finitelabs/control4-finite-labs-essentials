@@ -33,6 +33,9 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Humidity Alert can correct for the rest of the house: with Reference Sensor
   Enabled it takes a second humidity and temperature sensor, and humidity the
   whole house shares neither counts as a rise nor starts a threshold alert.
+- Added an optional response to Network Requests webhooks, which answers the
+  caller with text you write and the current values of the Control4 variables
+  you insert into it.
 
 <!-- #ifdef DRIVERCENTRAL -->
 

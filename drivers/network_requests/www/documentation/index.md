@@ -50,6 +50,7 @@ project.
   - [Referencing Variables](#referencing-variables)
   - [Commands](#commands)
   - [Events and the Response Variable](#events-and-the-response-variable)
+  - [Webhook Events](#webhook-events)
   - [Examples](#examples)
   <!-- #ifdef DRIVERCENTRAL -->
 - [Developer Information](#developer-information)
@@ -84,6 +85,9 @@ project.
 - Inbound webhooks: external systems (cameras, iPhone Shortcuts, Home Assistant)
   call a URL to fire a `<Name> Received` event, with the request body published
   to a `<Name> Payload` variable and an optional shared key
+- A webhook can answer its caller with a response you write, with live Control4
+  variable values inserted by `PARAM{}` tokens, so another system can read a
+  value by calling the webhook
 - Requests, webhooks, and last results persist across driver restarts
 
 # <span style="color:#059669">Installer Setup</span>
@@ -253,22 +257,53 @@ already taken is rejected. Deleting a request removes its events and variable.
 ### Webhooks
 
 The Webhooks card manages inbound HTTP endpoints: an external system calls a URL
-and the driver fires an event.
+and the driver fires an event, and can answer with a response you write.
 
 <img alt="Webhooks" src="./images/ui-webhooks.png" width="640"/>
 
-1. **+ Add Webhook** - reveals the form at the bottom of the card.
+1. **+ Add Webhook** - opens the webhook editor in place of the list.
 1. **Name** - names the webhook's event and payload variable, and forms the last
    part of its URL. The dot shows whether it has ever been called.
 1. **URL** - the address external systems call, built from the controller's
    address and the `Webhook Port` property. It answers GET and POST.
 1. **Last Received** - when the webhook was last called, and by whom. Hovering
-   shows the payload that arrived.
-1. **Copy / X** - put the full URL, key included, on the clipboard, or delete
-   the webhook along with its event and payload variable.
-1. **Name / Key** - the new webhook's name and its optional key. With a key set,
-   callers must append `?key=<value>`; calls with a missing or wrong key are
-   rejected with HTTP 403 and fire nothing.
+   shows the payload that arrived. When the last call's response could not be
+   sent, the reason is shown here instead.
+1. **Copy / Edit / X** - put the full URL, key included, on the clipboard, open
+   the webhook in the editor, or delete the webhook along with its event and
+   payload variable.
+
+#### Webhook Editor
+
+Add Webhook and Edit both open the webhook editor, with the same variable
+browser the request editor has.
+
+<img alt="Webhook editor" src="./images/ui-webhook-editor.png" width="640"/>
+
+1. **Search / Variable** - the variable browser. Click a variable to insert its
+   `PARAM{}` token into the Response. A green check marks variables the response
+   already references.
+1. **Name** - the webhook's name. It is fixed once the webhook has been saved:
+   to rename, create a new webhook and delete the old one. Names must be unique.
+1. **Key** - optional. With a key set, callers must append `?key=<value>`; calls
+   with a missing or wrong key are rejected with HTTP 403, fire nothing, and
+   read no variable.
+1. **Response** - optional. What the caller is sent back, with each `PARAM{}`
+   token replaced by the variable's value at the moment of the call. Left empty,
+   the webhook answers `{"ok":true}`.
+1. **Content Type** - how the response is labelled. Automatic sends a response
+   that is a JSON object or array as `application/json` and anything else as
+   `text/plain`. JSON and Text set the type whatever the response holds.
+1. **Open response warning** - shown while the webhook has a response and no
+   key, because anything on the network that can reach the webhook port can then
+   read the values in it.
+1. **Syntax help** - a reference for tokens and the response, without leaving
+   the editor.
+1. **Last Received** - when the webhook was last called, by whom, and the
+   payload that arrived.
+1. **Cancel / Save Webhook** - discard the changes or save them.
+1. **Publish line** - the event and payload variable this webhook owns once it
+   is saved, and what it answers.
 
 Adding a webhook named `Doorbell Motion` creates:
 
@@ -425,8 +460,8 @@ Monitoring is Enabled.
 
 ## Referencing Variables
 
-Reference a variable anywhere in a URL, body, header value, or text payload with
-a `PARAM{}` token:
+Reference a variable anywhere in a URL, body, header value, text payload, or
+webhook response with a `PARAM{}` token:
 
 ```
 PARAM{DEVICE_ID,VARIABLE_ID}
@@ -436,7 +471,7 @@ PARAM{DEVICE_ID,VARIABLE_ID}
 `VARIABLE_ID` is either the numeric id of the variable or its name (matched
 exactly, case-sensitive), for example `PARAM{96,1002}` or `PARAM{96,Humidity}`.
 The token is replaced with the variable's current value each time the request is
-sent.
+sent, or each time the webhook is called.
 
 You rarely need to build a token by hand: click a variable in the Requests tab
 browser and its token is inserted into the focused field. If a referenced
@@ -477,15 +512,45 @@ variable. When an external system calls the webhook's URL:
 1. The request body (or, for calls without a body, the query string) is
    published to `<Name> Payload`, capped at 8 KB.
 1. The `<Name> Received` event fires.
-1. The caller gets a `200 {"ok":true}` JSON response.
+1. The caller gets the webhook's Response, or a `200 {"ok":true}` JSON response
+   when it has none.
 
 Program off the `<Name> Received` event; read `<Name> Payload` for the data.
 Pair with the Variable Expressions driver to parse values out of a JSON or
 query-string payload.
 
+### Webhook Responses
+
+A webhook with a Response lets another system read values from the project by
+calling the webhook, instead of waiting for the project to send them.
+
+- The response is sent as typed, with status 200. Each `PARAM{}` token is
+  replaced with the variable's value when the call arrives; nothing is stored
+  between calls.
+- The response is built after `<Name> Payload` is updated, so a token for this
+  driver's own `<Name> Payload` variable returns what the caller just sent.
+  Control4 programming on the `<Name> Received` event runs after the answer has
+  been sent, so it cannot change that answer.
+- If a referenced variable cannot be found, the caller gets status 500 with
+  `{"ok":false,"error":"unresolved variable reference"}`, and the webhook's row
+  in the Requests tab shows the error. The payload variable and the event are
+  not affected.
+- A response that comes to more than 16 KB once its values are filled in is not
+  sent: the caller gets status 500 with
+  `{"ok":false,"error":"response too large"}`.
+- Values are inserted exactly as the variable holds them. In a JSON response,
+  put quotes around a token whose variable holds text.
+
+### Webhook Security
+
 Webhooks are unauthenticated LAN endpoints unless a key is set. For anything
 that triggers meaningful automation, set a key and treat the full URL as a
 secret.
+
+A webhook with a Response and no key gives the values in that response to
+anything on the network that can reach the webhook port. Set a key on every
+webhook that returns values you would not show to every device on the network. A
+call with a missing or wrong key is refused before any variable is read.
 
 ## Examples
 
