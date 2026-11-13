@@ -48,6 +48,7 @@ local NS_OUTPUT = "Output"
 local INPUT_HUMIDITY = "humidity"
 local INPUT_TEMPERATURE = "temperature"
 local OUTPUT_CONTACT = "contact"
+local OUTPUT_FAN_RELAY = "fan_relay"
 
 --- Persist key for the detector's state and what the driver keeps beside it
 local PERSIST_STATE = "AlertState"
@@ -62,6 +63,19 @@ local EVENT_STALE = "Humidity Sensor Stale"
 local VAR_ACTIVE = "Alert Active"
 local VAR_REASON = "Alert Reason"
 local VAR_RISE = "Humidity Rise"
+
+--- Control Method choices
+local METHOD_NONE = "None"
+local METHOD_RELAY = "Relay"
+local METHOD_LIGHT = "Light Switch"
+local METHOD_FAN = "Fan Speed Controller"
+
+--- The key of the one fan a relay connection drives.
+local FAN_RELAY_KEY = "relay"
+
+--- The variable a light or a fan controller reports its on state in.
+--- @type integer
+local VAR_DEVICE_ON = 1000
 
 --- A humidity report waits this long for its sensor's temperature report.
 --- @type number
@@ -95,6 +109,9 @@ local SETTING_DEFAULTS = {
   ["Run-On Time"] = "10",
   ["Maximum Alert Time"] = "60",
   ["Sensor Timeout"] = "24",
+  ["Control Method"] = METHOD_NONE,
+  ["Light Switches"] = "",
+  ["Fan Controller"] = "",
 }
 
 --------------------------------------------------------------------------------
@@ -104,6 +121,12 @@ local SETTING_DEFAULTS = {
 --- @class AlertRecord
 --- @field state HumidityState The detector's state, stored without its history.
 --- @field rawPeak number|nil The highest humidity the sensor reported in this alert.
+--- @field owned table<string, boolean>|nil The fans this alert turned on.
+
+--- @class Fan
+--- @field deviceId integer|nil The light or fan controller, nil for the relay connection.
+--- @field name string What the log calls it.
+--- @field on boolean|nil Whether it runs, nil when not known yet.
 
 --- The detector's state.
 --- @type HumidityState
@@ -130,6 +153,14 @@ local lastContactState = nil
 --- When the state was last written, in seconds.
 --- @type number
 local lastSaved = 0
+
+--- The fans the Control Method selects, by key: "relay", or a device id as text.
+--- @type table<string, Fan>
+local fans = {}
+
+--- The fans the current alert turned on. Only these are turned off when it ends.
+--- @type table<string, boolean>
+local owned = {}
 
 --------------------------------------------------------------------------------
 -- Settings and Storage
@@ -165,7 +196,7 @@ local function saveState()
       stored[key] = value
     end
   end
-  persist:set(PERSIST_STATE, { state = stored, rawPeak = rawPeak })
+  persist:set(PERSIST_STATE, { state = stored, rawPeak = rawPeak, owned = owned })
   lastSaved = now()
 end
 
@@ -188,6 +219,245 @@ local function tellContact(asState)
     command = state.active and "STATE_CLOSED" or "STATE_OPENED"
   end
   SendToProxy(binding.bindingId, command, {}, "NOTIFY")
+end
+
+--------------------------------------------------------------------------------
+-- Fans
+--------------------------------------------------------------------------------
+
+--- End the alert now, whatever started it. Defined with the alert handling below.
+--- @type fun(quiet?: boolean)
+local endAlert
+
+--- The selected fans' keys, sorted so commands go out in one order.
+--- @return string[] keys
+local function fanKeys()
+  local keys = TableKeys(fans)
+  table.sort(keys)
+  return keys
+end
+
+--- @return boolean running True when any selected fan is known to run.
+local function anyFanOn()
+  for _, fan in pairs(fans) do
+    if fan.on then
+      return true
+    end
+  end
+  return false
+end
+
+--- Send a fan its on or off command.
+--- @param fan Fan
+--- @param on boolean
+local function sendFan(fan, on)
+  log:info("Turning %s %s", fan.name, on and "on" or "off")
+  if fan.deviceId ~= nil then
+    SendToDevice(fan.deviceId, on and "ON" or "OFF", {})
+    return
+  end
+  local binding = bindings:getDynamicBinding(NS_OUTPUT, OUTPUT_FAN_RELAY)
+  if binding then
+    SendToProxy(binding.bindingId, on and "CLOSE" or "OPEN", {})
+  end
+end
+
+--- Command a selected fan.
+--- @param key string
+--- @param on boolean
+local function commandFan(key, on)
+  local fan = fans[key]
+  if fan ~= nil then
+    sendFan(fan, on)
+  end
+end
+
+--- An alert started: turn on every selected fan that is off. Those are the alert's own.
+local function engageFans()
+  for _, key in ipairs(fanKeys()) do
+    if not fans[key].on and not owned[key] then
+      owned[key] = true
+      commandFan(key, true)
+    end
+  end
+end
+
+--- An alert ended: turn off the fans it turned on, and no others.
+local function releaseFans()
+  for _, key in ipairs(fanKeys()) do
+    if owned[key] then
+      commandFan(key, false)
+    end
+  end
+  owned = {}
+end
+
+--- A selected fan reported its state.
+--- @param key string
+--- @param on boolean
+--- @param isChange boolean False for a report of where it stands, as at a start or a bind.
+local function onFanState(key, on, isChange)
+  local fan = fans[key]
+  if fan == nil then
+    return
+  end
+  local was = fan.on
+  fan.on = on
+  if was == on then
+    return
+  end
+  if on then
+    Detector.fanStarted(state, now())
+    return
+  end
+
+  -- Outdoor air leaks back onto a sensor in the fan's housing, whoever stopped the fan.
+  Detector.fanStopped(state, now())
+  if anyFanOn() then
+    Detector.fanStarted(state, now())
+  end
+  if not isChange or was == nil or not gInitialized or not licensed() or not state.active then
+    return
+  end
+  if owned[key] then
+    log:info("%s was turned off during the alert; ending the alert", fan.name)
+    owned[key] = nil
+    endAlert()
+  else
+    -- Whatever ran this fan has finished with it, or the driver's own off from the last alert landed
+    -- late: the alert still needs it. It is the alert's from here, so a second off ends the alert.
+    log:info("%s stopped during the alert; turning it back on", fan.name)
+    owned[key] = true
+    commandFan(key, true)
+    -- Saved at once: a restart must still know this fan is the alert's to turn off.
+    saveState()
+  end
+end
+
+--- Stop watching the selected fans.
+local function forgetFans()
+  for key, fan in pairs(fans) do
+    if fan.deviceId ~= nil then
+      UnregisterVariableListener(fan.deviceId, VAR_DEVICE_ON)
+    end
+  end
+  fans = {}
+end
+
+--- Watch a light or a fan controller as a fan.
+--- @param deviceId integer
+--- @param name string
+local function watchDevice(deviceId, name)
+  local key = tostring(deviceId)
+  fans[key] = {
+    deviceId = deviceId,
+    name = name,
+    on = toboolean(C4:GetDeviceVariable(deviceId, VAR_DEVICE_ON)),
+  }
+  RegisterVariableListener(deviceId, VAR_DEVICE_ON, function(_, _, strValue)
+    onFanState(key, toboolean(strValue), true)
+  end)
+end
+
+--- Register the handlers of the fan relay connection.
+--- @param binding Binding
+local function registerFanRelayHandlers(binding)
+  RFP[binding.bindingId] = function(idBinding, strCommand, _tParams, _args)
+    log:trace("RFP[%s](%s, %s)", binding.bindingId, idBinding, strCommand)
+    if strCommand == "CLOSED" or strCommand == "OPENED" then
+      onFanState(FAN_RELAY_KEY, strCommand == "CLOSED", true)
+    elseif strCommand == "STATE_CLOSED" or strCommand == "STATE_OPENED" then
+      onFanState(FAN_RELAY_KEY, strCommand == "STATE_CLOSED", false)
+    end
+  end
+
+  OBC[binding.bindingId] = function(idBinding, _strClass, bIsBound, _otherDeviceId, _otherBindingId)
+    log:trace("OBC[%s](%s, %s, %s)", binding.bindingId, idBinding, _strClass, bIsBound)
+    local fan = fans[FAN_RELAY_KEY]
+    if fan ~= nil then
+      -- Another relay, or none: what the last one showed says nothing about it.
+      fan.on = nil
+    end
+    if not bIsBound then
+      owned[FAN_RELAY_KEY] = nil
+    end
+  end
+end
+
+--- Make or remove the fan relay connection as the Control Method asks.
+local function reconcileFanRelay()
+  if Properties["Control Method"] == METHOD_RELAY then
+    local relay = bindings:getOrAddDynamicBinding(NS_OUTPUT, OUTPUT_FAN_RELAY, "CONTROL", false, "Fan Relay", "RELAY")
+    if relay then
+      registerFanRelayHandlers(relay)
+    end
+  else
+    local relay = bindings:getDynamicBinding(NS_OUTPUT, OUTPUT_FAN_RELAY)
+    if relay then
+      RFP[relay.bindingId] = nil
+      OBC[relay.bindingId] = nil
+      bindings:deleteBinding(NS_OUTPUT, OUTPUT_FAN_RELAY)
+    end
+  end
+end
+
+--- The devices the Control Method's selector names.
+--- @param method string The Control Method.
+--- @return table<string, string> names Each device's display name, by its id as text.
+local function selectedDevices(method)
+  local names = {}
+  local property = method == METHOD_LIGHT and "Light Switches" or method == METHOD_FAN and "Fan Controller" or nil
+  if property ~= nil then
+    ParseDeviceIdPropertyList(property, function(deviceId, device)
+      names[tostring(deviceId)] = device.displayName
+      return device
+    end)
+  end
+  return names
+end
+
+--- Watch the fans the Control Method and its selector name, and show only that selector.
+local function configureFans()
+  local method = Properties["Control Method"]
+  local devices = selectedDevices(method)
+
+  -- A fan the alert turned on that is no longer selected is turned off while it can still be reached.
+  for _, key in ipairs(fanKeys()) do
+    local stays = (key == FAN_RELAY_KEY and method == METHOD_RELAY) or devices[key] ~= nil
+    if owned[key] and not stays and gInitialized and state.active then
+      sendFan(fans[key], false)
+    end
+  end
+  local previous = fans
+  forgetFans()
+  reconcileFanRelay()
+  C4:SetPropertyAttribs("Light Switches", method == METHOD_LIGHT and constants.SHOW_PROPERTY or constants.HIDE_PROPERTY)
+  C4:SetPropertyAttribs("Fan Controller", method == METHOD_FAN and constants.SHOW_PROPERTY or constants.HIDE_PROPERTY)
+
+  if method == METHOD_RELAY then
+    local before = previous[FAN_RELAY_KEY]
+    fans[FAN_RELAY_KEY] = { name = "the fan relay", on = before and before.on or nil }
+  else
+    for key, name in pairs(devices) do
+      watchDevice(tointeger(key), name)
+    end
+  end
+
+  for key, _ in pairs(owned) do
+    if fans[key] == nil then
+      owned[key] = nil
+    end
+  end
+  if anyFanOn() then
+    Detector.fanStarted(state, now())
+  elseif state.fanRunning then
+    -- No selected fan runs any longer: it stopped while the driver was down, or is no longer selected.
+    Detector.fanStopped(state, now())
+  end
+  if gInitialized and state.active and licensed() then
+    engageFans()
+    saveState()
+  end
 end
 
 --- Format a humidity for a status property.
@@ -245,10 +515,12 @@ local function apply(changes, quiet)
     if change.type == Detector.Change.STARTED then
       rawPeak = state.lastRh
       tellContact()
+      engageFans()
       C4:FireEvent(EVENT_STARTED)
     elseif change.type == Detector.Change.CLEARED then
       rawPeak = nil
       tellContact()
+      releaseFans()
       if not quiet then
         C4:FireEvent(EVENT_CLEARED)
       end
@@ -274,9 +546,8 @@ local function evaluate()
   apply(Detector.tick(state, settings(), now()))
 end
 
---- End the alert now, whatever started it.
 --- @param quiet? boolean Fire no events: the driver itself is stopping.
-local function endAlert(quiet)
+endAlert = function(quiet)
   apply(Detector.clear(state, settings(), now()), quiet)
 end
 
@@ -413,6 +684,7 @@ local function reconcileConnections()
   if contact then
     registerContactHandlers(contact)
   end
+  reconcileFanRelay()
 end
 
 --- Ask each input for its value now: a sensor that reports only changes may stay silent for hours.
@@ -482,10 +754,13 @@ function OnDriverInit()
   if type(record) == "table" and type(record.state) == "table" then
     state = record.state
     rawPeak = tonumber(record.rawPeak)
+    owned = type(record.owned) == "table" and record.owned or {}
   else
     state = Detector.newState()
     rawPeak = nil
+    owned = {}
   end
+  fans = {}
   -- An alert that outlasted the downtime is restored as it was and ended by the first tick.
   Detector.restart(state, now())
   lastContactState = nil
@@ -682,6 +957,25 @@ function OPC.Sensor_Timeout(propertyValue)
   evaluate()
 end
 
+function OPC.Control_Method(propertyValue)
+  log:trace("OPC.Control_Method('%s')", propertyValue)
+  configureFans()
+end
+
+function OPC.Light_Switches(propertyValue)
+  log:trace("OPC.Light_Switches('%s')", propertyValue)
+  if Properties["Control Method"] == METHOD_LIGHT then
+    configureFans()
+  end
+end
+
+function OPC.Fan_Controller(propertyValue)
+  log:trace("OPC.Fan_Controller('%s')", propertyValue)
+  if Properties["Control Method"] == METHOD_FAN then
+    configureFans()
+  end
+end
+
 --------------------------------------------------------------------------------
 -- TC Handlers
 --------------------------------------------------------------------------------
@@ -755,6 +1049,7 @@ function EC.Reset_Driver(params)
     endAlert()
   end
   CancelTimer("PairSample")
+  forgetFans()
 
   -- Reset all dynamic state
   bindings:reset()
@@ -762,6 +1057,7 @@ function EC.Reset_Driver(params)
   persist:set(PERSIST_STATE, nil)
   state = Detector.newState()
   rawPeak = nil
+  owned = {}
   pendingHumidity = nil
   lastCelsius = nil
   lastCelsiusTime = nil
@@ -780,6 +1076,7 @@ function EC.Reset_Driver(params)
   --#endif
 
   reconcileConnections()
+  configureFans()
   createVariables()
   showModeProperties()
   tellContact(true)

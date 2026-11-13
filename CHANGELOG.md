@@ -26,6 +26,10 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   moisture to a room and its humidity rises, and holds it until the room has
   dried out. It closes a contact output while the alert is active, and offers
   Rise, Threshold and Rise or Threshold detection.
+- Humidity Alert can switch a device itself, a bathroom exhaust fan for example,
+  with no Control4 programming: its Control Method property picks a relay
+  connection, light switches or a fan speed controller. It turns off only what
+  it turned on, and a device switched off during an alert ends that alert.
 
 <!-- #ifdef DRIVERCENTRAL -->
 

@@ -154,6 +154,9 @@ local BUCKET = 60
 --- @field holdOffUntil number|nil When the hold-off after an alert ends.
 --- @field leakGuardUntil number|nil When the hold-off after a fan stop ends.
 --- @field floorTime number|nil Samples before this no longer set the baseline.
+--- @field fanRunning boolean|nil True while a fan the driver watches runs.
+--- @field fanRest HumiditySample|nil The highest sample the room rested at before the fan ran.
+--- @field fanRestUntil number|nil When that sample stops counting, once the fan has stopped.
 
 --- A state with nothing learned and no alert.
 --- @return HumidityState state A new state.
@@ -265,7 +268,9 @@ end
 --- @param c number|nil
 local function remember(state, now, rh, c)
   local history = state.history
-  local sample = { t = now, rh = rh, c = c, rest = not state.active and not inHoldOff(state, now) }
+  -- A running fan pulls the room's own air over a sensor in its housing: not where it rests.
+  local rest = not state.active and not inHoldOff(state, now) and not state.fanRunning
+  local sample = { t = now, rh = rh, c = c, rest = rest }
   local last = history[#history]
   if last ~= nil and math.floor(last.t / BUCKET) == math.floor(now / BUCKET) then
     history[#history] = sample
@@ -332,6 +337,14 @@ local function restingHigh(state, now, low, refC)
       if high == nil or value > high then
         high = value
       end
+    end
+  end
+  -- A fan run of any length must not age out the level the room rested at before it.
+  local kept = state.fanRest
+  if kept ~= nil and (state.fanRunning or (state.fanRestUntil ~= nil and now < state.fanRestUntil)) then
+    local value = valueAt(kept.rh, kept.c, refC)
+    if high == nil or value > high then
+      high = value
     end
   end
   return high
@@ -721,10 +734,37 @@ end
 --- @param now number The time, in seconds.
 function Detector.fanStopped(state, now)
   advance(state, now)
+  if state.fanRunning then
+    state.fanRunning = false
+    state.fanRestUntil = now + REST_WINDOW
+  end
   if not state.active then
     state.leakGuardUntil = now + HOLD_OFF
     state.floorTime = now
   end
+end
+
+--- A fan started. The level the room rested at before it is kept for as long
+--- as the fan runs, so the climb after it stops is measured against that level.
+--- @param state HumidityState The state, changed in place.
+--- @param now number The time, in seconds.
+function Detector.fanStarted(state, now)
+  advance(state, now)
+  if state.fanRunning then
+    return
+  end
+  local kept = state.fanRest
+  if kept ~= nil and (state.fanRestUntil == nil or now >= state.fanRestUntil) then
+    kept = nil
+  end
+  for _, sample in ipairs(state.history) do
+    if sample.rest and sample.t >= now - REST_WINDOW and (kept == nil or sample.rh > kept.rh) then
+      kept = sample
+    end
+  end
+  state.fanRest = kept
+  state.fanRestUntil = nil
+  state.fanRunning = true
 end
 
 --- The sensor was bound or changed: the next sample only sets a baseline.
@@ -744,6 +784,8 @@ function Detector.restart(state, now)
     state.holdOffUntil = nil
     state.leakGuardUntil = nil
     state.floorTime = nil
+    state.fanRest = nil
+    state.fanRestUntil = nil
   end
   state.history = state.history or {}
   state.seed = true

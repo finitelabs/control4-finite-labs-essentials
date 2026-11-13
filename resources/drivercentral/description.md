@@ -34,6 +34,14 @@ you choose.
 Passes one of several named groups of sensors through to a single set of
 outputs, switched from programming.
 
+### Humidity Alert
+
+Raises an alert when something adds moisture to a room and its humidity rises,
+and holds it until the room has dried out, in a dry winter and a humid summer
+alike. It closes a contact for Control4 programming, and can switch a device
+itself, a bathroom exhaust fan for example, by a relay, light switches or a fan
+speed controller.
+
 ### Device Programmer
 
 Virtual temperature, humidity, contact and relay devices, named in its
