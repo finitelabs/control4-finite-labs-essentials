@@ -172,6 +172,8 @@ tab, then fire them from programming with a single Send Request command.
   variable holding the last response
 - Inbound webhooks fire `<Name> Received` events with the payload published to a
   `<Name> Payload` variable, guarded by an optional key
+- A webhook can answer its caller with a response built from live Control4
+  variable values, so other systems can read values by calling it
 - Requests, webhooks, and last results persist across driver restarts
 
 ## Humidity Alert

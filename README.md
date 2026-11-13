@@ -157,6 +157,8 @@ tab, then fire them from programming with a single Send Request command.
   variable holding the last response
 - Inbound webhooks fire `<Name> Received` events with the payload published to a
   `<Name> Payload` variable, guarded by an optional key
+- A webhook can answer its caller with a response built from live Control4
+  variable values, so other systems can read values by calling it
 - Requests, webhooks, and last results persist across driver restarts
 
 ## Humidity Alert
@@ -239,6 +241,9 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Humidity Alert can correct for the rest of the house: with Reference Sensor
   Enabled it takes a second humidity and temperature sensor, and humidity the
   whole house shares neither counts as a rise nor starts a threshold alert.
+- Added an optional response to Network Requests webhooks, which answers the
+  caller with text you write and the current values of the Control4 variables
+  you insert into it.
 
 ## v20261112 - 2026-11-12
 

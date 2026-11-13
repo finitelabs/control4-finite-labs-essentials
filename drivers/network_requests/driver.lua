@@ -73,6 +73,13 @@ local MAX_TCP_TIMEOUT = 60
 --- Cap stored responses so a chatty endpoint cannot bloat persist or the UI.
 local MAX_RESPONSE_BYTES = 8192
 
+--- Cap a webhook's rendered response body at the size of the largest call the server accepts.
+local MAX_WEBHOOK_RESPONSE_BYTES = MAX_RESPONSE_BYTES * 2
+
+--- Content types a webhook's response body can be sent as.
+local CONTENT_TYPE_JSON = "application/json"
+local CONTENT_TYPE_TEXT = "text/plain; charset=utf-8"
+
 --- Dynamic network binding range used for UDP sends. Each send rotates through
 --- the range so overlapping sends do not clobber one another's binding.
 local UDP_BINDING_FIRST = 6101
@@ -639,7 +646,7 @@ end
 --------------------------------------------------------------------------------
 
 --- Get the configured webhooks.
---- @return table<string, table> webhooks Map of name -> { name, key }.
+--- @return table<string, table> webhooks Map of name -> { name, key, response, contentType }.
 local function getWebhooks()
   return persist:get(PERSIST_WEBHOOKS, {}) or {}
 end
@@ -651,7 +658,7 @@ local function saveWebhooks(webhooks)
 end
 
 --- Get the last received entry per webhook.
---- @return table<string, table> results Map of name -> { from, payload, ts }.
+--- @return table<string, table> results Map of name -> { from, payload, error?, ts }.
 local function getWebhookResults()
   return persist:get(PERSIST_WEBHOOK_RESULTS, {}) or {}
 end
@@ -667,6 +674,7 @@ local function setWebhookResult(name, entry)
     name = name,
     from = entry.from or "",
     payload = entry.payload or "",
+    error = entry.error or "",
     ts = entry.ts or os.time(),
   })
 end
@@ -735,13 +743,14 @@ local webhookBuffers = {}
 --- @param nHandle number
 --- @param code number
 --- @param reason string
---- @param bodyTable table JSON-encodable response body.
-local function webhookRespond(nHandle, code, reason, bodyTable)
-  local body = JSON:encode(bodyTable)
+--- @param contentType string
+--- @param body string
+local function webhookSend(nHandle, code, reason, contentType, body)
   local response = string.format(
-    "HTTP/1.1 %d %s\r\nContent-Type: application/json\r\nContent-Length: %d\r\nConnection: close\r\n\r\n%s",
+    "HTTP/1.1 %d %s\r\nContent-Type: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n%s",
     code,
     reason,
+    contentType,
     #body,
     body
   )
@@ -751,8 +760,52 @@ local function webhookRespond(nHandle, code, reason, bodyTable)
   end)
 end
 
---- Route a parsed webhook HTTP request: fire the matching webhook's event,
---- publish its payload variable, and answer the caller.
+--- Send a JSON HTTP response on a server connection and close it.
+--- @param nHandle number
+--- @param code number
+--- @param reason string
+--- @param bodyTable table JSON-encodable response body.
+local function webhookRespond(nHandle, code, reason, bodyTable)
+  webhookSend(nHandle, code, reason, CONTENT_TYPE_JSON, JSON:encode(bodyTable))
+end
+
+--- The content type a webhook's rendered response body is sent as. Automatic is JSON for a body that parses as a
+--- JSON object or array, and text for anything else.
+--- @param config table
+--- @param body string
+--- @return string
+local function responseContentType(config, body)
+  if config.contentType == "json" then
+    return CONTENT_TYPE_JSON
+  elseif config.contentType == "text" then
+    return CONTENT_TYPE_TEXT
+  end
+  if body:match("^%s*[{%[]") then
+    local ok, decoded = pcall(JSON.decode, JSON, body)
+    if ok and type(decoded) == "table" then
+      return CONTENT_TYPE_JSON
+    end
+  end
+  return CONTENT_TYPE_TEXT
+end
+
+--- Render a webhook's response body from its template, reading each PARAM{} token's variable now.
+--- @param config table
+--- @return string|nil body The rendered body, or nil when it cannot be sent.
+--- @return string? err
+local function renderWebhookResponse(config)
+  local body, missing = substituteTokens(tostring(config.response or ""))
+  if missing then
+    return nil, "unresolved variable reference"
+  end
+  if #body > MAX_WEBHOOK_RESPONSE_BYTES then
+    return nil, "response too large"
+  end
+  return body
+end
+
+--- Route a parsed webhook HTTP request: publish the matching webhook's payload variable, fire its event, and answer
+--- the caller with its response body, or with {"ok":true} when it has none. A refused call reads no variable.
 --- @param nHandle number
 --- @param method string
 --- @param rawPath string Path with optional query string, still URL-encoded.
@@ -783,8 +836,21 @@ local function handleWebhookRequest(nHandle, method, rawPath, body, clientAddres
   ensureWebhookEvents(name)
   events:fire(NS_WEBHOOK, receivedEventKey(name))
   log:info("Webhook '%s' received from %s (%d payload byte(s))", name, clientAddress, #payload)
-  setWebhookResult(name, { from = clientAddress, payload = clampResponse(payload), ts = os.time() })
-  return webhookRespond(nHandle, 200, "OK", { ok = true })
+  local entry = { from = clientAddress, payload = clampResponse(payload), ts = os.time() }
+  if IsEmpty(config.response) then
+    setWebhookResult(name, entry)
+    return webhookRespond(nHandle, 200, "OK", { ok = true })
+  end
+
+  local response, err = renderWebhookResponse(config)
+  if not response then
+    log:warn("Webhook '%s': no response sent to %s: %s", name, clientAddress, err)
+    entry.error = err
+    setWebhookResult(name, entry)
+    return webhookRespond(nHandle, 500, "Internal Server Error", { ok = false, error = err })
+  end
+  setWebhookResult(name, entry)
+  return webhookSend(nHandle, 200, "OK", responseContentType(config, response), response)
 end
 
 --- Start (or restart) the webhook HTTP server from the Webhook Port property.
@@ -1101,8 +1167,11 @@ function UIR._GET_CONFIG()
     webhooks[#webhooks + 1] = {
       name = name,
       key = config.key or "",
+      response = config.response or "",
+      contentType = config.contentType or "auto",
       from = entry.from,
       payload = entry.payload,
+      error = entry.error,
       ts = entry.ts,
     }
   end
@@ -1118,11 +1187,34 @@ function UIR._SAVE_WEBHOOK(tParams)
   log:trace("UIR.SAVE_WEBHOOK()")
   local params = pageParams(tParams)
   local name = tostring(params.name or ""):match("^%s*(.-)%s*$")
+  local originalName = tostring(params.originalName or ""):match("^%s*(.-)%s*$")
   if IsEmpty(name) then
     return page.send("SAVE_RESULT", { ok = false, error = "Name is required" })
   end
+  local response = tostring(params.response or "")
+  if #response > MAX_WEBHOOK_RESPONSE_BYTES then
+    return page.send("SAVE_RESULT", {
+      ok = false,
+      error = string.format("Response is longer than %d KB", MAX_WEBHOOK_RESPONSE_BYTES / 1024),
+    })
+  end
   local webhooks = getWebhooks()
-  webhooks[name] = { name = name, key = tostring(params.key or "") }
+  if not IsEmpty(originalName) and originalName ~= name then
+    return page.send("SAVE_RESULT", {
+      ok = false,
+      error = "Webhooks cannot be renamed. Create a new webhook and delete this one.",
+    })
+  end
+  if IsEmpty(originalName) and webhooks[name] ~= nil then
+    return page.send("SAVE_RESULT", { ok = false, error = "A webhook named '" .. name .. "' already exists" })
+  end
+  local contentType = params.contentType
+  webhooks[name] = {
+    name = name,
+    key = tostring(params.key or ""),
+    response = response,
+    contentType = (contentType == "json" or contentType == "text") and contentType or "auto",
+  }
   saveWebhooks(webhooks)
   ensureWebhookEvents(name)
   return UIR._GET_CONFIG()

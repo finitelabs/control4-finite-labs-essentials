@@ -17,6 +17,8 @@
     .hgrid .hdel { text-align: center; cursor: pointer; color: var(--text-muted); font-weight: 600; }
     .hgrid .hdel:hover { color: var(--danger); }
 
+    .hook-open { color: var(--warning); }
+
   </style>
 </head>
 <body>
@@ -58,7 +60,7 @@
   </div>
 
   <div class="card">
-    <h3>Webhooks <button class="btn btn-primary btn-sm" onclick="showWebhookForm()">+ Add Webhook</button></h3>
+    <h3>Webhooks <button class="btn btn-primary btn-sm" onclick="openWebhookEditor(null)">+ Add Webhook</button></h3>
     <div class="table-wrap">
       <table id="hook-table">
         <thead>
@@ -66,31 +68,19 @@
             <th style="width:22%;">Name</th>
             <th>URL</th>
             <th style="width:24%;">Last Received</th>
-            <th style="width:96px;"></th>
+            <!-- Copy + Edit + delete need 132px. -->
+            <th style="width:136px;"></th>
           </tr>
         </thead>
         <tbody id="hook-rows"></tbody>
       </table>
     </div>
     <div class="empty" id="hook-empty" style="display:none;">No webhooks yet. Add Webhook to create one.</div>
-    <div class="kit-fields" id="hook-form" style="margin-top:10px; align-items:flex-end; display:none;">
-      <div>
-        <label for="hook-name">Name</label>
-        <input type="text" id="hook-name" placeholder="e.g. Doorbell Motion"/>
-      </div>
-      <div>
-        <label for="hook-key">Key (optional, callers must pass ?key=...)</label>
-        <input type="text" id="hook-key" class="mono" spellcheck="false" placeholder="secret"/>
-      </div>
-      <div style="flex:none; display:flex; gap:8px;">
-        <button class="btn btn-outline btn-sm" onclick="hideWebhookForm()">Cancel</button>
-        <button class="btn btn-primary btn-sm" onclick="addWebhook()">Save Webhook</button>
-      </div>
-    </div>
     <p class="hint" id="hook-hint">External systems call the webhook's URL (GET or POST) to fire its
     <code>&lt;Name&gt; Received</code> event. The request body (or query string) is published to the
-    <code>&lt;Name&gt; Payload</code> variable before the event fires. The listen port is set by the
-    <code>Webhook Port</code> driver property.</p>
+    <code>&lt;Name&gt; Payload</code> variable before the event fires. A webhook with a Response answers the
+    caller with it, variable values included. The listen port is set by the <code>Webhook Port</code> driver
+    property.</p>
   </div>
 </div>
 
@@ -216,6 +206,69 @@
   </div>
 </div>
 
+<!-- ── Webhook editor panel ───────────────────────────────────── -->
+<div class="panel" id="panel-hook">
+  <div class="kit-split">
+
+    <div class="card kit-split-side">
+      <h3>Variables</h3>
+      <div id="hook-vb"></div>
+    </div>
+
+    <div class="kit-split-main">
+      <div class="card">
+        <div class="kit-fields">
+          <div>
+            <label for="hook-name">Name <span id="hook-name-lock" style="display:none; font-weight:400;">(fixed - to rename, create a new webhook and delete this one)</span></label>
+            <input type="text" id="hook-name" placeholder="e.g. Doorbell Motion" oninput="this.classList.remove('input-error'); updateWebhookLines();"/>
+          </div>
+          <div>
+            <label for="hook-key">Key (optional, callers must pass ?key=...)</label>
+            <input type="text" id="hook-key" class="mono" spellcheck="false" placeholder="secret" oninput="updateWebhookLines();"/>
+          </div>
+        </div>
+        <div class="kit-fields" style="align-items:flex-end;">
+          <div>
+            <label for="hook-response">Response (optional)</label>
+          </div>
+          <div style="flex:none;">
+            <label>Content Type</label>
+            <div class="seg">
+              <button type="button" id="hook-ct-auto" class="on" onclick="setWebhookContentType('auto')">Automatic</button>
+              <button type="button" id="hook-ct-json" onclick="setWebhookContentType('json')">JSON</button>
+              <button type="button" id="hook-ct-text" onclick="setWebhookContentType('text')">Text</button>
+            </div>
+          </div>
+        </div>
+        <textarea id="hook-response" data-tok="1" rows="4" placeholder='{"value": PARAM{100001,2301}}'></textarea>
+        <p class="hint">Sent to the caller as the answer to every accepted call, with each <code>PARAM{}</code> token
+        replaced by the variable's value at that moment. Leave it empty to answer <code>{"ok":true}</code>.</p>
+        <p class="hint hook-open" id="hook-open-note" style="display:none;">No key is set: anything on the network
+        that can reach the webhook port can read the values in this response.</p>
+        <div class="kit-label-row" style="margin-top:8px;">
+          <span></span>
+          <button type="button" id="hook-help-toggle">Syntax help</button>
+        </div>
+        <div id="hook-help-panel"></div>
+      </div>
+
+      <div class="card" id="hook-last-card" style="display:none;">
+        <h3>Last Received</h3>
+        <div id="hook-last-line" class="res"></div>
+        <div class="kit-pre" id="hook-last-body" style="display:none;"></div>
+      </div>
+
+      <div class="kit-foot">
+        <span class="save-error" id="hook-save-error"></span>
+        <button class="btn btn-outline" onclick="closeEditor()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveWebhook()">Save Webhook</button>
+      </div>
+      <div class="kit-prev-foot" id="hook-pub-line" style="margin-top:-4px;"></div>
+    </div>
+
+  </div>
+</div>
+
 <script>
 <!-- #embed ../../../../src/lib/ui/page.js -->
 <!-- #embed ../../../../src/lib/ui/variables.js -->
@@ -274,8 +327,10 @@ function defaultTokTarget() {
 }
 
 var browser = Kit.variableBrowser(document.getElementById('vb'), {
-  target: function (last) { return last || defaultTokTarget(); },
-  usedIn: '[data-tok]',
+  target: function (last) {
+    return last && document.getElementById('panel-editor').contains(last) ? last : defaultTokTarget();
+  },
+  usedIn: '#panel-editor [data-tok]',
 });
 
 // ============================================================
@@ -363,7 +418,38 @@ function deleteRequest(name) {
 // ============================================================
 // Webhooks
 // ============================================================
-var gWebhooks = [];              // [{name, key, from, payload, ts}]
+var gWebhooks = [];              // [{name, key, response, contentType, from, payload, error, ts}]
+var gHook = { open: false, originalName: '', contentType: 'auto' };
+var gSaving = '';                // the editor a SAVE_RESULT answers: 'request' or 'webhook'
+
+var responseEditor = Kit.expressionEditor(document.getElementById('hook-response'), { mode: 'text' });
+Kit.expressionHelp({
+  toggle: document.getElementById('hook-help-toggle'),
+  panel: document.getElementById('hook-help-panel'),
+  sections: [
+    { title: 'Variable tokens',
+      html: '<p><code>PARAM{deviceId,variableId}</code> is replaced with the variable\'s current value each time the'
+        + ' webhook is called. Click a variable in the browser to insert its token into the response. Variables can'
+        + ' also be referenced by name: <code>PARAM{96,HUMIDITY}</code> (exact match, case sensitive).</p>' },
+    { title: 'Response',
+      html: '<p>The response is sent as typed, with status 200. With <b>Automatic</b>, a response that is a JSON'
+        + ' object or array is sent as <code>application/json</code> and anything else as <code>text/plain</code>;'
+        + ' <b>JSON</b> and <b>Text</b> set the type whatever the response holds. If a variable cannot be found,'
+        + ' or the response comes to more than 16 KB, the caller gets status 500 and an error.</p>' },
+    { title: 'The call\'s own payload',
+      html: '<p>The <code>&lt;Name&gt; Payload</code> variable is updated before the response is built, so a token'
+        + ' for this driver\'s own payload variable returns what the caller just sent. Control4 programming on'
+        + ' the <code>&lt;Name&gt; Received</code> event runs after the answer is sent.</p>' },
+    { title: 'Who can read it',
+      html: '<p>Without a key, anything on the network that can reach the webhook port can call the webhook and'
+        + ' read the values in its response. Set a key to require <code>?key=...</code> on every call; a call'
+        + ' without it is refused before any variable is read.</p>' },
+  ],
+});
+var hookBrowser = Kit.variableBrowser(document.getElementById('hook-vb'), {
+  target: '#hook-response',
+  usedIn: '#hook-response',
+});
 var gWebhookBase = '';           // http://controller:port/
 
 function webhookUrl(x) {
@@ -392,20 +478,22 @@ function renderWebhooks() {
   gWebhooks.forEach(function(x) {
     var url = webhookUrl(x);
     var last;
-    if (x.ts) last = '<span class="res" title="' + esc(x.payload || '') + '">' + esc(Kit.ago(x.ts)) + (x.from ? ' from ' + esc(x.from) : '') + '</span>';
+    if (x.ts && x.error) last = '<span class="chip chip-err" title="' + esc(Kit.ago(x.ts) + (x.from ? ' from ' + x.from : '')) + '">' + esc(x.error) + '</span>';
+    else if (x.ts) last = '<span class="res" title="' + esc(x.payload || '') + '">' + esc(Kit.ago(x.ts)) + (x.from ? ' from ' + esc(x.from) : '') + '</span>';
     else last = '<span class="res" style="color:var(--text-muted);">never</span>';
     html += '<tr data-name="' + esc(x.name) + '">'
-      + '<td class="trunc" title="' + esc(x.name) + '"><span class="status-dot ' + (x.ts ? 'status-ok' : 'status-none') + '"></span><b>' + esc(x.name) + '</b></td>'
+      + '<td class="trunc" title="' + esc(x.name) + '"><span class="status-dot ' + (x.ts ? (x.error ? 'status-warn' : 'status-ok') : 'status-none') + '"></span><b>' + esc(x.name) + '</b></td>'
       + '<td class="trunc"><span class="req-target" title="' + esc(url) + '">' + esc(url) + '</span></td>'
       + '<td class="trunc">' + last + '</td>'
       + '<td style="text-align:right; white-space:nowrap;">'
       + '<button class="btn btn-ghost" title="Copy URL" data-act="copy">Copy</button>'
+      + '<button class="btn btn-ghost" data-act="edit">Edit</button>'
       + '<button class="btn btn-ghost" title="Delete" data-act="delete">&#10005;</button>'
       + '</td></tr>';
   });
   tb.innerHTML = html;
 }
-onRowAction('hook-rows', { copy: copyWebhookUrl, delete: deleteWebhook });
+onRowAction('hook-rows', { copy: copyWebhookUrl, edit: editWebhook, delete: deleteWebhook });
 
 function copyWebhookUrl(name) {
   var x = null;
@@ -416,27 +504,86 @@ function copyWebhookUrl(name) {
   else window.prompt('Webhook URL', url);
 }
 
-function showWebhookForm() {
-  document.getElementById('hook-form').style.display = 'flex';
-  document.getElementById('hook-name').focus();
+function editWebhook(name) {
+  var x = null;
+  gWebhooks.forEach(function(w) { if (w.name === name) x = w; });
+  openWebhookEditor(x);
 }
 
-function hideWebhookForm() {
+function openWebhookEditor(hook) {
+  gHook.open = true;
+  gHook.originalName = hook ? hook.name : '';
   var nameEl = document.getElementById('hook-name');
+  nameEl.value = hook ? hook.name : '';
+  nameEl.readOnly = !!hook;
+  nameEl.style.opacity = hook ? '0.6' : '';
   nameEl.classList.remove('input-error');
-  nameEl.value = '';
-  document.getElementById('hook-key').value = '';
-  document.getElementById('hook-form').style.display = 'none';
+  document.getElementById('hook-name-lock').style.display = hook ? 'inline' : 'none';
+  document.getElementById('hook-key').value = hook ? (hook.key || '') : '';
+  document.getElementById('hook-save-error').textContent = '';
+  setWebhookContentType(hook && hook.contentType ? hook.contentType : 'auto');
+  if (hook && hook.ts) renderWebhookLast(hook); else document.getElementById('hook-last-card').style.display = 'none';
+  document.getElementById('panel-list').classList.remove('active');
+  document.getElementById('panel-hook').classList.add('active');
+  responseEditor.setValue(hook ? (hook.response || '') : '');
+  hookBrowser.refresh();
+  updateWebhookLines();
+  (hook ? document.getElementById('hook-response') : nameEl).focus();
 }
 
-function addWebhook() {
+function setWebhookContentType(type) {
+  if (type !== 'json' && type !== 'text') type = 'auto';
+  gHook.contentType = type;
+  ['auto','json','text'].forEach(function(t) {
+    document.getElementById('hook-ct-' + t).className = t === type ? 'on' : '';
+  });
+}
+
+function updateWebhookLines() {
+  var name = document.getElementById('hook-name').value.trim() || 'Webhook';
+  var hasResponse = responseEditor.value() !== '';
+  var hasKey = document.getElementById('hook-key').value.trim() !== '';
+  document.getElementById('hook-open-note').style.display = hasResponse && !hasKey ? 'block' : 'none';
+  document.getElementById('hook-pub-line').innerHTML = 'Fires <code>' + esc(name) + ' Received</code> (event)'
+    + ' &middot; publishes <code>' + esc(name) + ' Payload</code> (STRING variable)'
+    + ' &middot; answers ' + (hasResponse ? 'with its Response' : '<code>{"ok":true}</code>');
+}
+
+function renderWebhookLast(entry) {
+  document.getElementById('hook-last-card').style.display = 'block';
+  var line = document.getElementById('hook-last-line');
+  var body = document.getElementById('hook-last-body');
+  var when = Kit.ago(entry.ts) + (entry.from ? ' from ' + entry.from : '');
+  if (entry.error) line.innerHTML = '<span class="chip chip-err">' + esc(entry.error) + '</span> ' + esc(when);
+  else line.textContent = when;
+  if (entry.payload) {
+    body.style.display = 'block';
+    body.textContent = entry.payload;
+  } else {
+    body.style.display = 'none';
+  }
+}
+
+function saveWebhook() {
   var nameEl = document.getElementById('hook-name');
-  var keyEl = document.getElementById('hook-key');
+  var errEl = document.getElementById('hook-save-error');
   var name = nameEl.value.trim();
-  if (!name) { nameEl.classList.add('input-error'); return; }
-  nameEl.classList.remove('input-error');
-  sendCommand('_SAVE_WEBHOOK', { name: name, key: keyEl.value.trim() });
-  hideWebhookForm();
+  errEl.textContent = '';
+  if (!name) { nameEl.classList.add('input-error'); errEl.textContent = 'Name is required.'; return; }
+  if (!gHook.originalName && gWebhooks.some(function(x) { return x.name === name; })) {
+    nameEl.classList.add('input-error');
+    errEl.textContent = 'A webhook named "' + name + '" already exists. Names must be unique.';
+    return;
+  }
+  gSaving = 'webhook';
+  sendCommand('_SAVE_WEBHOOK', {
+    name: name,
+    originalName: gHook.originalName,
+    key: document.getElementById('hook-key').value.trim(),
+    response: responseEditor.value(),
+    contentType: gHook.contentType
+  });
+  closeEditor();
 }
 
 function deleteWebhook(name) {
@@ -447,10 +594,11 @@ function deleteWebhook(name) {
 function onWebhookResult(p) {
   var found = false;
   gWebhooks.forEach(function(x) {
-    if (x.name === p.name) { x.from = p.from; x.payload = p.payload; x.ts = p.ts; found = true; }
+    if (x.name === p.name) { x.from = p.from; x.payload = p.payload; x.error = p.error; x.ts = p.ts; found = true; }
   });
   if (found) renderWebhooks();
   else sendCommand('_GET_CONFIG');
+  if (gHook.open && gHook.originalName === p.name) renderWebhookLast(p);
 }
 
 function editRequest(name) {
@@ -495,7 +643,9 @@ function openEditor(req) {
 
 function closeEditor() {
   gEditor.open = false;
+  gHook.open = false;
   document.getElementById('panel-editor').classList.remove('active');
+  document.getElementById('panel-hook').classList.remove('active');
   document.getElementById('panel-list').classList.add('active');
 }
 
@@ -594,6 +744,7 @@ function saveRequest(sendAfter) {
       return;
     }
   }
+  gSaving = 'request';
   gSendAfterSave = !!sendAfter;
   gPendingSendName = sendAfter ? name : null;
   sendCommand('_SAVE_REQUEST', {
@@ -618,13 +769,19 @@ function saveRequest(sendAfter) {
 }
 
 function onSaveResult(p) {
-  if (p.ok === false) {
-    gSendAfterSave = false;
-    gPendingSendName = null;
-    document.getElementById('panel-list').classList.remove('active');
-    document.getElementById('panel-editor').classList.add('active');
-    document.getElementById('save-error').textContent = p.error || 'Save failed';
+  if (p.ok !== false) return;
+  document.getElementById('panel-list').classList.remove('active');
+  if (gSaving === 'webhook') {
+    gHook.open = true;
+    document.getElementById('panel-hook').classList.add('active');
+    document.getElementById('hook-save-error').textContent = p.error || 'Save failed';
+    return;
   }
+  gSendAfterSave = false;
+  gPendingSendName = null;
+  gEditor.open = true;
+  document.getElementById('panel-editor').classList.add('active');
+  document.getElementById('save-error').textContent = p.error || 'Save failed';
 }
 
 // ============================================================
@@ -643,6 +800,8 @@ var DEMO_REQUESTS = [
 ];
 var DEMO_WEBHOOKS = [
   { name: 'Doorbell Motion', key: 'secret', from: '192.168.1.50', payload: 'zone=porch', ts: DEMO_NOW - 120 },
+  { name: 'Strip Power', key: 'secret', response: '{"watts": PARAM{105,1017}, "volts": PARAM{105,1014}}',
+    contentType: 'auto', from: '192.168.1.60', ts: DEMO_NOW - 30 },
   { name: 'Backup Finished', key: '', ts: 0 }
 ];
 var DEMO_DEVICES = [
@@ -696,16 +855,18 @@ Kit.initTabs(closeEditor);
 Kit.initPropertiesCard(document.getElementById('props'));
 document.getElementById('nav-meta').textContent = 'Network Requests' + (gDriverId ? ' · device ' + gDriverId : '');
 document.getElementById('req-wait').addEventListener('change', updatePublishLine);
+document.getElementById('hook-response').addEventListener('input', updateWebhookLines);
 if (Kit.demoMode(demoAnswer)) Kit.devices.demo(DEMO_DEVICES, DEMO_VARIABLES);
 Kit.connectDriver({
   handlers: DRIVER_HANDLERS,
   onConnect: function () {
     sendCommand('_GET_CONFIG');
     browser.refresh();
+    hookBrowser.refresh();
   }
 });
 // Keeps the relative times fresh.
-setInterval(function() { if (!gEditor.open) { sendCommand('_GET_CONFIG'); renderList(); } }, 30000);
+setInterval(function() { if (!gEditor.open && !gHook.open) { sendCommand('_GET_CONFIG'); renderList(); } }, 30000);
 </script>
 </body>
 </html>
