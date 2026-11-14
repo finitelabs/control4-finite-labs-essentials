@@ -9,6 +9,7 @@ require("c4_shim")
 local T = require("testlib")
 local H = require("license_harness")
 local cloud = require("dc_cloud")
+local F = require("mux_fixtures")
 
 local function upstairsTemperature()
   for key, binding in pairs(require("lib.bindings"):getDynamicBindings("In:Upstairs")) do
@@ -59,5 +60,41 @@ end)
 T.eq("the edit while stopped sends nothing", edit, "")
 cloud.say(H.LICENSED)
 T.eq("the purchase leaves a listed input selected", Properties["Active Input Name"], "Downstairs")
+
+T.section("sensor_multiplexer: a linked switch under way when the license stops sends no preset")
+H.load("sensor_multiplexer", H.INVALID, { ["Input Names"] = "Home,Sleep" })
+-- Idle at Home's 20/24 and 23 °C: the temperature goes first, so the preset waits on a timer.
+local thermostat = F.thermostat({
+  presets = { { name = "Home", heat = 20, cool = 24 }, { name = "Sleep", heat = 19, cool = 22 } },
+  mode = "Cool",
+  preset = "Home",
+  temperature = 23,
+})
+-- The harness answers GetDeviceVariable from its own table; the link reads the thermostat's.
+local getDeviceVariable = C4.GetDeviceVariable
+function C4:GetDeviceVariable(id, variableId)
+  local variable = (self:GetDeviceVariables(id) or {})[tostring(variableId)]
+  return variable and variable.value
+end
+require("lib.persist"):set("InputValues", { Home = { temp = 23 }, Sleep = { temp = 21 } })
+Properties["Linked Thermostat"] = tostring(thermostat.proxyId)
+OnPropertyChanged("Linked Thermostat")
+ExecuteCommand("Select Input", { Input = "Sleep" })
+local sentBeforeStop = thermostat.sent[#thermostat.sent]
+T.eq("the temperature went first", sentBeforeStop.command, "TEMPERATURE")
+H.reads(30)
+T.eq("the license has stopped", Properties["Driver Status"], "No active license")
+for _ = 1, 10 do
+  ShimFireTimers()
+end
+local presets = 0
+for _, sent in ipairs(thermostat.sent) do
+  if sent.command == "SET_PRESET" then
+    presets = presets + 1
+  end
+end
+T.eq("no preset reaches the thermostat", presets, 0)
+thermostat:restore()
+C4.GetDeviceVariable = getDeviceVariable
 
 T.finish()
