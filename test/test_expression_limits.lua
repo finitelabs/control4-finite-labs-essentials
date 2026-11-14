@@ -242,6 +242,62 @@ do
   end
 end
 
+T.section("json() reads one value with a $. path")
+do
+  local doc = '{"state":{"power":"ON","level":42.5,"on":false},"sensors":[{"temp":72},{"temp":68}],'
+    .. '"tags":["a","b"],"gone":null}'
+  local cases = {
+    { 'json(__p[1], "$.state.power")', "ON" },
+    { 'json(__p[1], "$.state.level")', 42.5 },
+    { 'json(__p[1], "$.state.on")', false },
+    { 'json(__p[1], "$.sensors[1].temp")', 68 },
+    { 'json(__p[1], "$.tags[0]")', "a" },
+    { 'json(__p[1], "$.tags[2]")', nil },
+    { 'json(__p[1], "$.missing")', nil },
+    { 'json(__p[1], "$.gone")', nil },
+    { 'json(__p[1], "$.state.power.more")', nil },
+    { 'json(__p[1], "state.power")', nil },
+    { 'json(__p[1], "$.tags")', '["a","b"]' },
+    { 'json(json(__p[1], "$.sensors[0]"), "$.temp")', 72 },
+    { 'json(json(__p[1], "$"), "$.state.power")', "ON" },
+    { 'json("[10,20]", "$[1]")', 20 },
+    { 'json("7", "$")', 7 },
+    { 'json("{not json", "$.a")', nil },
+    { 'json(42, "$")', 42 },
+    { 'json(true, "$")', true },
+    { 'json("false", "$")', false },
+    { 'json(false, "$")', false },
+    { 'json(__p[1], "$.__tostring")', nil },
+    { 'json(__p[1], "$.tags.__tostring")', nil },
+    { 'json(__p[1], "$.__index.__tostring")', nil },
+    { 'json(\'{"__tostring":5}\', "$.__tostring")', 5 },
+    { 'json(\'{"m":[[1,2]]}\', "$.m[0][1]")', 2 },
+    { "json('[[1,2]]', \"$[0][0]\")", 1 },
+    { 'json(\'{"a[x]":4}\', "$.a[x]")', 4 },
+    { 'json(\'{"a":{},"b":[]}\', "$.a") .. json(\'{"a":{},"b":[]}\', "$.b")', "{}[]" },
+    { 'json(__p[2], "$.a")', nil },
+    { "json(__p[1]) == nil and json() == nil", true },
+  }
+  for _, case in ipairs(cases) do
+    local result, err = sandbox.eval(case[1], { doc })
+    T.eq(case[1], err or result, case[2])
+  end
+  local long = '{"pad":"' .. ("x"):rep(20000) .. '","value":3}'
+  T.eq("a 20 KB text reads", sandbox.eval('json(__p[1], "$.value")', { long }), 3)
+  T.eq(
+    "and reads twice in one expression",
+    sandbox.eval('json(__p[1], "$.value") * json(__p[1], "$.value")', { long }),
+    9
+  )
+  local _, bigErr = sandbox.eval('json(__p[1], "$.value")', { ("[1," .. ("2,"):rep(100000) .. "3]") })
+  T.contains("a text too long to decode in time fails, not nil", bigErr or "", "ran too long")
+  local _, loopErr, seconds = eval('(function() while true do json(__p[1], "$.value") end end)()', { long })
+  T.contains("a loop of decodes runs until the instruction limit", loopErr or "", "ran too long")
+  T.check("and stops in a few seconds", seconds < 10, seconds)
+  local _, repErr = sandbox.eval('json(__p[1], "$.state.power") .. ("a"):rep(2^21)', { doc })
+  T.contains("strings' methods are limited again after it", repErr or "", "over 1 MB")
+end
+
 T.section("the driver's own code runs outside the limits")
 do
   local realGetDevice = GetDevice

@@ -1,6 +1,6 @@
 --- Evaluates expressions in a sandbox: compiled with loadstring, with a cache keyed by
 --- their text, and run with setfenv in an environment holding only `math`, `string`,
---- a few helpers, and the values an expression reads as `__p[n]`.
+--- a few helpers including `json(text, "$.path")`, and the values an expression reads as `__p[n]`.
 ---
 --- An evaluation is limited in what it reaches, how long it runs and how much memory it
 --- takes: an expression the integrator writes or imports can hold a function literal, and
@@ -425,6 +425,97 @@ local function roomName(id)
 end
 
 ---------------------------------------------------------------------------
+-- JSON
+---------------------------------------------------------------------------
+
+local LIMIT_ERRORS = { [RAN_TOO_LONG] = true, [TOO_MUCH_MEMORY] = true }
+
+--- A JSON.lua of the sandbox's own that tags what it decodes, so `{}` encodes back as `{}`.
+--- @type table|nil
+local strictJson
+
+--- The last text json() decoded in the running evaluation, so reading several values from
+--- one text decodes it once.
+local lastText, lastDecoded
+
+--- Calls JSON.lua's method under the evaluation's limits, so a long text costs what it
+--- takes, but with strings' real methods: its patterns are fixed and anchored.
+--- @param method function
+--- @param value any
+--- @return boolean ok
+--- @return any result
+local function callJson(method, value)
+  local index = STRING_META.__index
+  STRING_META.__index = string
+  strictJson = strictJson or JSON:new({ strictTypes = true })
+  local ok, result = pcall(method, strictJson, value)
+  STRING_META.__index = index
+  if not ok and LIMIT_ERRORS[result] then
+    error(result, 0)
+  end
+  return ok, result
+end
+
+--- The value at a path in a decoded JSON value: `$` is the whole value, `.name` a field
+--- and `[n]` an array's item, counted from 0, which may follow another: `$.grid[0][1]`.
+--- @param value any
+--- @param path string
+--- @return any found nil when the path doesn't lead to a value.
+local function atPath(value, path)
+  if not path:match("^%$") then
+    return nil
+  end
+  local current = value
+  for part in (path:match("^%$%.?(.*)$")):gmatch("[^.]+") do
+    if type(current) ~= "table" then
+      return nil
+    end
+    local field, indexes = part:match("^([^%[]*)(%[.*)$")
+    if not indexes or indexes:gsub("%[%d+%]", "") ~= "" then
+      -- rawget: a strict-typed table's metatable would answer a missing key.
+      current = rawget(current, part)
+    else
+      if field ~= "" then
+        current = rawget(current, field)
+      end
+      for index in indexes:gmatch("%d+") do
+        if type(current) ~= "table" then
+          return nil
+        end
+        current = rawget(current, tonumber(index) + 1)
+      end
+    end
+  end
+  return current
+end
+
+--- One value read from JSON text with a `$.` path. An object or array comes back as its
+--- JSON text, which json() reads again; its keys may be in another order.
+--- @param text any
+--- @param path any
+--- @return string|number|boolean|nil value nil for text that isn't JSON or a path to nothing.
+local function json(text, path)
+  local kind = type(text)
+  if (kind ~= "string" and kind ~= "number" and kind ~= "boolean") or type(path) ~= "string" then
+    return nil
+  end
+  text = tostring(text)
+  if text ~= lastText then
+    local ok, decoded = callJson(JSON.decode, text)
+    lastText, lastDecoded = text, nil
+    if ok then
+      lastDecoded = decoded
+    end
+  end
+  local value = atPath(lastDecoded, path)
+  if type(value) == "table" then
+    local ok, encoded = callJson(JSON.encode, value)
+    return ok and encoded or nil
+  end
+  return value
+end
+
+---------------------------------------------------------------------------
 -- Core
 ---------------------------------------------------------------------------
 
@@ -486,6 +577,7 @@ local function buildEnv(bindings)
     end,
     c2f = c2f,
     f2c = f2c,
+    json = json,
   }
 end
 
@@ -550,6 +642,7 @@ function Sandbox.eval(expression, bindings)
   local index, spent = STRING_META.__index, spentSteps
   STRING_META.__index, spentSteps = SANDBOX_STRING, 0
   local ok, result = runLimited(fn)
+  lastText, lastDecoded = nil, nil
   STRING_META.__index, spentSteps = index, spent
   if type(hook) == "function" then
     debug.sethook(hook, mask, count)
