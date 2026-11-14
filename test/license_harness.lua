@@ -95,9 +95,13 @@ local function record()
   wrap("SendToProxy", function(id, cmd)
     return "proxy " .. tostring(id) .. " " .. tostring(cmd)
   end)
-  wrap("SendToDevice", function(id, cmd)
+  wrap("SendToDevice", function(id, cmd, params)
     if id ~= CLOUD_ID then
-      return "device " .. tostring(id) .. " " .. tostring(cmd)
+      local line = "device " .. tostring(id) .. " " .. tostring(cmd)
+      if type(params) == "table" and params.Time ~= nil then
+        line = line .. " " .. tostring(params.Time)
+      end
+      return line
     end
   end)
   wrap("FireEvent", function(name)
