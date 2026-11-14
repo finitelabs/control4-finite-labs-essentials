@@ -44,6 +44,7 @@ local function setDevices()
       variables = {
         ["1001"] = { name = "LEVEL", value = "42", type = "NUMBER" },
         ["1002"] = { name = "STATE", value = "Charging", type = "STRING" },
+        ["1003"] = { name = "STATUS", value = '{"battery":{"pct":87}}', type = "STRING" },
       },
     },
     [200] = { deviceName = "Meter", roomName = "Garage", variables = { ["7"] = { name = "WATTS", value = "1500" } } },
@@ -90,6 +91,11 @@ T.eq("and false counts as a result", Expressions.evaluate("condition", "PARAM{10
 T.eq("a string is its substitution", Expressions.evaluate("string", "at PARAM{100,LEVEL}").result, "at 42")
 T.eq("a global variable's agent reads too", Expressions.evaluate("equation", "PARAM{100001,GLOBAL_LIMIT}").result, 90)
 T.eq("Essentials' helpers work", Expressions.evaluate("equation", "round(c2f(PARAM{100,LEVEL} - 42), 1)").result, 32)
+T.eq(
+  "json() reads a variable's JSON",
+  Expressions.evaluate("equation", 'json(PARAM{100,STATUS}, "$.battery.pct") + 1').result,
+  88
+)
 
 local evaluation = Expressions.evaluate("equation", "PARAM{100,LEVEL} +")
 T.contains("a syntax error says so", evaluation.error, "compile error")
@@ -368,6 +374,46 @@ ShimFireTimers()
 T.eq("a burst of changes is one recompute", recomputed.power, 1)
 ShimFireTimers()
 T.eq("and nothing is left over", recomputed.power, 1)
+
+T.section("A variable that never stops changing")
+local realTime, realSetTimer = os.time, SetTimer
+local clock, arms = 5000, 0
+os.time = function() -- luacheck: ignore
+  return clock
+end
+SetTimer = function(name, ...)
+  if name:find("power", 1, true) then
+    arms = arms + 1
+  end
+  return realSetTimer(name, ...)
+end
+OnWatchedVariableChanged(200, 7, "10")
+T.eq("the first change arms the recompute", arms, 1)
+clock = clock + Expressions.MAX_WAIT_SECONDS - 1
+OnWatchedVariableChanged(200, 7, "11")
+T.eq("a change inside the limit pushes it out", arms, 2)
+clock = clock + 1
+OnWatchedVariableChanged(200, 7, "12")
+T.eq("at the limit it stays armed, so it comes", arms, 2)
+ShimFireTimers()
+T.eq("and it runs", recomputed.power, 2)
+OnWatchedVariableChanged(200, 7, "13")
+T.eq("the next change starts again", arms, 3)
+clock = clock - 86400
+OnWatchedVariableChanged(200, 7, "14")
+clock = clock + Expressions.MAX_WAIT_SECONDS
+OnWatchedVariableChanged(200, 7, "15")
+T.eq("a clock set back doesn't lose the limit", arms, 4)
+ShimFireTimers()
+local before = recomputed.power
+OnWatchedVariableChanged(200, 7, "16")
+engine:refreshExpression("power")
+clock = clock + Expressions.MAX_WAIT_SECONDS + 1
+OnWatchedVariableChanged(200, 7, "17")
+ShimFireTimers()
+T.eq("a refresh in the middle of a burst doesn't stop later recomputes", recomputed.power, before + 1)
+os.time = realTime -- luacheck: ignore
+SetTimer = realSetTimer
 engine:unsubscribeExpression("power")
 
 T.section("A failing recompute")
@@ -547,35 +593,25 @@ T.eq("a device that left isn't tried for long", arms, 1)
 removedLate:unsubscribeExpression("removed")
 SetTimer = realSetTimer -- luacheck: ignore
 
-T.section("The device browser")
-ShimSetDevices({
-  [700] = {
-    deviceName = "Light",
-    roomName = "Hall",
-    proxies = { [701] = true },
-    variables = { ["1"] = { name = "OWN" } },
-  },
-  [701] = {
-    deviceName = "Light",
-    roomName = "Hall",
-    driverFileName = "light_v2.c4i",
-    variables = { ["2"] = { name = "LEVEL" } },
-  },
-  [710] = { deviceName = "Lamp", roomName = "Attic", variables = { ["1"] = { name = "A" } } },
-  [711] = { deviceName = "Lamp", roomName = "Attic", variables = { ["1"] = { name = "B" } } },
-  [720] = { deviceName = "Nothing", roomName = "Attic" },
-})
-local devices = Expressions.devices()
-T.eq("a driver and the proxy restating it are one entry, and the empty one is left out", #devices, 3)
-T.eq("by room first", devices[1].roomName, "Attic")
-T.eq("names that collide get their id", devices[1].name, "Lamp (710)")
-T.eq("the proxy's owner stands for both", devices[3].id, 700)
-local vars = Expressions.deviceVariables("700")
-T.eq("a device's variables include its proxy's", #vars, 2)
-T.eq("its own come first", vars[1].name, "OWN")
-T.eq("under its own heading", vars[1].section, "Device")
-T.eq("the proxy's name its .c4i", vars[2].section, "light_v2")
-T.eq("a type is defaulted", vars[1].type, "STRING")
-T.eq("an id that isn't a number gives nothing", Expressions.deviceVariables("x"), nil)
+T.section("compileError reads a text as evaluate does")
+T.truthy("two tokens in a row can't compile", Expressions.compileError("PARAM{1,2}PARAM{3,4}"))
+T.eq("one token compiles", Expressions.compileError("PARAM{1,2} + 1"), nil)
+
+T.section("A missing variable doesn't fill the log")
+ShimSetDevices({ [700] = { deviceName = "Light", roomName = "Hall", variables = { ["1"] = { name = "OWN" } } } })
+local logging = require("lib.logging")
+local warned = 0
+logging.warn = function()
+  warned = warned + 1
+end
+for _ = 1, 3 do
+  Expressions.evaluate("condition", "PARAM{700,NOPE} > 1")
+end
+logging.warn = nil
+T.eq("evaluating it warns nothing, since the driver gets the error", warned, 0)
+T.truthy(
+  "and the error still says what's missing",
+  Expressions.evaluate("condition", "PARAM{700,NOPE} > 1").error:find("NOPE", 1, true)
+)
 
 T.finish()

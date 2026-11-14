@@ -4,7 +4,6 @@
 PROJECT_NAME  := control4-finite-labs-essentials
 DISTRIBUTIONS := drivercentral oss
 README_DRIVER := root
-README_BUILD  := oss
 # A new repo has no driver until its first lands, and builds and verifies nothing.
 DRIVERS       := $(wildcard drivers/*/driver.xml)
 
@@ -105,7 +104,7 @@ fmt-py: $(VENV_STAMP)
 
 # docs.py fmt is mdformat, keeping a GitHub alert's marker on its own line.
 fmt-md: $(VENV_STAMP)
-	@files=""; for g in ./drivers/*/www/documentation/*.md documentation/*.md *.md; do \
+	@files=""; for g in ./drivers/*/www/documentation/*.md documentation/*.md *.md resources/drivercentral/description.md; do \
 		[ -e "$$g" ] && files="$$files $$g"; \
 	done; \
 	[ -z "$$files" ] || $(VENV_PY) tools/docs.py fmt --wrap 80 $$files
@@ -127,7 +126,7 @@ check-py: $(VENV_STAMP)
 	$(VENV_BLACK) --check tools/*.py
 
 check-md: $(VENV_STAMP)
-	@files=""; for g in ./drivers/*/www/documentation/*.md documentation/*.md *.md; do \
+	@files=""; for g in ./drivers/*/www/documentation/*.md documentation/*.md *.md resources/drivercentral/description.md; do \
 		[ -e "$$g" ] && files="$$files $$g"; \
 	done; \
 	[ -z "$$files" ] || $(VENV_PY) tools/docs.py fmt --check --wrap 80 $$files
@@ -180,16 +179,39 @@ update-xml-modified: $(VENV_STAMP)
 
 # ─── Docs ─────────────────────────────────────────────────────────────────────
 
-.PHONY: docs docs-html docs-pdf docs-readme
-docs: docs-readme docs-html docs-pdf ## Generate all documentation
+.PHONY: docs docs-html docs-pdf docs-readme docs-drivercentral
+docs: docs-readme docs-html docs-pdf docs-drivercentral ## Generate all documentation
 
+# The README is committed, so it comes from the OSS docs, which never carry the support contacts.
 
 docs-readme: preprocess $(VENV_STAMP)
 	rm -rf ./images
 	@if [ -d documentation/images ]; then cp -r documentation/images .; fi
 	$(VENV_PY) tools/docs.py readme \
-		build/$(README_BUILD)/documentation/index.md README.md
+		build/oss/documentation/index.md README.md
 
+
+# What a DriverCentral upload needs beyond the zip and the PDFs: the listing's
+# description, Revisions tab and images. It sits beside the zip integrators
+# download, not in it.
+docs-drivercentral: preprocess $(VENV_STAMP)
+	@rm -rf dist/drivercentral/listing && mkdir -p dist/drivercentral/listing
+	$(VENV_PY) tools/docs.py revisions \
+		build/drivercentral/documentation/index.md \
+		dist/drivercentral/listing/revisions.html
+	@if [ -f resources/drivercentral/description.md ]; then \
+		$(VENV_PY) tools/docs.py description \
+			resources/drivercentral/description.md dist/drivercentral/listing/description.html; \
+	fi
+	@if grep -q FACTS-STRIP-URL resources/drivercentral/description.md 2>/dev/null; then \
+		echo "::warning file=resources/drivercentral/description.md::The facts strip isn't uploaded to DriverCentral yet, so description.html has no facts strip. Upload banners/facts-strip-2400x136.png through the description editor and put its URL in place of FACTS-STRIP-URL."; \
+	fi
+	@cd resources/drivercentral 2>/dev/null || exit 0; \
+	for f in product-card-300x300.png banners/*.png photos/*.png; do \
+		[ -f "$$f" ] || continue; \
+		mkdir -p "$(CURDIR)/dist/drivercentral/listing/$$(dirname "$$f")"; \
+		cp "$$f" "$(CURDIR)/dist/drivercentral/listing/$$f"; \
+	done
 
 docs-html: $(VENV_STAMP)
 	@for build in $(DISTRIBUTIONS); do \
@@ -310,6 +332,20 @@ test: ## Run the Lua test suite (test/test_*.lua) and the tools' tests (tools/te
 .PHONY: support-code
 support-code: ## Print today's Support Code, which opens a DriverCentral build's Lua window
 	@python3 tools/support_code.py
+
+.PHONY: dc-release
+dc-release: ## Download a release's DriverCentral upload into dist/release/<tag> (newest, or TAG=v...)
+	@tag="$(TAG)"; \
+	[ -n "$$tag" ] || tag=$$(gh release list --limit 1 --exclude-drafts --json tagName --jq '.[0].tagName // empty'); \
+	[ -n "$$tag" ] || { echo "Error: no release found; pass TAG=v<date>" >&2; exit 1; }; \
+	run=$$(gh run list --workflow build.yml --branch "$$tag" --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty'); \
+	[ -n "$$run" ] || { echo "Error: $$tag has no successful Build run yet" >&2; exit 1; }; \
+	out="dist/release/$$tag"; rm -rf "$$out"; mkdir -p "$$out"; \
+	gh run download "$$run" --name drivercentral --dir "$$out" || { \
+		echo "Error: no drivercentral artifact in Build run $$run. If it expired, run the Build workflow on $$tag again from the Actions tab." >&2; exit 1; }; \
+	python3 tools/package.py check-encrypted drivercentral "$$out/c4z" || { echo "Error: don't upload $$out" >&2; exit 1; }; \
+	echo "$$tag, Build run $$run: the DriverCentral upload is in $$out"; \
+	ls "$$out"
 
 # ─── Icons ────────────────────────────────────────────────────────────────────
 

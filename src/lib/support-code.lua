@@ -1,9 +1,12 @@
---- The Support Code opens a DriverCentral build's Lua window, which the build closes with `C4:AllowExecute(false)`.
+--- The Support Code opens a DriverCentral build's Lua window, which the build closes with `C4:AllowExecute(false)`, and
+--- lets Log Level reach Trace and Ultra while it is open.
 --- The code changes every UTC day: an HMAC of the date under a build secret, which only DriverCentral builds carry
 --- and `make support-code` reads to print the day's code.
 
 require("drivers-common-public.global.handlers")
 require("drivers-common-public.global.timer")
+
+local log = require("lib.logging")
 
 -- At Trace the dispatcher prints a property's value before its handler runs, and this property's value is the code.
 OPC.suppressDebug["Support Code"] = true
@@ -12,6 +15,7 @@ OPC.suppressDebug["Support Code"] = true
 --- @field _secret string The build secret the day's code comes from.
 --- @field _open boolean Whether this code opened the Lua window.
 --- @field _onChange? fun(open: boolean) Called as the code opens and closes the window.
+--- @field _followers fun(open: boolean)[] The libraries told the same, after the driver.
 local SupportCode = {}
 SupportCode.__index = SupportCode
 
@@ -37,6 +41,7 @@ function SupportCode:new(secret)
   local instance = setmetatable({}, self)
   instance._secret = secret or SECRET
   instance._open = false
+  instance._followers = {}
   return instance
 end
 
@@ -78,8 +83,8 @@ function SupportCode:accepts(value)
   return false
 end
 
---- Tells the driver's `onChange` callback, if any. A raise there would reach the dispatcher's error print, which shows
---- the typed value, so it is caught and reported without it.
+--- Tells the driver's `onChange` callback, if any, then each follower. A raise there would reach the dispatcher's
+--- error print, which shows the typed value, so it is caught and reported without it.
 --- @param open boolean Whether the window is now open.
 function SupportCode:_tell(open)
   if self._onChange then
@@ -87,6 +92,22 @@ function SupportCode:_tell(open)
     if not ok then
       print("The Support Code's onChange failed: " .. tostring(err))
     end
+  end
+  for _, follower in ipairs(self._followers) do
+    local ok, err = pcall(follower, open)
+    if not ok then
+      print("A Support Code follower failed: " .. tostring(err))
+    end
+  end
+end
+
+--- Lets Log Level reach Trace and Ultra, or stops it at Debug. Caught as `_tell` is, since a raise would print the
+--- typed value.
+--- @param open boolean Whether the window is now open.
+function SupportCode:_allowLevels(open)
+  local ok, err = pcall(log.allowTraceAndUltra, log, open)
+  if not ok then
+    print("The Support Code could not change Log Level: " .. tostring(err))
   end
 end
 
@@ -97,8 +118,16 @@ function SupportCode:onChange(callback)
   self._onChange = callback
 end
 
+--- Calls `callback(open)` as the window opens and closes, alongside the driver's `onChange`, for a library whose view
+--- changes with the window.
+--- @param callback fun(open: boolean)
+function SupportCode:follow(callback)
+  table.insert(self._followers, callback)
+end
+
 --- Takes what was typed into the Support Code property. The property is cleared at once, so the code is never left
---- in the project. Today's code opens the Lua window for an hour, or closes it while open.
+--- in the project. Today's code opens the Lua window and Log Level's Trace and Ultra for an hour, or closes them while
+--- open.
 --- @param value string The property's value.
 function SupportCode:enter(value)
   if value == nil or value == "" then
@@ -115,20 +144,25 @@ function SupportCode:enter(value)
   else
     self._open = true
     C4:AllowExecute(true)
+    self:_allowLevels(true)
     SetTimer("SupportCode", ONE_HOUR, function()
       self:close()
     end)
-    print("Support Code accepted: the Lua window is open for an hour, or until the code is entered again")
+    print(
+      "Support Code accepted: the Lua window and Log Level's Trace and Ultra are open for an hour, or until the code is"
+        .. " entered again"
+    )
     self:_tell(true)
   end
 end
 
---- Closes the Lua window the code opened.
+--- Closes the Lua window the code opened, and stops Log Level at Debug.
 function SupportCode:close()
   CancelTimer("SupportCode")
   self._open = false
   C4:AllowExecute(false)
-  print("The Lua window is closed")
+  self:_allowLevels(false)
+  print("The Lua window is closed, and Log Level stops at Debug")
   self:_tell(false)
 end
 

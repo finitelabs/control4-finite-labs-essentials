@@ -119,6 +119,62 @@ T.excludes("and no c4_ prefix", post.body, "c4_")
 sent = posted(ShimFireTimers)
 T.eq("then the repeating report", #sent, 1)
 
+T.section("The report carries the memory still live beside the memory the collector holds")
+collectgarbage("stop")
+for i = 1, 50000 do
+  local _ = { i }
+end
+sent = posted(ShimFireTimers)
+collectgarbage("restart")
+local memoryKB = tonumber(sent[1].body:match("memory_kb=([%d.]+)"))
+local liveKB = tonumber(sent[1].body:match("live_kb=([%d.]+)"))
+T.truthy("both are reported", memoryKB and liveKB)
+T.check(
+  "the live memory leaves out the garbage a full collect frees",
+  memoryKB and liveKB and liveKB < memoryKB - 1000,
+  string.format("memory_kb %s, live_kb %s", tostring(memoryKB), tostring(liveKB))
+)
+
+T.section("A controller whose locale writes a decimal comma still sends numbers with a point")
+do
+  -- The controller's C library writes floats with its locale's decimal point; this one's is a comma.
+  local format, tostr, native = string.format, tostring, tostring_native
+  local function comma(text)
+    return (text:gsub("%.", ","))
+  end
+  string.format = function(pattern, ...)
+    local text = format(pattern, ...)
+    return pattern:find("%%[%d.]*[fg]") and comma(text) or text
+  end
+  tostring = function(v)
+    return type(v) == "number" and comma(tostr(v)) or tostr(v)
+  end
+  tostring_native = tostring
+  diag:onReport(function()
+    return { { measurement = "example_device", fields = { latency_ms = 12.5 } } }
+  end)
+  sent = posted(ShimFireTimers)
+  string.format, tostring, tostring_native = format, tostr, native
+  diag:onReport(nil)
+  local line = sent[1].body:match("^[^\n]*")
+  T.truthy("memory_kb has a point", line:find(" memory_kb=[%d.]+,live_kb=") ~= nil, line)
+  T.truthy("and so does live_kb", line:find(",live_kb=[%d.]+,global_count=") ~= nil, line)
+  T.contains("and a driver's own field", sent[1].body, " latency_ms=12.5 ")
+end
+
+T.section("The census never walks package, which holds every module loaded")
+_G.CensusProbe = { 1, 2, 3 }
+local census = Diagnostics:new(SERVER):_tableCensus()
+local inPackage = {}
+for path in pairs(census) do
+  if path:find("^_G%.package") then
+    table.insert(inPackage, path)
+  end
+end
+T.eq("no path under package", inPackage, {})
+T.truthy("while a global table is counted", census["_G.CensusProbe"] ~= nil)
+_G.CensusProbe = nil
+
 T.section("An error goes to the logs database, scrubbed")
 sent = posted(function()
   ON_HANDLER_ERROR(
@@ -165,6 +221,19 @@ sent = posted(function()
   diag:captureError('ends in a backslash \\ and a "quote"', "", "test")
 end)
 T.contains("backslashes and quotes are escaped", sent[1].body, 'message="ends in a backslash \\\\ and a \\"quote\\""')
+
+T.section("A message that holds its own traceback is split")
+sent = posted(function()
+  diag._errorWindowStart = os.time()
+  diag._errorWriteCount = 0
+  diag:captureError("lib/example.lua:9: boom\nstack traceback:\n\t[C]: in function 'error'", nil, "test")
+  diag:captureError("lib/example.lua:9: boom\nstack traceback:\n\t[C]: in function 'error'", "", "test")
+  diag:captureError("lib/example.lua:9: boom", "\tgiven", "test")
+end)
+T.contains("its message alone", sent[1].body, 'message="lib/example.lua:9: boom"')
+T.contains("its traceback in its own field", sent[1].body, "traceback=\"\\t[C]: in function 'error'\"")
+T.contains("an empty traceback the same", sent[2].body, "traceback=\"\\t[C]: in function 'error'\"")
+T.contains("a traceback given is kept", sent[3].body, 'traceback="\\tgiven"')
 
 T.section("Disabling clears the hooks and the timers")
 diag:setEnabled(false)

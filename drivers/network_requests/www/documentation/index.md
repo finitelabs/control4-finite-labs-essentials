@@ -50,6 +50,7 @@ project.
   - [Referencing Variables](#referencing-variables)
   - [Commands](#commands)
   - [Events and the Response Variable](#events-and-the-response-variable)
+  - [Webhook Events](#webhook-events)
   - [Examples](#examples)
   <!-- #ifdef DRIVERCENTRAL -->
 - [Developer Information](#developer-information)
@@ -84,6 +85,9 @@ project.
 - Inbound webhooks: external systems (cameras, iPhone Shortcuts, Home Assistant)
   call a URL to fire a `<Name> Received` event, with the request body published
   to a `<Name> Payload` variable and an optional shared key
+- A webhook can answer its caller with a response you write, with live Control4
+  variable values inserted by `PARAM{}` tokens, so another system can read a
+  value by calling the webhook
 - Requests, webhooks, and last results persist across driver restarts
 
 # <span style="color:#059669">Installer Setup</span>
@@ -109,7 +113,7 @@ for setting it up.
 <!-- #ifdef DRIVERCENTRAL -->
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
-   [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/utility-suite).
+   [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/finite-labs-essentials).
 1. Extract and install the `network_requests.c4z` driver.
 1. Use the "Search" tab to find "Network Requests" and add it to your project.
 
@@ -182,18 +186,18 @@ HTTP request.
 
 <img alt="Request editor" src="./images/ui-request-editor.png" width="640"/>
 
-1. **Search** - filters the variable browser by room, device, or variable name.
-   Matching devices expand automatically.
-1. **Variable** - click a device to load its variables with their current
-   values, then click a variable to insert its `PARAM{}` token into the field
-   you last edited. A green check marks variables the request already
+1. **Search** - filters the variable browser by room, device, agent, or variable
+   name. Matching devices expand automatically.
+1. **Variable** - click a device or agent to load its variables with their
+   current values, then click a variable to insert its `PARAM{}` token into the
+   field you last edited. A green check marks variables the request already
    references.
 1. **Name** - the name used by programming, by the events, and by the Response
    variable. It is fixed once the request has been saved: to rename, create a
    new request and delete the old one. Names must be unique.
 1. **Type** - switches between HTTP, TCP, UDP, and WOL.
-1. **Method / URL** - the HTTP method and the destination. Basic auth goes in
-   the URL as `http://user:pass@host:port/path`.
+1. **Method / URL** - the HTTP method and the destination. For basic auth, put
+   the user name and password in the URL ahead of the host.
 1. **Headers** - optional request headers. **+ Add header** adds a row and the X
    removes one; rows left without a name are dropped when saving.
 1. **Validate TLS certificate** - off by default, so self-signed HTTPS endpoints
@@ -227,7 +231,8 @@ variables browser works the same way and is left out of the screenshot below.
 1. **Wait for a response** - TCP only. The driver holds the connection open
    until the device answers and publishes the answer to the Response variable.
    UDP is always fire and forget.
-1. **Timeout (s)** - how long to wait for that response before the send fails.
+1. **Timeout (s)** - how long to wait for the connection, and then for that
+   response, before the send fails.
 1. **Last Result** - here, a send that timed out, which fired the
    `<Name> Failed` event.
 
@@ -252,22 +257,53 @@ already taken is rejected. Deleting a request removes its events and variable.
 ### Webhooks
 
 The Webhooks card manages inbound HTTP endpoints: an external system calls a URL
-and the driver fires an event.
+and the driver fires an event, and can answer with a response you write.
 
 <img alt="Webhooks" src="./images/ui-webhooks.png" width="640"/>
 
-1. **+ Add Webhook** - reveals the form at the bottom of the card.
+1. **+ Add Webhook** - opens the webhook editor in place of the list.
 1. **Name** - names the webhook's event and payload variable, and forms the last
    part of its URL. The dot shows whether it has ever been called.
 1. **URL** - the address external systems call, built from the controller's
    address and the `Webhook Port` property. It answers GET and POST.
 1. **Last Received** - when the webhook was last called, and by whom. Hovering
-   shows the payload that arrived.
-1. **Copy / X** - put the full URL, key included, on the clipboard, or delete
-   the webhook along with its event and payload variable.
-1. **Name / Key** - the new webhook's name and its optional key. With a key set,
-   callers must append `?key=<value>`; calls with a missing or wrong key are
-   rejected with HTTP 403 and fire nothing.
+   shows the payload that arrived. When the last call's response could not be
+   sent, the reason is shown here instead.
+1. **Copy / Edit / X** - put the full URL, key included, on the clipboard, open
+   the webhook in the editor, or delete the webhook along with its event and
+   payload variable.
+
+#### Webhook Editor
+
+Add Webhook and Edit both open the webhook editor, with the same variable
+browser the request editor has.
+
+<img alt="Webhook editor" src="./images/ui-webhook-editor.png" width="640"/>
+
+1. **Search / Variable** - the variable browser. Click a variable to insert its
+   `PARAM{}` token into the Response. A green check marks variables the response
+   already references.
+1. **Name** - the webhook's name. It is fixed once the webhook has been saved:
+   to rename, create a new webhook and delete the old one. Names must be unique.
+1. **Key** - optional. With a key set, callers must append `?key=<value>`; calls
+   with a missing or wrong key are rejected with HTTP 403, fire nothing, and
+   read no variable.
+1. **Response** - optional. What the caller is sent back, with each `PARAM{}`
+   token replaced by the variable's value at the moment of the call. Left empty,
+   the webhook answers `{"ok":true}`.
+1. **Content Type** - how the response is labelled. Automatic sends a response
+   that is a JSON object or array as `application/json` and anything else as
+   `text/plain`. JSON and Text set the type whatever the response holds.
+1. **Open response warning** - shown while the webhook has a response and no
+   key, because anything on the network that can reach the webhook port can then
+   read the values in it.
+1. **Syntax help** - a reference for tokens and the response, without leaving
+   the editor.
+1. **Last Received** - when the webhook was last called, by whom, and the
+   payload that arrived.
+1. **Cancel / Save Webhook** - discard the changes or save them.
+1. **Publish line** - the event and payload variable this webhook owns once it
+   is saved, and what it answers.
 
 Adding a webhook named `Doorbell Motion` creates:
 
@@ -317,9 +353,20 @@ Displays the current status of the driver.
 
 Displays the current version of the driver.
 
+<!-- #ifdef DRIVERCENTRAL -->
+
+#### Log Level \[ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug \]
+
+Sets the logging level. Default is `3 - Info`. While a Support Code has
+Composer's Lua tab open, it also offers `5 - Trace` and `6 - Ultra`.
+
+<!-- #else -->
+
 #### Log Level \[ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug | 5 - Trace | 6 - Ultra \]
 
 Sets the logging level. Default is `3 - Info`.
+
+<!-- #endif -->
 
 #### Log Mode \[ **_Off_** | Print | Log | Print and Log \]
 
@@ -329,8 +376,9 @@ Sets the logging mode. Default is `Off`.
 
 #### Support Code
 
-Leave it blank unless Finite Labs support gives you a code: it opens Composer's
-Lua tab to this driver for an hour.
+Leave it blank unless Finite Labs support gives you a code: for an hour, it
+opens Composer's Lua tab to this driver and adds `5 - Trace` and `6 - Ultra` to
+Log Level.
 
 #### Cloud Monitoring \[ Disabled | **_Enabled_** \]
 
@@ -403,7 +451,8 @@ Monitoring is Enabled.
   validation is off by default (opt in per request), so self-signed LAN
   endpoints work without extra setup.
 - **TCP**: opens a connection, sends the payload, and either disconnects
-  immediately or waits for the response (with a timeout) before disconnecting.
+  immediately or waits for the response before disconnecting. The request's
+  timeout bounds both the connection and the wait.
 - **UDP**: sends the payload as a single datagram, fire and forget. Broadcast
   addresses are not supported.
 - **WOL**: broadcasts a standard Wake-on-LAN magic packet for the configured MAC
@@ -411,8 +460,8 @@ Monitoring is Enabled.
 
 ## Referencing Variables
 
-Reference a variable anywhere in a URL, body, header value, or text payload with
-a `PARAM{}` token:
+Reference a variable anywhere in a URL, body, header value, text payload, or
+webhook response with a `PARAM{}` token:
 
 ```
 PARAM{DEVICE_ID,VARIABLE_ID}
@@ -422,7 +471,7 @@ PARAM{DEVICE_ID,VARIABLE_ID}
 `VARIABLE_ID` is either the numeric id of the variable or its name (matched
 exactly, case-sensitive), for example `PARAM{96,1002}` or `PARAM{96,Humidity}`.
 The token is replaced with the variable's current value each time the request is
-sent.
+sent, or each time the webhook is called.
 
 You rarely need to build a token by hand: click a variable in the Requests tab
 browser and its token is inserted into the focused field. If a referenced
@@ -448,8 +497,8 @@ and response-waiting TCP requests, a read-only `<Name> Response` variable.
   server responded (any status code, including errors like 404 - check the
   response variable when the status matters).
 - `<Name> Failed` fires when the send itself fails: connection refused, host
-  unreachable, timeout waiting for a TCP response, or an unresolved `PARAM{}`
-  reference.
+  unreachable, a TCP connection or response that doesn't come within the
+  timeout, or an unresolved `PARAM{}` reference.
 - `<Name> Response` updates before the `Sent` event fires, so programming
   triggered by the event can read the fresh response.
 
@@ -463,29 +512,59 @@ variable. When an external system calls the webhook's URL:
 1. The request body (or, for calls without a body, the query string) is
    published to `<Name> Payload`, capped at 8 KB.
 1. The `<Name> Received` event fires.
-1. The caller gets a `200 {"ok":true}` JSON response.
+1. The caller gets the webhook's Response, or a `200 {"ok":true}` JSON response
+   when it has none.
 
 Program off the `<Name> Received` event; read `<Name> Payload` for the data.
 Pair with the Variable Expressions driver to parse values out of a JSON or
 query-string payload.
 
+### Webhook Responses
+
+A webhook with a Response lets another system read values from the project by
+calling the webhook, instead of waiting for the project to send them.
+
+- The response is sent as typed, with status 200. Each `PARAM{}` token is
+  replaced with the variable's value when the call arrives; nothing is stored
+  between calls.
+- The response is built after `<Name> Payload` is updated, so a token for this
+  driver's own `<Name> Payload` variable returns what the caller just sent.
+  Control4 programming on the `<Name> Received` event runs after the answer has
+  been sent, so it cannot change that answer.
+- If a referenced variable cannot be found, the caller gets status 500 with
+  `{"ok":false,"error":"unresolved variable reference"}`, and the webhook's row
+  in the Requests tab shows the error. The payload variable and the event are
+  not affected.
+- A response that comes to more than 16 KB once its values are filled in is not
+  sent: the caller gets status 500 with
+  `{"ok":false,"error":"response too large"}`.
+- Values are inserted exactly as the variable holds them. In a JSON response,
+  put quotes around a token whose variable holds text.
+
+### Webhook Security
+
 Webhooks are unauthenticated LAN endpoints unless a key is set. For anything
 that triggers meaningful automation, set a key and treat the full URL as a
 secret.
 
+A webhook with a Response and no key gives the values in that response to
+anything on the network that can reach the webhook port. Set a key on every
+webhook that returns values you would not show to every device on the network. A
+call with a missing or wrong key is refused before any variable is read.
+
 ## Examples
 
-**Turn on rack LCDs** (HTTP GET with basic auth):
+**Turn on a display** (HTTP GET):
 
-1. In the Requests tab, add an HTTP request named `Rack LCD 1 On` with URL
-   `http://pi:secret@192.168.1.5:9080/api/v1/uctronics-lcd/start`.
-1. In programming, fire it with `Send Request` -> `Rack LCD 1 On`.
+1. In the Requests tab, add an HTTP request named `Display On` with URL
+   `http://192.168.1.5:9080/api/v1/display/on`.
+1. In programming, fire it with `Send Request` -> `Display On`.
 
 **Set a subwoofer level from a variable** (HTTP POST with a JSON body):
 
 ```
-URL:  http://192.168.2.16/request.cgi
-Body: {"type":"http_set","packet":[{"id":62,"feature":"level.SW","value":PARAM{100001,2500}}]}
+URL:  http://192.168.1.16/api/level
+Body: {"channel":"sub","level":PARAM{100001,2500}}
 ```
 
 **PJLink projector power on** (TCP with a response):
@@ -518,7 +597,7 @@ by U.S. and Foreign Patents, patents in process, and are protected by trade
 secret or copyright law. Dissemination of this information or reproduction of
 this material is strictly forbidden unless prior written permission is obtained
 from Finite Labs LLC. For the latest information, please visit
-https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
+https://drivercentral.io/platforms/control4-drivers/utility/finite-labs-essentials
 
 <!-- #endif -->
 
@@ -527,9 +606,8 @@ https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
 <!-- #ifdef DRIVERCENTRAL -->
 
 If you have any questions or issues integrating these drivers with Control4, you
-can contact us at
-[driver-support@finitelabs.com](mailto:driver-support@finitelabs.com) or
-call/text us at [+1 (949) 371-5805](tel:+19493715805).
+can contact us at [%%SUPPORT_EMAIL%%](mailto:__SUPPORT_EMAIL__) or call/text us
+at [%%SUPPORT_PHONE%%](tel:__SUPPORT_PHONE__).
 
 <!-- #else -->
 

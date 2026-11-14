@@ -11,13 +11,15 @@ JSON = require("JSON")
 
 local deferred = require("deferred")
 local log = require("lib.logging")
-local pageParams = require("lib.page-params")
+local page = require("lib.ui.page")
+local pageParams = require("lib.ui.page-params")
 local persist = require("lib.persist")
 local values = require("lib.values")
 local events = require("lib.events")
 local http = require("lib.http")
 local updateSettings = require("lib.update-settings")
-local tabProperties = require("lib.tab-properties")
+local devices = require("lib.ui.devices")
+local tabProperties = require("lib.ui.tab-properties")
 --#ifdef DRIVERCENTRAL
 local drivercentral = require("lib.drivercentral")
 local supportCode = require("lib.support-code")
@@ -70,6 +72,13 @@ local MAX_TCP_TIMEOUT = 60
 
 --- Cap stored responses so a chatty endpoint cannot bloat persist or the UI.
 local MAX_RESPONSE_BYTES = 8192
+
+--- Cap a webhook's rendered response body at the size of the largest call the server accepts.
+local MAX_WEBHOOK_RESPONSE_BYTES = MAX_RESPONSE_BYTES * 2
+
+--- Content types a webhook's response body can be sent as.
+local CONTENT_TYPE_JSON = "application/json"
+local CONTENT_TYPE_TEXT = "text/plain; charset=utf-8"
 
 --- Dynamic network binding range used for UDP sends. Each send rotates through
 --- the range so overlapping sends do not clobber one another's binding.
@@ -283,7 +292,7 @@ local function setResult(name, entry)
   local results = getResults()
   results[name] = entry
   persist:set(PERSIST_RESULTS, results)
-  C4:SendDataToUI("REQUEST_RESULT", {
+  page.send("REQUEST_RESULT", {
     name = name,
     status = entry.status or "",
     detail = entry.detail or "",
@@ -410,6 +419,9 @@ local function sendHttp(config)
   return d
 end
 
+--- Counts TCP sends, so each one's timer is its own when a request is sent again before the last send settles.
+local tcpSends = 0
+
 --- Send a raw TCP payload, optionally waiting for the first response data.
 --- @param config table
 --- @return Deferred d Resolves { detail, response? } or rejects an error string.
@@ -427,7 +439,8 @@ local function sendTcp(config)
 
   local wait = toboolean(config.waitResponse)
   local timeoutSeconds = InRange(tointeger(config.timeout) or DEFAULT_TCP_TIMEOUT, 1, MAX_TCP_TIMEOUT)
-  local timerName = "TcpTimeout::" .. tostring(config.name)
+  tcpSends = tcpSends + 1
+  local timerName = "TcpTimeout::" .. tostring(config.name) .. "::" .. tcpSends
   local sentDetail = nil
   local buffer = ""
   local settled = false
@@ -485,6 +498,10 @@ local function sendTcp(config)
       settle(false, string.format("%s (%s)", tostring(errMsg), tostring(errCode)))
     end)
 
+  -- The timeout covers the connect too: a host that never answers it would otherwise hold the send open.
+  SetTimer(timerName, timeoutSeconds * ONE_SECOND, function()
+    settle(false, string.format("no connection to %s:%d within %ds", host, port, timeoutSeconds))
+  end)
   if client:Connect(host, port) == nil then
     settle(false, string.format("failed to connect to %s:%d", host, port))
   end
@@ -629,7 +646,7 @@ end
 --------------------------------------------------------------------------------
 
 --- Get the configured webhooks.
---- @return table<string, table> webhooks Map of name -> { name, key }.
+--- @return table<string, table> webhooks Map of name -> { name, key, response, contentType }.
 local function getWebhooks()
   return persist:get(PERSIST_WEBHOOKS, {}) or {}
 end
@@ -641,7 +658,7 @@ local function saveWebhooks(webhooks)
 end
 
 --- Get the last received entry per webhook.
---- @return table<string, table> results Map of name -> { from, payload, ts }.
+--- @return table<string, table> results Map of name -> { from, payload, error?, ts }.
 local function getWebhookResults()
   return persist:get(PERSIST_WEBHOOK_RESULTS, {}) or {}
 end
@@ -653,10 +670,11 @@ local function setWebhookResult(name, entry)
   local results = getWebhookResults()
   results[name] = entry
   persist:set(PERSIST_WEBHOOK_RESULTS, results)
-  C4:SendDataToUI("WEBHOOK_RESULT", {
+  page.send("WEBHOOK_RESULT", {
     name = name,
     from = entry.from or "",
     payload = entry.payload or "",
+    error = entry.error or "",
     ts = entry.ts or os.time(),
   })
 end
@@ -725,13 +743,14 @@ local webhookBuffers = {}
 --- @param nHandle number
 --- @param code number
 --- @param reason string
---- @param bodyTable table JSON-encodable response body.
-local function webhookRespond(nHandle, code, reason, bodyTable)
-  local body = JSON:encode(bodyTable)
+--- @param contentType string
+--- @param body string
+local function webhookSend(nHandle, code, reason, contentType, body)
   local response = string.format(
-    "HTTP/1.1 %d %s\r\nContent-Type: application/json\r\nContent-Length: %d\r\nConnection: close\r\n\r\n%s",
+    "HTTP/1.1 %d %s\r\nContent-Type: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n%s",
     code,
     reason,
+    contentType,
     #body,
     body
   )
@@ -741,8 +760,52 @@ local function webhookRespond(nHandle, code, reason, bodyTable)
   end)
 end
 
---- Route a parsed webhook HTTP request: fire the matching webhook's event,
---- publish its payload variable, and answer the caller.
+--- Send a JSON HTTP response on a server connection and close it.
+--- @param nHandle number
+--- @param code number
+--- @param reason string
+--- @param bodyTable table JSON-encodable response body.
+local function webhookRespond(nHandle, code, reason, bodyTable)
+  webhookSend(nHandle, code, reason, CONTENT_TYPE_JSON, JSON:encode(bodyTable))
+end
+
+--- The content type a webhook's rendered response body is sent as. Automatic is JSON for a body that parses as a
+--- JSON object or array, and text for anything else.
+--- @param config table
+--- @param body string
+--- @return string
+local function responseContentType(config, body)
+  if config.contentType == "json" then
+    return CONTENT_TYPE_JSON
+  elseif config.contentType == "text" then
+    return CONTENT_TYPE_TEXT
+  end
+  if body:match("^%s*[{%[]") then
+    local ok, decoded = pcall(JSON.decode, JSON, body)
+    if ok and type(decoded) == "table" then
+      return CONTENT_TYPE_JSON
+    end
+  end
+  return CONTENT_TYPE_TEXT
+end
+
+--- Render a webhook's response body from its template, reading each PARAM{} token's variable now.
+--- @param config table
+--- @return string|nil body The rendered body, or nil when it cannot be sent.
+--- @return string? err
+local function renderWebhookResponse(config)
+  local body, missing = substituteTokens(tostring(config.response or ""))
+  if missing then
+    return nil, "unresolved variable reference"
+  end
+  if #body > MAX_WEBHOOK_RESPONSE_BYTES then
+    return nil, "response too large"
+  end
+  return body
+end
+
+--- Route a parsed webhook HTTP request: publish the matching webhook's payload variable, fire its event, and answer
+--- the caller with its response body, or with {"ok":true} when it has none. A refused call reads no variable.
 --- @param nHandle number
 --- @param method string
 --- @param rawPath string Path with optional query string, still URL-encoded.
@@ -773,8 +836,21 @@ local function handleWebhookRequest(nHandle, method, rawPath, body, clientAddres
   ensureWebhookEvents(name)
   events:fire(NS_WEBHOOK, receivedEventKey(name))
   log:info("Webhook '%s' received from %s (%d payload byte(s))", name, clientAddress, #payload)
-  setWebhookResult(name, { from = clientAddress, payload = clampResponse(payload), ts = os.time() })
-  return webhookRespond(nHandle, 200, "OK", { ok = true })
+  local entry = { from = clientAddress, payload = clampResponse(payload), ts = os.time() }
+  if IsEmpty(config.response) then
+    setWebhookResult(name, entry)
+    return webhookRespond(nHandle, 200, "OK", { ok = true })
+  end
+
+  local response, err = renderWebhookResponse(config)
+  if not response then
+    log:warn("Webhook '%s': no response sent to %s: %s", name, clientAddress, err)
+    entry.error = err
+    setWebhookResult(name, entry)
+    return webhookRespond(nHandle, 500, "Internal Server Error", { ok = false, error = err })
+  end
+  setWebhookResult(name, entry)
+  return webhookSend(nHandle, 200, "OK", responseContentType(config, response), response)
 end
 
 --- Start (or restart) the webhook HTTP server from the Webhook Port property.
@@ -807,7 +883,6 @@ function OnServerStatusChanged(nPort, strStatus)
       string.format("Failed to listen on port %s (%s)", tostring(nPort), tostring(strStatus))
     )
   end
-  UIR._GET_CONFIG()
 end
 
 function OnServerConnectionStatusChanged(nHandle, nPort, strStatus)
@@ -906,11 +981,9 @@ function OnDriverLateInit()
   events:restoreEvents()
 
   -- Fire OnPropertyChanged for all properties to set initial global state
+  -- The router runs each handler in its own xpcall and reports its error, so the rest still run.
   for p, _ in pairs(Properties) do
-    local status, err = pcall(OnPropertyChanged, p)
-    if not status and err then
-      log:error("Error in OnPropertyChanged for property '%s': %s", p, err or "unknown error")
-    end
+    OnPropertyChanged(p)
   end
 
   -- One-time cleanup of the retired id-based event keys and persist entries
@@ -946,7 +1019,6 @@ function OnDriverLateInit()
 
   gInitialized = true
   UpdateProperty("Driver Status", "Ready")
-  tabProperties:follow(UIR._GET_CONFIG)
 
   --#ifdef DRIVERCENTRAL
   drivercentral:startGate(function(active)
@@ -995,19 +1067,6 @@ end
 function OPC.Log_Level(propertyValue)
   log:trace("OPC.Log_Level('%s')", propertyValue)
   log:setLogLevel(propertyValue)
-  if log:getLogLevel() >= 6 and log:isPrintEnabled() then
-    DEBUGPRINT = true
-    DEBUG_TIMER = true
-    DEBUG_RFN = true
-    DEBUG_URL = true
-    DEBUG_WEBSOCKET = true
-  else
-    DEBUGPRINT = false
-    DEBUG_TIMER = false
-    DEBUG_RFN = false
-    DEBUG_URL = false
-    DEBUG_WEBSOCKET = false
-  end
 end
 
 function OPC.Automatic_Updates(propertyValue)
@@ -1058,29 +1117,16 @@ function OPC.Webhook_Port(propertyValue)
     return
   end
   startWebhookServer()
+  -- The tab's webhook URLs carry the port.
+  UIR._GET_CONFIG()
 end
 
 --------------------------------------------------------------------------------
 -- Web UI Request Handlers (UIR)
 --------------------------------------------------------------------------------
 
---- Send a response to the web UI via both return value (for REST) and
---- SendDataToUI (for socket push). Returns JSON for REST callers.
---- @param command string The response command name.
---- @param data table The response data.
---- @return string JSON response for REST callers.
-local function uiRespond(command, data)
-  -- C4:SendDataToUI cannot serialize boolean values (Director throws a
-  -- basic_string construction error), so send them as strings on the socket
-  -- push. The REST return keeps real booleans via JSON encoding.
-  local safe = {}
-  for k, v in pairs(data) do
-    safe[k] = type(v) == "boolean" and tostring(v) or v
-  end
-  C4:SendDataToUI(command, safe)
-  data._command = command
-  return JSON:encode(data)
-end
+tabProperties:serve()
+devices.serve()
 
 --- Send the full request configuration and last results to the web UI.
 function UIR._GET_CONFIG()
@@ -1121,32 +1167,18 @@ function UIR._GET_CONFIG()
     webhooks[#webhooks + 1] = {
       name = name,
       key = config.key or "",
+      response = config.response or "",
+      contentType = config.contentType or "auto",
       from = entry.from,
       payload = entry.payload,
+      error = entry.error,
       ts = entry.ts,
     }
   end
   table.sort(webhooks, function(a, b)
     return (a.name or "") < (b.name or "")
   end)
-  return uiRespond("CONFIG_DATA", {
-    requests = JSON:encode(requests),
-    webhooks = JSON:encode(webhooks),
-    webhookBase = webhookBaseUrl() or "",
-    properties = JSON:encode(tabProperties:list()),
-  })
-end
-
---- Set one of the driver's properties, as Composer's Properties tab would.
---- @param tParams table
-function UIR._SET_PROPERTY(tParams)
-  log:trace("UIR._SET_PROPERTY()")
-  local params = pageParams(tParams)
-  local err = tabProperties:set(params.property, params.value)
-  if err then
-    return uiRespond("PROPERTY_ERROR", { property = params.property, error = err })
-  end
-  return UIR._GET_CONFIG()
+  page.send("CONFIG_DATA", { requests = requests, webhooks = webhooks, webhookBase = webhookBaseUrl() or "" })
 end
 
 --- Create or update a named webhook.
@@ -1155,11 +1187,34 @@ function UIR._SAVE_WEBHOOK(tParams)
   log:trace("UIR.SAVE_WEBHOOK()")
   local params = pageParams(tParams)
   local name = tostring(params.name or ""):match("^%s*(.-)%s*$")
+  local originalName = tostring(params.originalName or ""):match("^%s*(.-)%s*$")
   if IsEmpty(name) then
-    return uiRespond("SAVE_RESULT", { ok = false, error = "Name is required" })
+    return page.send("SAVE_RESULT", { ok = false, error = "Name is required" })
+  end
+  local response = tostring(params.response or "")
+  if #response > MAX_WEBHOOK_RESPONSE_BYTES then
+    return page.send("SAVE_RESULT", {
+      ok = false,
+      error = string.format("Response is longer than %d KB", MAX_WEBHOOK_RESPONSE_BYTES / 1024),
+    })
   end
   local webhooks = getWebhooks()
-  webhooks[name] = { name = name, key = tostring(params.key or "") }
+  if not IsEmpty(originalName) and originalName ~= name then
+    return page.send("SAVE_RESULT", {
+      ok = false,
+      error = "Webhooks cannot be renamed. Create a new webhook and delete this one.",
+    })
+  end
+  if IsEmpty(originalName) and webhooks[name] ~= nil then
+    return page.send("SAVE_RESULT", { ok = false, error = "A webhook named '" .. name .. "' already exists" })
+  end
+  local contentType = params.contentType
+  webhooks[name] = {
+    name = name,
+    key = tostring(params.key or ""),
+    response = response,
+    contentType = (contentType == "json" or contentType == "text") and contentType or "auto",
+  }
   saveWebhooks(webhooks)
   ensureWebhookEvents(name)
   return UIR._GET_CONFIG()
@@ -1189,20 +1244,20 @@ function UIR._SAVE_REQUEST(tParams)
   local originalName = tostring(params.originalName or ""):match("^%s*(.-)%s*$")
 
   if IsEmpty(name) then
-    return uiRespond("SAVE_RESULT", { ok = false, error = "Name is required" })
+    return page.send("SAVE_RESULT", { ok = false, error = "Name is required" })
   end
   local requestType = tostring(params.type or "")
   if requestType ~= "http" and requestType ~= "tcp" and requestType ~= "udp" and requestType ~= "wol" then
-    return uiRespond("SAVE_RESULT", { ok = false, error = "Unknown request type" })
+    return page.send("SAVE_RESULT", { ok = false, error = "Unknown request type" })
   end
   if requestType == "http" and IsEmpty(tostring(params.url or "")) then
-    return uiRespond("SAVE_RESULT", { ok = false, error = "URL is required" })
+    return page.send("SAVE_RESULT", { ok = false, error = "URL is required" })
   end
   if (requestType == "tcp" or requestType == "udp") and IsEmpty(tostring(params.host or "")) then
-    return uiRespond("SAVE_RESULT", { ok = false, error = "Host is required" })
+    return page.send("SAVE_RESULT", { ok = false, error = "Host is required" })
   end
   if requestType == "wol" and IsEmpty(tostring(params.mac or "")) then
-    return uiRespond("SAVE_RESULT", { ok = false, error = "MAC address is required" })
+    return page.send("SAVE_RESULT", { ok = false, error = "MAC address is required" })
   end
 
   local headers = {}
@@ -1214,13 +1269,13 @@ function UIR._SAVE_REQUEST(tParams)
 
   local requests = getRequests()
   if not IsEmpty(originalName) and originalName ~= name then
-    return uiRespond("SAVE_RESULT", {
+    return page.send("SAVE_RESULT", {
       ok = false,
       error = "Requests cannot be renamed. Create a new request and delete this one.",
     })
   end
   if IsEmpty(originalName) and requests[name] ~= nil then
-    return uiRespond("SAVE_RESULT", { ok = false, error = "A request named '" .. name .. "' already exists" })
+    return page.send("SAVE_RESULT", { ok = false, error = "A request named '" .. name .. "' already exists" })
   end
 
   local config = {
@@ -1269,167 +1324,6 @@ function UIR._RUN_REQUEST(tParams)
   local params = pageParams(tParams)
   sendRequest(tostring(params.name or ""))
   return UIR._GET_CONFIG()
-end
-
---- Whether a proxy merely restates the device that declares it. A proxy named
---- for itself -- a security panel's areas, a receiver's tuner -- must stay its
---- own entry or it vanishes from the browser.
---- @param proxy table|nil
---- @param owner table
---- @return boolean
-local function isRestatedProxy(proxy, owner)
-  return proxy ~= nil and tostring(proxy.deviceName) == tostring(owner.deviceName)
-end
-
---- Section heading for a member of a merged entry, taken from the proxy's .c4i.
---- @param dev table
---- @param isOwner boolean
---- @return string
-local function proxySectionLabel(dev, isOwner)
-  if isOwner then
-    return "Device"
-  end
-  local file = tostring((dev or {}).driverFileName or "")
-  local base = file:match("^(.*)%.c4i$") or file:match("^(.*)%.c4z$")
-  return IsEmpty(base) and "Proxy" or base
-end
-
---- Send the device list to the web UI with display names (Room > Device).
----
---- A driver and the proxy it declares are separate project items sharing a room
---- and name, so the browser listed the same device twice, one half expanding to
---- "no variables". Those are dropped. Survivors can still collide -- a project
---- may hold many instances of one driver -- so they get the device id appended.
-function UIR._GET_DEVICES()
-  log:trace("UIR.GET_DEVICES()")
-  local devices = {}
-  local allDevices = C4:GetDevices() or {}
-
-  -- Proxy id -> owning driver id, for proxies that only restate their owner.
-  local ownerOf = {}
-  for id, dev in pairs(allDevices) do
-    for proxyId in pairs(dev.proxies or {}) do
-      local pid = tonumber(proxyId) or proxyId
-      if isRestatedProxy(allDevices[pid], dev) then
-        ownerOf[pid] = id
-      end
-    end
-  end
-
-  -- Collapse chains so a proxy of a proxy still lands in an entry.
-  local rootOf, membersOf = {}, {}
-  for id in pairs(allDevices) do
-    local root, seen = id, { [id] = true }
-    while ownerOf[root] ~= nil and not seen[ownerOf[root]] do
-      root = ownerOf[root]
-      seen[root] = true
-    end
-    rootOf[id] = root
-    membersOf[root] = membersOf[root] or {}
-    table.insert(membersOf[root], id)
-  end
-
-  for id, dev in pairs(allDevices) do
-    if rootOf[id] == id then
-      local hasVariables = false
-      for _, mid in ipairs(membersOf[id]) do
-        local ok, memberVars = pcall(C4.GetDeviceVariables, C4, mid)
-        if ok and memberVars ~= nil and next(memberVars) ~= nil then
-          hasVariables = true
-          break
-        end
-      end
-      if hasVariables then
-        devices[#devices + 1] = {
-          id = id,
-          name = dev.deviceName or ("Device " .. id),
-          roomName = dev.roomName or "",
-        }
-      end
-    end
-  end
-  local labelCounts = {}
-  for _, d in ipairs(devices) do
-    local label = d.roomName .. " > " .. d.name
-    labelCounts[label] = (labelCounts[label] or 0) + 1
-  end
-  for _, d in ipairs(devices) do
-    if labelCounts[d.roomName .. " > " .. d.name] > 1 then
-      d.name = string.format("%s (%s)", d.name, d.id)
-    end
-  end
-  table.sort(devices, function(a, b)
-    if (a.roomName or "") ~= (b.roomName or "") then
-      return (a.roomName or "") < (b.roomName or "")
-    end
-    return (a.name or "") < (b.name or "")
-  end)
-  return uiRespond("DEVICES_DATA", { devices = JSON:encode(devices) })
-end
-
---- Send variables for a specific device to the web UI.
---- @param tParams table
-function UIR._GET_DEVICE_VARIABLES(tParams)
-  log:trace("UIR.GET_DEVICE_VARIABLES()")
-  local params = pageParams(tParams)
-  local devId = tonumber(params.deviceId)
-  if not devId then
-    return
-  end
-
-  local entry = C4:GetDevices({ DeviceIds = tostring(devId) })[devId] or {}
-  local members = { { id = devId, section = proxySectionLabel(entry, true), order = 1 } }
-  local queue, seen = { { id = devId, dev = entry } }, { [devId] = true }
-  while #queue > 0 do
-    local cur = table.remove(queue, 1)
-    -- pairs() over proxies has no defined order, so walk them by id: section
-    -- order would otherwise vary between calls.
-    local childIds = {}
-    for proxyId in pairs((cur.dev or {}).proxies or {}) do
-      childIds[#childIds + 1] = tonumber(proxyId) or proxyId
-    end
-    table.sort(childIds)
-    for _, pid in ipairs(childIds) do
-      local proxy = C4:GetDevices({ DeviceIds = tostring(pid) })[pid]
-      if not seen[pid] and isRestatedProxy(proxy, cur.dev) then
-        seen[pid] = true
-        members[#members + 1] = { id = pid, section = proxySectionLabel(proxy, false), order = #members + 1 }
-        queue[#queue + 1] = { id = pid, dev = proxy }
-      end
-    end
-  end
-
-  local vars = {}
-  for _, member in ipairs(members) do
-    local ok, deviceVars = pcall(C4.GetDeviceVariables, C4, member.id)
-    if ok and deviceVars then
-      for varId, varInfo in pairs(deviceVars) do
-        vars[#vars + 1] = {
-          id = tonumber(varId),
-          deviceId = member.id,
-          section = member.section,
-          order = member.order,
-          name = varInfo.name or ("var" .. varId),
-          type = varInfo.type or "STRING",
-          value = varInfo.value,
-        }
-      end
-    end
-  end
-  -- Order on the member's position, not its label: comparing label strings ties
-  -- when a proxy's .c4i is named Device, and the owner-first rule contradicts
-  -- that tie. LuaJIT's table.sort does not reject the resulting cycle, it just
-  -- silently stops putting the device's own variables first.
-  table.sort(vars, function(a, b)
-    if a.order ~= b.order then
-      return a.order < b.order
-    end
-    return (a.name or "") < (b.name or "")
-  end)
-  return uiRespond("DEVICE_VARIABLES_DATA", {
-    deviceId = tostring(devId),
-    variables = JSON:encode(vars),
-  })
 end
 
 --------------------------------------------------------------------------------

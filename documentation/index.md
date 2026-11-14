@@ -37,6 +37,7 @@ standalone and can be installed individually or together.
   - [Light Relay](#light-relay)
   - [Variable Expressions](#variable-expressions)
   - [Network Requests](#network-requests)
+  - [Humidity Alert](#humidity-alert)
 - [Installation](#installation)
   <!-- #ifdef DRIVERCENTRAL -->
   - [DriverCentral Cloud Setup](#drivercentral-cloud-setup)
@@ -125,10 +126,10 @@ sensor's value or state, and opening, closing, or toggling relays.
 
 ## Light Relay
 
-Dynamically creates relay connections for one or more selected light devices
-using a single driver instance. This enables controlling devices that use relay
-drivers (e.g., fans, fireplaces) from a light switch, with bidirectional state
-synchronization.
+Gives each light you pick a relay connection, so a driver that switches a relay
+can switch the light instead. Closing the relay turns the light on and opening
+it turns the light off, and the light's state reports back as the relay's. One
+driver instance covers all of a project's lights.
 
 **Key features:**
 
@@ -176,7 +177,31 @@ tab, then fire them from programming with a single Send Request command.
   variable holding the last response
 - Inbound webhooks fire `<Name> Received` events with the payload published to a
   `<Name> Payload` variable, guarded by an optional key
+- A webhook can answer its caller with a response built from live Control4
+  variable values, so other systems can read values by calling it
 - Requests, webhooks, and last results persist across driver restarts
+
+## Humidity Alert
+
+Raise an alert when something adds moisture to a room and its humidity rises,
+and hold it until the room has dried out. The driver reads a humidity and an
+optional temperature connection and closes a contact output while the alert is
+active. It looks for a jump above the level the room was resting at, so it needs
+no adjustment between a dry winter and a humid summer.
+
+**Key features:**
+
+- Detection modes: Rise, Threshold, Rise or Threshold
+- Follows the moisture in the air when the sensor's temperature is connected
+- Optional reference sensor elsewhere in the house, so humidity the whole house
+  shares does not count as the room's
+- Ends an alert when the room has recovered, with a run-on time and a maximum
+- Works with fast sensors and with battery sensors that report only large
+  changes
+- Contact output that fires programming once at the start and once at the end
+- Switches a device itself, a bathroom exhaust fan for example, by a relay,
+  light switches or a fan speed controller, and turns off only what it turned on
+- Events, conditionals, variables and commands for programming
 
 # <span style="color:#059669">Installation</span>
 
@@ -201,7 +226,7 @@ documentation for setting it up.
 <!-- #ifdef DRIVERCENTRAL -->
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
-   [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/utility-suite).
+   [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/finite-labs-essentials).
 1. Extract and install the desired `.c4z` driver files.
 1. Use the "Search" tab in Composer Pro to find the driver by name and add it to
    your project.
@@ -237,7 +262,7 @@ by U.S. and Foreign Patents, patents in process, and are protected by trade
 secret or copyright law. Dissemination of this information or reproduction of
 this material is strictly forbidden unless prior written permission is obtained
 from Finite Labs LLC. For the latest information, please visit
-https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
+https://drivercentral.io/platforms/control4-drivers/utility/finite-labs-essentials
 
 <!-- #endif -->
 
@@ -246,9 +271,8 @@ https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
 <!-- #ifdef DRIVERCENTRAL -->
 
 If you have any questions or issues integrating these drivers with Control4, you
-can contact us at
-[driver-support@finitelabs.com](mailto:driver-support@finitelabs.com) or
-call/text us at [+1 (949) 371-5805](tel:+19493715805).
+can contact us at [%%SUPPORT_EMAIL%%](mailto:__SUPPORT_EMAIL__) or call/text us
+at [%%SUPPORT_PHONE%%](tel:__SUPPORT_PHONE__).
 
 <!-- #else -->
 

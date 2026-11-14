@@ -3,11 +3,11 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with
 code in this repository.
 
-Six independent Control4 DriverWorks drivers built on one shared library:
+Seven independent Control4 DriverWorks drivers built on one shared library:
 `sensor_aggregator`, `sensor_multiplexer`, `device_programmer`, `light_relay`,
-`variable_expressions`, `network_requests`. Each builds for two distributions
-selected by preprocessor directives: `oss` (self-updates from GitHub releases)
-and `drivercentral` (DriverCentral cloud licensing).
+`variable_expressions`, `network_requests`, `humidity_alert`. Each builds for
+two distributions selected by preprocessor directives: `oss` (self-updates from
+GitHub releases) and `drivercentral` (DriverCentral cloud licensing).
 
 `README.md` describes what each driver does. `CONTRIBUTING.md` documents the
 layout, the toolchain and the build pipeline. This file holds what neither says.
@@ -54,11 +54,13 @@ current in a way a template pasted into this file is not.
 
 ## Traps
 
-- **`CLOSED`/`OPENED` fire programming events; `STATE_CLOSED`/`STATE_OPENED` set
-  the same state silently.** Pick between them on `gInitialized` (false in
-  `OnDriverInit`, true at the end of `OnDriverLateInit`). Restoring bindings on
-  boot with the wrong pair replays every automation the driver has ever
-  triggered.
+- **`CLOSED`/`OPENED` fire programming events, even for the state the proxy
+  already shows; `STATE_CLOSED`/`STATE_OPENED` set the same state silently.**
+  Pick between them on `gInitialized` (false in `OnDriverInit`, true at the end
+  of `OnDriverLateInit`), and send `STATE_` for a bind, an unbind and a sensor's
+  own `STATE_` report too. Restoring bindings on boot with the wrong pair
+  replays every automation the driver has ever triggered. Keep the last state
+  told to a contact output while no input has one: its proxy keeps showing it.
 - **`C4:AddEvent` is unavailable before `OnDriverLateInit`,** so
   `events:restoreEvents()` must be called from there, never from `OnDriverInit`.
 - **`OPC.*` and `OVC[]` keys replace spaces with underscores.** A property shown

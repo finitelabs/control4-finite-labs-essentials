@@ -21,10 +21,10 @@ ______________________________________________________________________
 
 > DISCLAIMER: This software is neither affiliated with nor endorsed by Control4.
 
-Dynamically creates relay connections for one or more selected light devices
-using a single driver instance. This enables controlling devices that use relay
-drivers (e.g., fans, fireplaces) from a light switch, with bidirectional state
-synchronization.
+Gives each light you pick a relay connection, so a driver that switches a relay
+can switch the light instead. Closing the relay turns the light on and opening
+it turns the light off, and the light's state reports back as the relay's. One
+driver instance covers all of a project's lights.
 
 # <span style="color:#059669">Index</span>
 
@@ -99,7 +99,7 @@ for setting it up.
 <!-- #ifdef DRIVERCENTRAL -->
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
-   [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/utility-suite).
+   [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/finite-labs-essentials).
 1. Extract and install the `light_relay.c4z` driver.
 1. Use the "Search" tab to find "Light Relay" and add it to your project.
 
@@ -152,9 +152,20 @@ Displays the current status of the driver.
 
 Displays the current version of the driver.
 
+<!-- #ifdef DRIVERCENTRAL -->
+
+#### Log Level \[ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug \]
+
+Sets the logging level. Default is `3 - Info`. While a Support Code has
+Composer's Lua tab open, it also offers `5 - Trace` and `6 - Ultra`.
+
+<!-- #else -->
+
 #### Log Level \[ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug | 5 - Trace | 6 - Ultra \]
 
 Sets the logging level. Default is `3 - Info`.
+
+<!-- #endif -->
 
 #### Log Mode \[ **_Off_** | Print | Log | Print and Log \]
 
@@ -164,8 +175,9 @@ Sets the logging mode. Default is `Off`.
 
 #### Support Code
 
-Leave it blank unless Finite Labs support gives you a code: it opens Composer's
-Lua tab to this driver for an hour.
+Leave it blank unless Finite Labs support gives you a code: for an hour, it
+opens Composer's Lua tab to this driver and adds `5 - Trace` and `6 - Ultra` to
+Log Level.
 
 #### Cloud Monitoring \[ Disabled | **_Enabled_** \]
 
@@ -248,8 +260,7 @@ For example, selecting "Kitchen Light" and "Living Room Light" creates:
 | Kitchen Light     | RELAY | Relay binding for Kitchen Light     |
 | Living Room Light | RELAY | Relay binding for Living Room Light |
 
-Connect these relay bindings to devices that consume relay connections (e.g.,
-fan controllers, fireplace relays).
+Connect these relay bindings to a driver that switches a relay.
 
 The relay responds to OPEN (turn light off), CLOSE (turn light on), and TOGGLE
 commands. Light state changes are reflected back as OPENED/CLOSED notifications
@@ -272,7 +283,7 @@ by U.S. and Foreign Patents, patents in process, and are protected by trade
 secret or copyright law. Dissemination of this information or reproduction of
 this material is strictly forbidden unless prior written permission is obtained
 from Finite Labs LLC. For the latest information, please visit
-https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
+https://drivercentral.io/platforms/control4-drivers/utility/finite-labs-essentials
 
 <!-- #endif -->
 
@@ -281,9 +292,8 @@ https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
 <!-- #ifdef DRIVERCENTRAL -->
 
 If you have any questions or issues integrating this driver with Control4, you
-can contact us at
-[driver-support@finitelabs.com](mailto:driver-support@finitelabs.com) or
-call/text us at [+1 (949) 371-5805](tel:+19493715805).
+can contact us at [%%SUPPORT_EMAIL%%](mailto:__SUPPORT_EMAIL__) or call/text us
+at [%%SUPPORT_PHONE%%](tel:__SUPPORT_PHONE__).
 
 <!-- #else -->
 

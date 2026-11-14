@@ -275,4 +275,138 @@ do
   T.check("form value masked through its slash", out == "password=" .. REDACTED .. "&next=/home", out)
 end
 
+--------------------------------------------------------------------------------
+T.section("A URL's login is masked")
+--------------------------------------------------------------------------------
+do
+  local out = redact("rtsp://viewer:CAM_PASS_LEAK@192.0.2.20:554/stream1")
+  T.check("user and password masked", out == "rtsp://" .. REDACTED .. "@192.0.2.20:554/stream1", out)
+
+  out = redact("https://USER_LEAK@example.com/api")
+  T.check("a bare user masked", out == "https://" .. REDACTED .. "@example.com/api", out)
+
+  out = R.text("rtsp://viewer:CAM_PASS_LEAK@192.0.2.20")
+  T.check("masked by redact.text, with no path", out == "rtsp://" .. REDACTED .. "@192.0.2.20", out)
+
+  out = redact("rtsp://viewer:p@ss_LEAK@192.0.2.20/live")
+  T.check("a raw @ in the password masked whole", out == "rtsp://" .. REDACTED .. "@192.0.2.20/live", out)
+
+  -- "'" and "," may stand raw in a login, so stopping at either would print this password whole.
+  out = redact("rtsp://viewer:it's,ok_LEAK@192.0.2.20/live")
+  T.check("a raw ' or , in the password masked whole", out == "rtsp://" .. REDACTED .. "@192.0.2.20/live", out)
+
+  out = redact("rtsp://viewer:CAM_PASS_LEAK@192.0.2.20/live?token=QUERY_TOKEN_LEAK&channel=1")
+  T.check(
+    "a query token still masked beside the login",
+    out == "rtsp://" .. REDACTED .. "@192.0.2.20/live?token=" .. REDACTED .. "&channel=1",
+    out
+  )
+
+  out = redact('{"name":"Front Camera","stream":"rtsp://viewer:CAM_PASS_LEAK@192.0.2.20/live"}')
+  T.excludes("a login in JSON text masked", out, "CAM_PASS_LEAK")
+  T.contains("the JSON text's URL keeps its host", out, "rtsp://" .. REDACTED .. "@192.0.2.20/live")
+  T.contains("the JSON text's other members kept", out, "Front Camera")
+
+  out = encoded(redact({ name = "Front Camera", streams = { "rtsp://viewer:CAM_PASS_LEAK@192.0.2.20/live" } }))
+  T.excludes("a login in a table leaf masked", out, "CAM_PASS_LEAK")
+  T.contains("the table leaf keeps its host", out, "rtsp://" .. REDACTED .. "@192.0.2.20/live")
+end
+
+--------------------------------------------------------------------------------
+T.section("An @ that is not a login stays readable")
+--------------------------------------------------------------------------------
+do
+  for _, text in ipairs({
+    "https://example.com?email=user@example.com",
+    "https://example.com#user@example.com",
+    "https://example.com/users/user@example.com",
+    "GET https://example.com for user@example.com",
+    '{"url":"https://example.com","email":"user@example.com"}',
+  }) do
+    local out = R.text(text)
+    T.check("left alone: " .. text, out == text, out)
+  end
+end
+
+--------------------------------------------------------------------------------
+T.section("A PIN is masked, and a word that only holds pin is not")
+--------------------------------------------------------------------------------
+do
+  local out = redact({ pin = "031-45-154", PIN = "1234", bridge_pin = "5678", userPin = "2468" })
+  for _, key in ipairs({ "pin", "PIN", "bridge_pin", "userPin" }) do
+    T.eq("masks " .. key, out[key], REDACTED)
+  end
+  out = redact('{"pin":"031-45-154","name":"Living Room Bridge"}')
+  T.excludes("a JSON body's setup code masked", out, "031-45-154")
+  T.contains("its other members kept", out, "Living Room Bridge")
+  local readable = { ping = "pong", spinner = "on", pinned = "yes", mapping = "rooms" }
+  out = redact(readable)
+  for key, value in pairs(readable) do
+    T.eq("keeps " .. key, out[key], value)
+  end
+end
+
+--------------------------------------------------------------------------------
+T.section("A compound credential name is masked where it ends the key")
+--------------------------------------------------------------------------------
+do
+  local secret = {
+    "setupCode",
+    "SetupCode",
+    "setup_code",
+    "USER_CODES",
+    "userCode",
+    "PASSCODE",
+    "user_passcode",
+    "pin_code",
+    "PinCode",
+    "access_code",
+    "lockCode",
+    "sessionid",
+    "SessionId",
+    "TP_SESSIONID",
+    "X-Session-Id",
+    "encryptionKey",
+    "Encryption_Key",
+  }
+  local body = {}
+  for i, key in ipairs(secret) do
+    body[key] = "CODE_LEAK_" .. i
+  end
+  local out = redact(body)
+  for _, key in ipairs(secret) do
+    T.eq("masks " .. key, out[key], REDACTED)
+  end
+  local readable = {
+    passcode_type = "userpw",
+    MaxPINCodeLength = 8,
+    error_code = 3,
+    code = 200,
+    status_code = 404,
+    sessionTimeout = 300,
+    encryption_type = "AES",
+  }
+  out = redact(readable)
+  for key, value in pairs(readable) do
+    T.eq("keeps " .. key, out[key], value)
+  end
+  out = redact("https://example.com/api/thermostats?sessionid=SESSION_LEAK&serialnumber=123456")
+  T.excludes("a session id in a query masked", out, "SESSION_LEAK")
+  T.contains("the other query values kept", out, "serialnumber=123456")
+end
+
+--------------------------------------------------------------------------------
+T.section("A log line shows a value as it is at Ultra, and masked below it")
+--------------------------------------------------------------------------------
+do
+  local log = require("lib.logging")
+  local body = { pin = "031-45-154", name = "Living Room Bridge" }
+  log:setLogLevel(log.LogLevel.TRACE)
+  T.eq("masked at Trace", R.forLog(body).pin, REDACTED)
+  log:setLogLevel(log.LogLevel.ULTRA)
+  T.eq("as it is at Ultra", R.forLog(body).pin, "031-45-154")
+  T.eq("while what leaves the controller is still masked", R.value(body).pin, REDACTED)
+  log:setLogLevel(log.LogLevel.INFO)
+end
+
 T.finish()

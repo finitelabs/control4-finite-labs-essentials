@@ -1,0 +1,18 @@
+/* Picking a picture: Kit.pickGrid's grid of .kit-pick cells, and Kit.dropZone's zone. A page embeds this after
+   style.css, with pickgrid.js. */
+
+.kit-pickgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px; max-height: 300px; overflow-y: auto; padding: 2px; }
+.kit-pick { position: relative; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); height: 56px; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.kit-pick:hover { background: var(--surface-hover); }
+.kit-pick.on { border-color: var(--accent); box-shadow: 0 0 0 2px #bfdbfe; }
+.kit-pick img { width: 28px; height: 28px; }
+.kit-pick.dark { background: #1f2a36; border-color: #1f2a36; }
+.kit-pick.dark:hover { background: #2b3a4a; }
+.kit-pick.dark img { width: 40px; height: 40px; }
+.kit-pick.photo img { width: 44px; height: 44px; object-fit: contain; border-radius: 4px; }
+.kit-pick-text { font-size: 9px; color: var(--text-muted); padding: 2px; word-break: break-all; text-align: center; }
+.kit-pick-tag { position: absolute; right: 3px; bottom: 2px; font-size: 9px; color: var(--text-muted); background: var(--surface); border-radius: 3px; padding: 0 3px; }
+
+.kit-drop { flex: 1; border: 1.5px dashed var(--border); border-radius: var(--radius); padding: 18px 12px; text-align: center; font-size: 12px; background: var(--surface); }
+.kit-drop.over { border-color: var(--accent); background: #eff6ff; }
+.kit-drop .note { margin-top: 6px; }

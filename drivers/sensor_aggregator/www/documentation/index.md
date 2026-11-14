@@ -93,7 +93,7 @@ for setting it up.
 <!-- #ifdef DRIVERCENTRAL -->
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
-   [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/utility-suite).
+   [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/finite-labs-essentials).
 1. Extract and install the `sensor_aggregator.c4z` driver.
 1. Use the "Search" tab to find "Sensor Aggregator" and add it to your project.
 
@@ -146,9 +146,20 @@ Displays the current status of the driver.
 
 Displays the current version of the driver.
 
+<!-- #ifdef DRIVERCENTRAL -->
+
+#### Log Level \[ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug \]
+
+Sets the logging level. Default is `3 - Info`. While a Support Code has
+Composer's Lua tab open, it also offers `5 - Trace` and `6 - Ultra`.
+
+<!-- #else -->
+
 #### Log Level \[ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug | 5 - Trace | 6 - Ultra \]
 
 Sets the logging level. Default is `3 - Info`.
+
+<!-- #endif -->
 
 #### Log Mode \[ **_Off_** | Print | Log | Print and Log \]
 
@@ -158,8 +169,9 @@ Sets the logging mode. Default is `Off`.
 
 #### Support Code
 
-Leave it blank unless Finite Labs support gives you a code: it opens Composer's
-Lua tab to this driver for an hour.
+Leave it blank unless Finite Labs support gives you a code: for an hour, it
+opens Composer's Lua tab to this driver and adds `5 - Trace` and `6 - Ultra` to
+Log Level.
 
 #### Cloud Monitoring \[ Disabled | **_Enabled_** \]
 
@@ -326,7 +338,7 @@ by U.S. and Foreign Patents, patents in process, and are protected by trade
 secret or copyright law. Dissemination of this information or reproduction of
 this material is strictly forbidden unless prior written permission is obtained
 from Finite Labs LLC. For the latest information, please visit
-https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
+https://drivercentral.io/platforms/control4-drivers/utility/finite-labs-essentials
 
 <!-- #endif -->
 
@@ -335,9 +347,8 @@ https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
 <!-- #ifdef DRIVERCENTRAL -->
 
 If you have any questions or issues integrating this driver with Control4, you
-can contact us at
-[driver-support@finitelabs.com](mailto:driver-support@finitelabs.com) or
-call/text us at [+1 (949) 371-5805](tel:+19493715805).
+can contact us at [%%SUPPORT_EMAIL%%](mailto:__SUPPORT_EMAIL__) or call/text us
+at [%%SUPPORT_PHONE%%](tel:__SUPPORT_PHONE__).
 
 <!-- #else -->
 

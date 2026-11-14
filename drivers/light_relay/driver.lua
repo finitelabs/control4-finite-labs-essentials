@@ -85,11 +85,9 @@ function OnDriverLateInit()
   end
 
   -- Fire OnPropertyChanged for all properties
+  -- The router runs each handler in its own xpcall and reports its error, so the rest still run.
   for p, _ in pairs(Properties) do
-    local status, err = pcall(OnPropertyChanged, p)
-    if not status and err then
-      log:error("Error in OnPropertyChanged for property '%s': %s", p, err or "unknown error")
-    end
+    OnPropertyChanged(p)
   end
 
   --#ifndef DRIVERCENTRAL
@@ -165,19 +163,6 @@ end
 function OPC.Log_Level(propertyValue)
   log:trace("OPC.Log_Level('%s')", propertyValue)
   log:setLogLevel(propertyValue)
-  if log:getLogLevel() >= 6 and log:isPrintEnabled() then
-    DEBUGPRINT = true
-    DEBUG_TIMER = true
-    DEBUG_RFN = true
-    DEBUG_URL = true
-    DEBUG_WEBSOCKET = true
-  else
-    DEBUGPRINT = false
-    DEBUG_TIMER = false
-    DEBUG_RFN = false
-    DEBUG_URL = false
-    DEBUG_WEBSOCKET = false
-  end
 end
 
 function OPC.Automatic_Updates(propertyValue)

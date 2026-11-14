@@ -26,6 +26,7 @@ standalone and can be installed individually or together.
   - [Light Relay](#light-relay)
   - [Variable Expressions](#variable-expressions)
   - [Network Requests](#network-requests)
+  - [Humidity Alert](#humidity-alert)
 
 - [Installation](#installation)
 
@@ -110,10 +111,10 @@ sensor's value or state, and opening, closing, or toggling relays.
 
 ## Light Relay
 
-Dynamically creates relay connections for one or more selected light devices
-using a single driver instance. This enables controlling devices that use relay
-drivers (e.g., fans, fireplaces) from a light switch, with bidirectional state
-synchronization.
+Gives each light you pick a relay connection, so a driver that switches a relay
+can switch the light instead. Closing the relay turns the light on and opening
+it turns the light off, and the light's state reports back as the relay's. One
+driver instance covers all of a project's lights.
 
 **Key features:**
 
@@ -161,7 +162,31 @@ tab, then fire them from programming with a single Send Request command.
   variable holding the last response
 - Inbound webhooks fire `<Name> Received` events with the payload published to a
   `<Name> Payload` variable, guarded by an optional key
+- A webhook can answer its caller with a response built from live Control4
+  variable values, so other systems can read values by calling it
 - Requests, webhooks, and last results persist across driver restarts
+
+## Humidity Alert
+
+Raise an alert when something adds moisture to a room and its humidity rises,
+and hold it until the room has dried out. The driver reads a humidity and an
+optional temperature connection and closes a contact output while the alert is
+active. It looks for a jump above the level the room was resting at, so it needs
+no adjustment between a dry winter and a humid summer.
+
+**Key features:**
+
+- Detection modes: Rise, Threshold, Rise or Threshold
+- Follows the moisture in the air when the sensor's temperature is connected
+- Optional reference sensor elsewhere in the house, so humidity the whole house
+  shares does not count as the room's
+- Ends an alert when the room has recovered, with a run-on time and a maximum
+- Works with fast sensors and with battery sensors that report only large
+  changes
+- Contact output that fires programming once at the start and once at the end
+- Switches a device itself, a bathroom exhaust fan for example, by a relay,
+  light switches or a fan speed controller, and turns off only what it turned on
+- Events, conditionals, variables and commands for programming
 
 # <span style="color:#059669">Installation</span>
 
@@ -210,10 +235,6 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Added
 
-- Added a Properties card at the top of the Network Requests and Variable
-  Expressions tabs. It shows the driver's properties and sets them as Composer's
-  Properties tab does, and a change made in either place shows in the other.
-
 - Sensor Multiplexer can now be linked to the thermostat it feeds. Select Input
   then sets the thermostat preset of the same name as well, changing the
   thermostat's temperature and setpoints in an order that keeps the equipment
@@ -224,40 +245,77 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
   capitals, and the link's status names any input the thermostat has no preset
   for.
 
+## v20261114 - 2026-11-14
+
+### Added
+
+- Added `json(text, path)` to Variable Expressions, which reads one value from a
+  variable that holds JSON, such as `json(PARAM{96,1003}, "$.sensors[0].temp")`.
+- Humidity Alert can switch a device through Control4 timers: with Control
+  Method Timer it sets the selected timers to On, which has no countdown, while
+  an alert is active and to Off when it ends. A timer that gives a device turned
+  on by hand its own countdown keeps doing so, and no longer cuts an alert
+  short.
+
+## v20261113 - 2026-11-13
+
+### Added
+
+- Added Humidity Alert, a driver that raises an alert when moisture raises a
+  room's humidity and holds it until the room has dried out. It closes a contact
+  output while the alert is active, can switch a relay, light switches or a fan
+  speed controller with no Control4 programming, and can ignore humidity the
+  whole house shares when a reference sensor is bound.
+- Added an optional response to Network Requests webhooks, which answers the
+  caller with text you write and the current values of the Control4 variables
+  you insert into it.
+
+## v20261112 - 2026-11-12
+
 ### Fixed
 
-- Fixed a variable's value being able to break or run as part of a Variable
-  Expressions expression. An equation now reads each value as data, so a text
-  variable holding a quote no longer breaks it and no value can run as code.
-- Fixed comparing a text variable in a Variable Expressions equation:
-  `PARAM{96,Mode} == "On"` now compares the text. It was always false before.
+- Fixed saving text with accented letters or characters outside Western European
+  alphabets in the Network Requests and Variable Expressions tabs.
+- Fixed the Network Requests and Variable Expressions tabs dropping a value's
+  zeros, showing nothing for 0 or false, and not updating an entry named only
+  with digits.
+- Fixed a variable's value being able to break a Variable Expressions equation
+  or run as code in it.
+- Fixed comparing a text variable with text in a Variable Expressions equation,
+  which was always false.
+- Fixed a variable that keeps changing holding off a Variable Expressions
+  recalculation indefinitely.
 - Fixed saving a long request or expression in the Network Requests and Variable
-  Expressions tabs slowing the controller. The tabs now send long commands in a
-  form the controller handles quickly.
-- Fixed Network Requests' Webhook URL property reading
-  `Failed to listen on port` after a port change or a driver update, while the
-  webhook server was listening on the new port.
+  Expressions tabs slowing the controller.
+- Fixed Network Requests' Webhook URL property reading Failed to listen on port
+  after a port change or driver update, while the webhook server was listening.
 - Fixed Sensor Multiplexer's Selection Changed event leaving the device's name
-  out of its script title in Composer Pro. The title now names the multiplexer.
+  out of its programming line in Composer Pro.
 - Fixed long names and values running past the edge of the Network Requests and
-  Variable Expressions tabs. They now wrap inside the page, and the Mode column
-  shows NUMBER in full.
+  Variable Expressions tabs.
+- Fixed Sensor Aggregator's and Sensor Multiplexer's contact outputs firing
+  Opened or Closed programming when no contact changed.
+- Fixed Sensor Multiplexer's contact output not opening when the selected
+  input's contact opened.
+- Fixed a Network Requests TCP request to a host that never answers waiting
+  forever instead of failing after its timeout.
 
 ### Changed
 
 - Changed the drivers' icons and documentation header to a new Finite Labs
   Essentials mark.
-- Removed the bar that held a single tab from the top of the Network Requests
-  and Variable Expressions tabs. It returns if a driver gains a second tab.
+- Changed the variable browser in the Network Requests and Variable Expressions
+  tabs to list the project's agents along with its devices.
+- Changed the Variable Expressions preview to explain an error in a plain
+  sentence.
 
 ## v20260816 - 2026-08-16
 
 ### Fixed
 
-- Fixed a device you had expanded and then collapsed disappearing from a
-  variable-name search in the variable browser; its variables are re-fetched
-  when a search would otherwise miss it. Affects Variable Expressions and
-  Network Requests.
+- Fixed a device that was expanded and then collapsed disappearing from a
+  variable-name search in the Variable Expressions and Network Requests variable
+  browser.
 
 ## v20260805 - 2026-08-05
 
@@ -269,43 +327,32 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 ### Fixed
 
 - Device Programmer, Light Relay, Sensor Aggregator, Sensor Multiplexer and
-  Variable Expressions can now update themselves. Both the Update Drivers action
-  and the automatic update check failed with an internal error, so these drivers
-  could only be updated by installing a new release by hand. Network Requests
-  was unaffected. The broken updater is also what would have fetched this fix,
-  so copies already installed need one manual update in Composer; after that
-  they keep themselves up to date as normal.
+  Variable Expressions can now update themselves. Copies already installed need
+  one manual update in Composer to get this fix.
 - Sensor Multiplexer now shows the Finite Labs icon in Composer and on
   Navigators instead of a generic placeholder.
 - Fixed the delete button being cut off in the Requests and Expressions tabs.
-- Variable Expressions and Network Requests: a device that a driver exposes
-  through a proxy of the same name now appears once in the variable browser
-  instead of several times, with its variables grouped by where they come from.
-  Proxies that stand for something of their own, such as a security panel's
-  areas or a receiver's tuner, are still listed separately. Devices with no
-  variables are hidden, and any that still share a room and name are labeled
-  with their device id. A device's own variables are always listed first.
-- The variable browser now refreshes each time it opens, so devices and
-  variables created during the session appear without reloading the tab, and the
-  values shown are current rather than those from when a device was first
-  expanded.
+- A device a driver shows through a proxy of the same name now appears once in
+  the Variable Expressions and Network Requests variable browser, with its own
+  variables listed first, and devices with no variables are hidden.
+- The variable browser now refreshes each time it opens, so new devices and
+  variables appear and the values shown are current.
 
 ## v20260712 - 2026-07-12
 
 ### Added
 
-- Initial release of Network Requests: named HTTP, TCP, UDP, and Wake-on-LAN
-  requests defined in a Requests tab and fired from programming by name, with
-  `PARAM{}` variable templating, per-request Sent/Failed events, and response
-  capture. Inbound webhooks fire per-webhook Received events with the payload
-  published to a variable, guarded by an optional key.
+- Initial release of Network Requests, which sends named HTTP, TCP, UDP and
+  Wake-on-LAN requests from programming, with variables in them, Sent and Failed
+  events and each response kept. It also receives webhooks, guarded by an
+  optional key, with a Received event and the payload in a variable.
 
 ## v20260711 - 2026-07-11
 
 ### Added
 
-- Initial release of Device Programmer
-- Initial release of Light Relay
-- Initial release of Sensor Aggregator
-- Initial release of Sensor Multiplexer
-- Initial release of Variable Expressions
+- Initial release of Device Programmer.
+- Initial release of Light Relay.
+- Initial release of Sensor Aggregator.
+- Initial release of Sensor Multiplexer.
+- Initial release of Variable Expressions.

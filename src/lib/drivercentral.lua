@@ -9,7 +9,7 @@
 local DriverCentral = { _licensed = true, _zeros = 0 }
 
 --- The product's id in DriverCentral's vendor panel, from the repo's `dc_pid` answer; 0 until the product exists.
-DriverCentral.PRODUCT_ID = 0
+DriverCentral.PRODUCT_ID = 988
 
 --- The Driver Status a driver shows while the gate holds it stopped.
 DriverCentral.UNLICENSED_STATUS = "No active license"

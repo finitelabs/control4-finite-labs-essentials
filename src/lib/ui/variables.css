@@ -1,0 +1,54 @@
+/* The variable browser: Kit.variableBrowser's search box, tree and footer, in the element a page gives it, which
+   becomes .kit-vb. The element fills what its container allows and the tree scrolls inside it: in a flex column it
+   takes the room left, as in a tall side column; elsewhere a page caps it with its own max-height, as in a short row
+   under a field. A page embeds this after style.css, with variables.js. */
+
+.kit-vb { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; min-height: 0; max-height: 100%; }
+.kit-vb-search { flex: none; }
+.kit-vb-tree { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-top: 8px; }
+.kit-vb-foot { flex: none; padding-top: 8px; font-size: 10.5px; color: #9ca3af; }
+
+.kit-vb-room {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+  color: #9ca3af; padding: 8px 2px 3px;
+}
+.kit-vb-section {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+  color: #b6bcc6; padding: 5px 6px 2px 22px;
+}
+
+/* Rows are buttons, for the keyboard, drawn as plain rows. */
+.kit-vb-dev, .kit-vb-var {
+  display: flex; align-items: center; width: 100%;
+  background: none; border: 0; border-radius: 5px;
+  font: inherit; text-align: left; color: #374151; cursor: pointer;
+}
+.kit-vb-dev { gap: 5px; padding: 4px; font-weight: 600; font-size: 12px; }
+.kit-vb-dev:hover { background: var(--surface-hover); }
+.kit-vb-chev { flex: none; width: 10px; color: #9ca3af; font-size: 10px; }
+.kit-vb-dname { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kit-vb-var { gap: 6px; padding: 3px 6px 3px 22px; }
+.kit-vb-var:hover { background: #eef2ff; outline: 1px solid #c7d2fe; }
+.kit-vb-name {
+  flex: 1; min-width: 0; font-family: var(--mono); font-size: 11px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.kit-vb-used .kit-vb-name::after { content: " \2713"; color: var(--success); }
+.kit-vb-value {
+  flex: none; margin-left: auto; max-width: 90px;
+  font-family: var(--mono); font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.kit-vb-ins {
+  visibility: hidden; flex: none;
+  font-size: 10px; font-weight: 600; color: #fff;
+  background: var(--accent); border-radius: 4px; padding: 1px 6px;
+}
+.kit-vb-var:hover .kit-vb-ins { visibility: visible; }
+/* Apart from the rules above: an engine without :focus-visible drops the whole rule it is in. */
+.kit-vb-dev:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.kit-vb-var:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.kit-vb-var:focus-visible .kit-vb-ins { visibility: visible; }
+
+.kit-vb-note { padding: 4px 22px; font-size: 11px; color: var(--text-muted); font-style: italic; }
+.kit-vb-hl { background: #fde68a; color: inherit; border-radius: 2px; padding: 0; }

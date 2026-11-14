@@ -276,7 +276,7 @@ end
 --------------------------------------------------------------------------------
 
 --- Update all output display properties and send values from the active group.
---- @param asState? boolean Send a contact change without a programming event, as at a load.
+--- @param asState? boolean Send a contact change without a programming event, as at a start or a bind.
 local function updateOutputs(asState)
   log:trace("updateOutputs()")
   if not licensed() then
@@ -310,7 +310,7 @@ local function updateOutputs(asState)
 
   -- Contact
   if isContactEnabled() then
-    local contact = activeName and getCachedInputValue(activeName, INPUT_CONTACT) or nil
+    local contact = activeName and getCachedInputValue(activeName, INPUT_CONTACT)
     if contact ~= nil then
       UpdateProperty("Output Contact", contact and "Closed" or "Open", true)
       if contact ~= lastContactOutputState then
@@ -323,7 +323,6 @@ local function updateOutputs(asState)
       end
     else
       UpdateProperty("Output Contact", "", true)
-      lastContactOutputState = nil
     end
   end
 end
@@ -363,7 +362,6 @@ local function setActiveInput(name)
   end
 
   -- Update outputs from newly selected group
-  lastContactOutputState = nil
   updateOutputs()
 end
 
@@ -862,12 +860,12 @@ local function registerContactInputHandlers(binding, name)
     if strCommand == "CLOSED" or strCommand == "STATE_CLOSED" then
       setCachedInputValue(name, INPUT_CONTACT, true)
       if getActiveInput() == name then
-        updateOutputs()
+        updateOutputs(strCommand == "STATE_CLOSED")
       end
     elseif strCommand == "OPENED" or strCommand == "STATE_OPENED" then
       setCachedInputValue(name, INPUT_CONTACT, false)
       if getActiveInput() == name then
-        updateOutputs()
+        updateOutputs(strCommand == "STATE_OPENED")
       end
     end
   end
@@ -887,7 +885,7 @@ local function registerContactInputHandlers(binding, name)
       clearCachedInputValue(name, INPUT_CONTACT)
     end
     if getActiveInput() == name then
-      updateOutputs()
+      updateOutputs(true)
     end
   end
 end
@@ -941,11 +939,13 @@ local function registerContactOutputHandlers(binding)
   -- OBC handler: send current state when consumer connects
   OBC[binding.bindingId] = function(idBinding, _strClass, bIsBound, _otherDeviceId, _otherBindingId)
     log:trace("OBC[%s](%s, %s, %s)", binding.bindingId, idBinding, _strClass, bIsBound)
+    lastContactOutputState = nil
     if bIsBound and licensed() then
       local activeName = getActiveInput()
       if activeName then
         local value = getCachedInputValue(activeName, INPUT_CONTACT)
         if value ~= nil then
+          lastContactOutputState = value
           -- Use STATE_ prefix on bind to set state without triggering programming events
           SendToProxy(idBinding, value and "STATE_CLOSED" or "STATE_OPENED", {}, "NOTIFY")
         end
@@ -1196,11 +1196,9 @@ function OnDriverLateInit()
   events:restoreEvents()
 
   -- Fire OnPropertyChanged for all properties (triggers reconciliation)
+  -- The router runs each handler in its own xpcall and reports its error, so the rest still run.
   for p, _ in pairs(Properties) do
-    local status, err = pcall(OnPropertyChanged, p)
-    if not status and err then
-      log:error("Error in OnPropertyChanged for property '%s': %s", p, err or "unknown error")
-    end
+    OnPropertyChanged(p)
   end
 
   --#ifndef DRIVERCENTRAL
@@ -1269,19 +1267,6 @@ end
 function OPC.Log_Level(propertyValue)
   log:trace("OPC.Log_Level('%s')", propertyValue)
   log:setLogLevel(propertyValue)
-  if log:getLogLevel() >= 6 and log:isPrintEnabled() then
-    DEBUGPRINT = true
-    DEBUG_TIMER = true
-    DEBUG_RFN = true
-    DEBUG_URL = true
-    DEBUG_WEBSOCKET = true
-  else
-    DEBUGPRINT = false
-    DEBUG_TIMER = false
-    DEBUG_RFN = false
-    DEBUG_URL = false
-    DEBUG_WEBSOCKET = false
-  end
 end
 
 function OPC.Automatic_Updates(propertyValue)

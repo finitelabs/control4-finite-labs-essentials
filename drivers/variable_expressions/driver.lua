@@ -10,13 +10,16 @@ require("drivers-common-public.global.timer")
 JSON = require("JSON")
 
 local log = require("lib.logging")
-local pageParams = require("lib.page-params")
+local page = require("lib.ui.page")
+local pageParams = require("lib.ui.page-params")
 local persist = require("lib.persist")
 local values = require("lib.values")
 local events = require("lib.events")
 local Expressions = require("lib.expressions")
 local updateSettings = require("lib.update-settings")
-local tabProperties = require("lib.tab-properties")
+local devices = require("lib.ui.devices")
+local expressionTab = require("lib.ui.expression-tab")
+local tabProperties = require("lib.ui.tab-properties")
 --#ifdef DRIVERCENTRAL
 local drivercentral = require("lib.drivercentral")
 local supportCode = require("lib.support-code")
@@ -82,7 +85,7 @@ local function setResult(name, entry)
   local results = getResults()
   results[name] = entry
   persist:set(PERSIST_RESULTS, results)
-  C4:SendDataToUI("EXPRESSION_RESULT", {
+  page.send("EXPRESSION_RESULT", {
     name = name,
     result = entry.result or "",
     error = entry.error or "",
@@ -251,11 +254,9 @@ function OnDriverLateInit()
   end
 
   -- Fire OnPropertyChanged for all properties to set initial global state
+  -- The router runs each handler in its own xpcall and reports its error, so the rest still run.
   for p, _ in pairs(Properties) do
-    local status, err = pcall(OnPropertyChanged, p)
-    if not status and err then
-      log:error("Error in OnPropertyChanged for property '%s': %s", p, err or "unknown error")
-    end
+    OnPropertyChanged(p)
   end
 
   -- Restore variable watches and recompute auto expressions once at boot.
@@ -278,7 +279,6 @@ function OnDriverLateInit()
 
   gInitialized = true
   UpdateProperty("Driver Status", "Ready")
-  tabProperties:follow(UIR._GET_CONFIG)
 
   --#ifdef DRIVERCENTRAL
   drivercentral:startGate(function(active)
@@ -340,19 +340,6 @@ end
 function OPC.Log_Level(propertyValue)
   log:trace("OPC.Log_Level('%s')", propertyValue)
   log:setLogLevel(propertyValue)
-  if log:getLogLevel() >= 6 and log:isPrintEnabled() then
-    DEBUGPRINT = true
-    DEBUG_TIMER = true
-    DEBUG_RFN = true
-    DEBUG_URL = true
-    DEBUG_WEBSOCKET = true
-  else
-    DEBUGPRINT = false
-    DEBUG_TIMER = false
-    DEBUG_RFN = false
-    DEBUG_URL = false
-    DEBUG_WEBSOCKET = false
-  end
 end
 
 function OPC.Automatic_Updates(propertyValue)
@@ -401,23 +388,9 @@ end
 -- Web UI Request Handlers (UIR)
 --------------------------------------------------------------------------------
 
---- Send a response to the web UI via both return value (for REST) and
---- SendDataToUI (for socket push). Returns JSON for REST callers.
---- @param command string The response command name.
---- @param data table The response data.
---- @return string JSON response for REST callers.
-local function uiRespond(command, data)
-  -- C4:SendDataToUI cannot serialize boolean values (Director throws a
-  -- basic_string construction error), so send them as strings on the socket
-  -- push. The REST return keeps real booleans via JSON encoding.
-  local safe = {}
-  for k, v in pairs(data) do
-    safe[k] = type(v) == "boolean" and tostring(v) or v
-  end
-  C4:SendDataToUI(command, safe)
-  data._command = command
-  return JSON:encode(data)
-end
+tabProperties:serve()
+devices.serve()
+expressionTab.serve({ modes = { "equation", "string" } })
 
 --- Send the full expression configuration and last results to the web UI.
 function UIR._GET_CONFIG()
@@ -441,22 +414,7 @@ function UIR._GET_CONFIG()
   table.sort(expressions, function(a, b)
     return (a.name or "") < (b.name or "")
   end)
-  return uiRespond("CONFIG_DATA", {
-    expressions = JSON:encode(expressions),
-    properties = JSON:encode(tabProperties:list()),
-  })
-end
-
---- Set one of the driver's properties, as Composer's Properties tab would.
---- @param tParams table
-function UIR._SET_PROPERTY(tParams)
-  log:trace("UIR._SET_PROPERTY()")
-  local params = pageParams(tParams)
-  local err = tabProperties:set(params.property, params.value)
-  if err then
-    return uiRespond("PROPERTY_ERROR", { property = params.property, error = err })
-  end
-  return UIR._GET_CONFIG()
+  page.send("CONFIG_DATA", { expressions = expressions })
 end
 
 --- Create or update a named expression.
@@ -471,10 +429,10 @@ function UIR._SAVE_EXPRESSION(tParams)
   local auto = toboolean(params.auto)
 
   if IsEmpty(name) then
-    return uiRespond("SAVE_RESULT", { ok = false, error = "Name is required" })
+    return page.send("SAVE_RESULT", { ok = false, error = "Name is required" })
   end
   if IsEmpty(template) then
-    return uiRespond("SAVE_RESULT", { ok = false, error = "Expression is required" })
+    return page.send("SAVE_RESULT", { ok = false, error = "Expression is required" })
   end
 
   local expressions = getExpressions()
@@ -524,44 +482,6 @@ function UIR._RUN_EXPRESSION(tParams)
   local params = pageParams(tParams)
   recomputeExpression(tostring(params.name or ""))
   return UIR._GET_CONFIG()
-end
-
---- Evaluate a draft expression without saving. Used by the editor's live
---- preview; the id correlates concurrent previews on the UI side.
---- @param tParams table
-function UIR._EVAL_EXPRESSION(tParams)
-  log:trace("UIR.EVAL_EXPRESSION()")
-  local params = pageParams(tParams)
-  local mode = params.mode == "string" and "string" or "equation"
-  local eval = Expressions.evaluate(mode, tostring(params.template or ""))
-  return uiRespond("EVAL_RESULT", {
-    id = params.id or "",
-    rendered = eval.rendered or "",
-    substituted = eval.substituted or "",
-    result = eval.result ~= nil and tostring(eval.result) or "",
-    error = eval.error or "",
-  })
-end
-
---- Send the device browser's list to the web UI.
-function UIR._GET_DEVICES()
-  log:trace("UIR.GET_DEVICES()")
-  return uiRespond("DEVICES_DATA", { devices = JSON:encode(Expressions.devices()) })
-end
-
---- Send a device's variables to the web UI.
---- @param tParams table
-function UIR._GET_DEVICE_VARIABLES(tParams)
-  log:trace("UIR.GET_DEVICE_VARIABLES()")
-  local params = pageParams(tParams)
-  local variables = Expressions.deviceVariables(params.deviceId)
-  if not variables then
-    return
-  end
-  return uiRespond("DEVICE_VARIABLES_DATA", {
-    deviceId = tostring(params.deviceId),
-    variables = JSON:encode(variables),
-  })
 end
 
 --------------------------------------------------------------------------------

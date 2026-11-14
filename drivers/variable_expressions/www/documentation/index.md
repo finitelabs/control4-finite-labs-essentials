@@ -105,7 +105,7 @@ for setting it up.
 <!-- #ifdef DRIVERCENTRAL -->
 
 1. Download the latest `control4-finite-labs-essentials.zip` from
-   [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/utility-suite).
+   [DriverCentral](https://drivercentral.io/platforms/control4-drivers/utility/finite-labs-essentials).
 1. Extract and install the `variable_expressions.c4z` driver.
 1. Use the "Search" tab to find "Variable Expressions" and add it to your
    project.
@@ -177,11 +177,11 @@ Add Expression and Edit both open the editor in place of the list.
 
 <img alt="Expression editor" src="./images/ui-expression-editor.png" width="640"/>
 
-1. **Search** - filters the variable browser by room, device, or variable name.
-   Matching devices expand automatically.
-1. **Variable** - click a device to load its variables with their current
-   values, then click a variable to insert its `PARAM{}` token at the cursor. A
-   green check marks variables the expression already references.
+1. **Search** - filters the variable browser by room, device, agent, or variable
+   name. Matching devices expand automatically.
+1. **Variable** - click a device or agent to load its variables with their
+   current values, then click a variable to insert its `PARAM{}` token at the
+   cursor. A green check marks variables the expression already references.
 1. **Name** - names the `<Name> Result` variable and the `<Name> Calculated`
    event. Renaming an expression renames both.
 1. **Mode** - `Equation` evaluates the template as math, reading each token as
@@ -203,9 +203,10 @@ Add Expression and Edit both open the editor in place of the list.
 1. **Recalculate when referenced variables change** - when enabled, the driver
    watches every variable the expression references and recalculates on change,
    debounced by 1 second so rapidly updating sources coalesce into a single
-   recalculation. The count of watched references is shown alongside. When
-   disabled, the expression only recalculates from the Calculate Expression
-   programming command or the Run button.
+   recalculation, at least every 11 seconds or so while they keep changing. The
+   count of watched references is shown alongside. When disabled, the expression
+   only recalculates from the Calculate Expression programming command or the
+   Run button.
 1. **Cancel / Run Once / Save Expression** - discard the changes, evaluate the
    expression without saving it, or save it.
 
@@ -259,9 +260,20 @@ Displays the current status of the driver.
 
 Displays the current version of the driver.
 
+<!-- #ifdef DRIVERCENTRAL -->
+
+#### Log Level \[ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug \]
+
+Sets the logging level. Default is `3 - Info`. While a Support Code has
+Composer's Lua tab open, it also offers `5 - Trace` and `6 - Ultra`.
+
+<!-- #else -->
+
 #### Log Level \[ 0 - Fatal | 1 - Error | 2 - Warning | **_3 - Info_** | 4 - Debug | 5 - Trace | 6 - Ultra \]
 
 Sets the logging level. Default is `3 - Info`.
+
+<!-- #endif -->
 
 #### Log Mode \[ **_Off_** | Print | Log | Print and Log \]
 
@@ -271,8 +283,9 @@ Sets the logging mode. Default is `Off`.
 
 #### Support Code
 
-Leave it blank unless Finite Labs support gives you a code: it opens Composer's
-Lua tab to this driver for an hour.
+Leave it blank unless Finite Labs support gives you a code: for an hour, it
+opens Composer's Lua tab to this driver and adds `5 - Trace` and `6 - Ultra` to
+Log Level.
 
 #### Cloud Monitoring \[ Disabled | **_Enabled_** \]
 
@@ -377,7 +390,19 @@ Equations may use the full Lua `math` and `string` libraries (for example
 available without a prefix:
 
 `abs`, `ceil`, `floor`, `sqrt`, `min`, `max`, `round(x, digits)`, `c2f`, `f2c`,
-`pi`, `huge`, `tonumber`, `tostring`
+`pi`, `huge`, `tonumber`, `tostring`, `json(text, path)`
+
+`json(text, path)` reads one value from a variable that holds JSON. The path
+starts at `$`, names fields after dots, and picks an array's item with `[n]`,
+counted from 0:
+
+```
+json(PARAM{96,1003}, "$.sensors[0].temp")
+```
+
+Numbers, text, and true or false come back as they are. A path to an object or
+array gives that part's JSON text, which `json` can read again. Text that isn't
+JSON, or a path that leads to nothing, gives nil.
 
 Operators follow Lua syntax: `+`, `-`, `*`, `/`, `%` (modulo), `^` (power), and
 parentheses for grouping. Comparisons (`==`, `~=`, `<`, `<=`, `>`, `>=`)
@@ -430,7 +455,7 @@ by U.S. and Foreign Patents, patents in process, and are protected by trade
 secret or copyright law. Dissemination of this information or reproduction of
 this material is strictly forbidden unless prior written permission is obtained
 from Finite Labs LLC. For the latest information, please visit
-https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
+https://drivercentral.io/platforms/control4-drivers/utility/finite-labs-essentials
 
 <!-- #endif -->
 
@@ -439,9 +464,8 @@ https://drivercentral.io/platforms/control4-drivers/utility/utility-suite
 <!-- #ifdef DRIVERCENTRAL -->
 
 If you have any questions or issues integrating these drivers with Control4, you
-can contact us at
-[driver-support@finitelabs.com](mailto:driver-support@finitelabs.com) or
-call/text us at [+1 (949) 371-5805](tel:+19493715805).
+can contact us at [%%SUPPORT_EMAIL%%](mailto:__SUPPORT_EMAIL__) or call/text us
+at [%%SUPPORT_PHONE%%](tel:__SUPPORT_PHONE__).
 
 <!-- #else -->
 
