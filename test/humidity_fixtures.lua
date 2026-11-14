@@ -244,10 +244,10 @@ function F.replay(trace, settings, opts)
     while trace[index] ~= nil and trace[index].t <= minute do
       local point = trace[index]
       if (opts.fanStops or opts.fanRuns) and fanWasOn and point.fan == 0 then
-        Detector.fanStopped(state, now)
+        Detector.deviceStopped(state, now)
       end
       if opts.fanRuns and not fanWasOn and point.fan == 1 then
-        Detector.fanStarted(state, now)
+        Detector.deviceStarted(state, now)
       end
       fanWasOn = point.fan == 1
       note(Detector.sample(state, settings, now, point.rh, point.c), minute)

@@ -91,7 +91,7 @@ level the room was resting at rather than for a fixed number.
 - A contact output that fires Control4 programming once when an alert starts and
   once when it ends
 - Switches a device itself, with no Control4 programming: by a relay, by light
-  switches or by a fan speed controller
+  switches, by a fan speed controller or through Control4 timers
 - Turns off only what it turned on, and treats a device switched off during an
   alert as the end of that alert
 - Events, conditionals, variables and commands for Control4 programming
@@ -284,7 +284,7 @@ so keep this long. 0 never marks it stale.
 
 ### Output Settings
 
-#### Control Method \[ **_None_** | Relay | Light Switch | Fan Speed Controller \]
+#### Control Method \[ **_None_** | Relay | Light Switch | Fan Speed Controller | Timer \]
 
 How the driver switches a device during an alert, an exhaust fan for example.
 See [Switching a Device](#switching-a-device) for what it does with the device.
@@ -298,6 +298,10 @@ See [Switching a Device](#switching-a-device) for what it does with the device.
 - **Fan Speed Controller**: shows the Fan Controller property. The driver turns
   the selected fan controller on, at the speed the controller itself turns on
   at, and off.
+- **Timer**: shows the Timers property. The driver sets the selected Control4
+  timers to On, which runs with no countdown, and to Off. Use it for a device a
+  timer already runs. See
+  [Sharing a Device with a Timer Driver](#sharing-a-device-with-a-timer-driver).
 
 The Relay connection exists only while Control Method is Relay, and each
 selector shows only for its own method. A hidden selector keeps its selection. A
@@ -313,6 +317,13 @@ example. Shown while Control Method is Light Switch.
 
 The fan speed controller the alert turns on. Shown while Control Method is Fan
 Speed Controller.
+
+#### Timers
+
+The Control4 timers the alert sets to On, the Extract Fan timers of a room's
+exhaust fans for example. Shown while Control Method is Timer. It lists the
+countdown timers that offer a permanent On: Ceiling Fan, Driveway, Extract Fan,
+Fireplace, Flame, Fountain, Hot Water, Pump, Radiant Floor, Relay and Sprinkler.
 
 ### Status
 
@@ -510,7 +521,7 @@ not at all when the reference follows the room to within the Rise Amount.
 
 With a Control Method chosen, the driver switches the selected devices itself.
 Most often that is a room's exhaust fan, but it can be anything a relay, a light
-switch or a fan speed controller runs.
+switch, a fan speed controller or a Control4 timer runs.
 
 - When an alert starts, it turns on every selected device that is off. Those
   devices are the alert's own.
@@ -538,20 +549,26 @@ lapsed license each end the alert and turn its devices off.
 
 ## Sharing a Device with a Timer Driver
 
-A device, most often a fan, can also be run by a countdown timer driver that
-watches the same switch. Two things about such a timer matter here:
+A device, most often a fan, can also be run by a Control4 countdown timer that
+watches the same switch. Some timers start their own countdown whenever the
+device turns on, and turn it off when it runs out. If the driver switches the
+device itself, that countdown starts during an alert too, and when it runs out
+this driver sees its device switched off and ends the alert, even if the room is
+still humid.
 
-- Some timers start their own countdown whenever the device turns on, and turn
-  it off when it runs out. If that happens during an alert, this driver sees its
-  device switched off and ends the alert, even if the room is still humid. Leave
-  that option off on the timer, or set its time at least as long as Maximum
-  Alert Time.
-- A timer that was already running the device when an alert starts keeps control
-  of it. If the timer turns the device off while the alert is still active, this
-  driver turns it back on once and runs it to the end of the alert.
+Choose **Timer** as the Control Method and select the timer, rather than the
+switch it runs. The driver then sets the timer to On, which has no countdown, so
+the device runs until the alert ends, and the timer still gives a device turned
+on by hand its own countdown.
 
-The two never switch the device back and forth: after any device of the alert is
-switched off, the alert is over.
+- A timer counting down when an alert starts is set to On and is the alert's
+  own, so the alert turns it off when it ends.
+- A timer someone set to On before the alert is left on when it ends.
+- A device switched off at the wall during an alert stops its timer, and that
+  ends the alert like any other device switched off.
+
+With Light Switch instead, leave the timer's own countdown for a device turned
+on by hand off, or set its time at least as long as Maximum Alert Time.
 
 # <span style="color:#059669">Programming</span>
 

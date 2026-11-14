@@ -258,6 +258,7 @@
           <item>Relay</item>
           <item>Light Switch</item>
           <item>Fan Speed Controller</item>
+          <item>Timer</item>
         </items>
         <description>How the driver switches a device during an alert. None uses the contact only.</description>
       </property>
@@ -280,6 +281,25 @@
         </items>
         <multiselect>false</multiselect>
         <description>The fan controller turned on when an alert starts and off when it ends.</description>
+      </property>
+      <property>
+        <name>Timers</name>
+        <type>DEVICE_SELECTOR</type>
+        <items>
+          <item>timer_ceilingfan.c4z</item>
+          <item>timer_driveway.c4z</item>
+          <item>timer_extractfan.c4z</item>
+          <item>timer_fireplace.c4z</item>
+          <item>timer_flame.c4z</item>
+          <item>timer_fountain.c4z</item>
+          <item>timer_hot_water.c4z</item>
+          <item>timer_pump.c4z</item>
+          <item>timer_radiantfloor.c4z</item>
+          <item>timer_relay.c4z</item>
+          <item>timer_sprinkler.c4z</item>
+        </items>
+        <multiselect>true</multiselect>
+        <description>The Control4 timers set to On when an alert starts and to Off when it ends.</description>
       </property>
       <property>
         <name>Status</name>

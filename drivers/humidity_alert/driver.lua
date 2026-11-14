@@ -50,7 +50,8 @@ local INPUT_TEMPERATURE = "temperature"
 local INPUT_REFERENCE_HUMIDITY = "reference_humidity"
 local INPUT_REFERENCE_TEMPERATURE = "reference_temperature"
 local OUTPUT_CONTACT = "contact"
-local OUTPUT_FAN_RELAY = "fan_relay"
+-- Stored by key in each installed item's connections, so it keeps the name it was released with.
+local OUTPUT_RELAY = "fan_relay"
 
 --- Persist key for the detector's state and what the driver keeps beside it
 local PERSIST_STATE = "AlertState"
@@ -71,13 +72,41 @@ local METHOD_NONE = "None"
 local METHOD_RELAY = "Relay"
 local METHOD_LIGHT = "Light Switch"
 local METHOD_FAN = "Fan Speed Controller"
+local METHOD_TIMER = "Timer"
 
---- The key of the one fan a relay connection drives.
-local FAN_RELAY_KEY = "relay"
+--- The key of the one device a relay connection drives.
+local RELAY_KEY = "relay"
 
 --- The variable a light or a fan controller reports its on state in.
 --- @type integer
 local VAR_DEVICE_ON = 1000
+
+--- A Control4 timer's variables: the minutes it was set to run (-1 for permanently on), the minutes left, and 1
+--- while it runs.
+local VAR_TIMER_RUNTIME = 1001
+local VAR_TIMER_COUNTDOWN = 1002
+local VAR_TIMER_STATE = 1003
+
+--- A timer is read this long after its variables last changed, so that it is read with all of them written.
+--- @type number
+local TIMER_SETTLE = ONE_SECOND
+local TIMER_SETTLE_PREFIX = "TimerSettle"
+
+--- The Control4 timer drivers the Timers property lists, which all take SetCountdown and report in those variables.
+--- @type table<string, boolean>
+local TIMER_DRIVERS = {
+  ["timer_ceilingfan.c4z"] = true,
+  ["timer_driveway.c4z"] = true,
+  ["timer_extractfan.c4z"] = true,
+  ["timer_fireplace.c4z"] = true,
+  ["timer_flame.c4z"] = true,
+  ["timer_fountain.c4z"] = true,
+  ["timer_hot_water.c4z"] = true,
+  ["timer_pump.c4z"] = true,
+  ["timer_radiantfloor.c4z"] = true,
+  ["timer_relay.c4z"] = true,
+  ["timer_sprinkler.c4z"] = true,
+}
 
 --- A humidity report waits this long for its sensor's temperature report.
 --- @type number
@@ -115,6 +144,7 @@ local SETTING_DEFAULTS = {
   ["Control Method"] = METHOD_NONE,
   ["Light Switches"] = "",
   ["Fan Controller"] = "",
+  ["Timers"] = "",
 }
 
 --------------------------------------------------------------------------------
@@ -124,10 +154,12 @@ local SETTING_DEFAULTS = {
 --- @class AlertRecord
 --- @field state HumidityState The detector's state, stored without its history.
 --- @field rawPeak number|nil The highest humidity the sensor reported in this alert.
---- @field owned table<string, boolean>|nil The fans this alert turned on.
+--- @field owned table<string, boolean>|nil The devices this alert turned on.
 
---- @class Fan
---- @field deviceId integer|nil The light or fan controller, nil for the relay connection.
+--- @class SwitchedDevice
+--- @field deviceId integer|nil The light, fan controller or timer, nil for the relay connection.
+--- @field timer boolean|nil True for a Control4 timer, which is commanded and read through its countdown.
+--- @field countingDown boolean|nil True while a timer runs a countdown of its own, which will turn it off.
 --- @field name string What the log calls it.
 --- @field on boolean|nil Whether it runs, nil when not known yet.
 
@@ -167,11 +199,11 @@ local lastContactState = nil
 --- @type number
 local lastSaved = 0
 
---- The fans the Control Method selects, by key: "relay", or a device id as text.
---- @type table<string, Fan>
-local fans = {}
+--- The devices the Control Method selects, by key: "relay", or a device id as text.
+--- @type table<string, SwitchedDevice>
+local devices = {}
 
---- The fans the current alert turned on. Only these are turned off when it ends.
+--- The devices the current alert turned on. Only these are turned off when it ends.
 --- @type table<string, boolean>
 local owned = {}
 
@@ -235,251 +267,342 @@ local function tellContact(asState)
 end
 
 --------------------------------------------------------------------------------
--- Fans
+-- Switched Devices
 --------------------------------------------------------------------------------
 
 --- End the alert now, whatever started it. Defined with the alert handling below.
 --- @type fun(quiet?: boolean)
 local endAlert
 
---- The selected fans' keys, sorted so commands go out in one order.
+--- The selected devices' keys, sorted so commands go out in one order.
 --- @return string[] keys
-local function fanKeys()
-  local keys = TableKeys(fans)
+local function deviceKeys()
+  local keys = TableKeys(devices)
   table.sort(keys)
   return keys
 end
 
---- @return boolean running True when any selected fan is known to run.
-local function anyFanOn()
-  for _, fan in pairs(fans) do
-    if fan.on then
+--- @return boolean running True when any selected device is known to run.
+local function anyDeviceOn()
+  for _, device in pairs(devices) do
+    if device.on then
       return true
     end
   end
   return false
 end
 
---- Send a fan its on or off command.
---- @param fan Fan
+--- Send a device its on or off command.
+--- @param device SwitchedDevice
 --- @param on boolean
-local function sendFan(fan, on)
-  log:info("Turning %s %s", fan.name, on and "on" or "off")
-  if fan.deviceId ~= nil then
-    SendToDevice(fan.deviceId, on and "ON" or "OFF", {})
+local function sendDevice(device, on)
+  log:info("Turning %s %s", device.name, on and "on" or "off")
+  if device.timer then
+    -- On is the timer's permanent setting: no countdown, so it runs until the alert turns it off.
+    SendToDevice(device.deviceId, "SetCountdown", { Time = on and "On" or "Off" })
     return
   end
-  local binding = bindings:getDynamicBinding(NS_OUTPUT, OUTPUT_FAN_RELAY)
+  if device.deviceId ~= nil then
+    SendToDevice(device.deviceId, on and "ON" or "OFF", {})
+    return
+  end
+  local binding = bindings:getDynamicBinding(NS_OUTPUT, OUTPUT_RELAY)
   if binding then
     SendToProxy(binding.bindingId, on and "CLOSE" or "OPEN", {})
   end
 end
 
---- Command a selected fan.
+--- Command a selected device.
 --- @param key string
 --- @param on boolean
-local function commandFan(key, on)
-  local fan = fans[key]
-  if fan ~= nil then
-    sendFan(fan, on)
+local function commandDevice(key, on)
+  local device = devices[key]
+  if device ~= nil then
+    sendDevice(device, on)
   end
 end
 
---- An alert started: turn on every selected fan that is off. Those are the alert's own.
-local function engageFans()
-  for _, key in ipairs(fanKeys()) do
-    if not fans[key].on and not owned[key] then
+--- An alert started: turn on every selected device that is off. Those are the alert's own. A timer counting down
+--- would turn its device off mid-alert, so it is set to run on and is the alert's own too.
+local function engageDevices()
+  for _, key in ipairs(deviceKeys()) do
+    local device = devices[key]
+    if (not device.on or device.countingDown) and not owned[key] then
       owned[key] = true
-      commandFan(key, true)
+      commandDevice(key, true)
     end
   end
 end
 
---- An alert ended: turn off the fans it turned on, and no others.
-local function releaseFans()
-  for _, key in ipairs(fanKeys()) do
+--- An alert ended: turn off the devices it turned on, and no others.
+local function releaseDevices()
+  for _, key in ipairs(deviceKeys()) do
     if owned[key] then
-      commandFan(key, false)
+      commandDevice(key, false)
     end
   end
   owned = {}
 end
 
---- A selected fan reported its state.
+--- A selected device reported its state.
 --- @param key string
 --- @param on boolean
 --- @param isChange boolean False for a report of where it stands, as at a start or a bind.
-local function onFanState(key, on, isChange)
-  local fan = fans[key]
-  if fan == nil then
+local function onDeviceState(key, on, isChange)
+  local device = devices[key]
+  if device == nil then
     return
   end
-  local was = fan.on
-  fan.on = on
+  local was = device.on
+  device.on = on
   if was == on then
     return
   end
   if on then
-    Detector.fanStarted(state, now())
+    Detector.deviceStarted(state, now())
     return
   end
 
-  -- Outdoor air leaks back onto a sensor in the fan's housing, whoever stopped the fan.
-  Detector.fanStopped(state, now())
-  if anyFanOn() then
-    Detector.fanStarted(state, now())
+  -- Outdoor air leaks back onto a sensor in an exhaust fan's housing, whoever stopped the fan.
+  Detector.deviceStopped(state, now())
+  if anyDeviceOn() then
+    Detector.deviceStarted(state, now())
   end
   if not isChange or was == nil or not gInitialized or not licensed() or not state.active then
     return
   end
   if owned[key] then
-    log:info("%s was turned off during the alert; ending the alert", fan.name)
+    log:info("%s was turned off during the alert; ending the alert", device.name)
     owned[key] = nil
     endAlert()
   else
-    -- Whatever ran this fan has finished with it, or the driver's own off from the last alert landed
+    -- Whatever ran this device has finished with it, or the driver's own off from the last alert landed
     -- late: the alert still needs it. It is the alert's from here, so a second off ends the alert.
-    log:info("%s stopped during the alert; turning it back on", fan.name)
+    log:info("%s stopped during the alert; turning it back on", device.name)
     owned[key] = true
-    commandFan(key, true)
-    -- Saved at once: a restart must still know this fan is the alert's to turn off.
+    commandDevice(key, true)
+    -- Saved at once: a restart must still know this device is the alert's to turn off.
     saveState()
   end
 end
 
---- Stop watching the selected fans.
-local function forgetFans()
-  for key, fan in pairs(fans) do
-    if fan.deviceId ~= nil then
-      UnregisterVariableListener(fan.deviceId, VAR_DEVICE_ON)
-    end
+--- Stop listening to a device's variables.
+--- @param device SwitchedDevice
+local function unwatch(device)
+  if device.timer then
+    CancelTimer(TIMER_SETTLE_PREFIX .. tostring(device.deviceId))
+    UnregisterVariableListener(device.deviceId, VAR_TIMER_RUNTIME)
+    UnregisterVariableListener(device.deviceId, VAR_TIMER_COUNTDOWN)
+    UnregisterVariableListener(device.deviceId, VAR_TIMER_STATE)
+  elseif device.deviceId ~= nil then
+    UnregisterVariableListener(device.deviceId, VAR_DEVICE_ON)
   end
-  fans = {}
 end
 
---- Watch a light or a fan controller as a fan.
+--- Stop watching the selected devices.
+local function forgetDevices()
+  for _, device in pairs(devices) do
+    unwatch(device)
+  end
+  devices = {}
+end
+
+--- Read a timer: whether it runs, and whether it runs a countdown that will turn it off.
+--- @param deviceId integer
+--- @return boolean on
+--- @return boolean countingDown
+local function readTimer(deviceId)
+  local runtime = tointeger(C4:GetDeviceVariable(deviceId, VAR_TIMER_RUNTIME)) or 0
+  local countdown = tointeger(C4:GetDeviceVariable(deviceId, VAR_TIMER_COUNTDOWN)) or 0
+  local running = tointeger(C4:GetDeviceVariable(deviceId, VAR_TIMER_STATE)) == 1
+  -- A countdown that has reached 0 has ended, even while the timer still shows itself running.
+  local on = running and (runtime < 0 or countdown > 0)
+  return on, on and runtime > 0
+end
+
+--- Watch a Control4 timer as a switched device.
+--- @param deviceId integer The timer driver itself, not its proxy.
+--- @param name string
+local function watchTimer(deviceId, name)
+  local key = tostring(deviceId)
+  local on, countingDown = readTimer(deviceId)
+  devices[key] = { deviceId = deviceId, timer = true, name = name, on = on, countingDown = countingDown }
+  local function settled()
+    local device = devices[key]
+    if device == nil then
+      return
+    end
+    local nowOn, nowCountingDown = readTimer(deviceId)
+    device.countingDown = nowCountingDown
+    onDeviceState(key, nowOn, true)
+  end
+  -- A timer writes its variables one at a time, and halfway from On to a countdown it reads as a countdown that has
+  -- ended.
+  local function changed()
+    SetTimer(TIMER_SETTLE_PREFIX .. key, TIMER_SETTLE, settled)
+  end
+  RegisterVariableListener(deviceId, VAR_TIMER_RUNTIME, changed)
+  RegisterVariableListener(deviceId, VAR_TIMER_COUNTDOWN, changed)
+  RegisterVariableListener(deviceId, VAR_TIMER_STATE, changed)
+end
+
+--- Watch a light or a fan controller as a switched device.
 --- @param deviceId integer
 --- @param name string
-local function watchDevice(deviceId, name)
+local function watchSwitch(deviceId, name)
   local key = tostring(deviceId)
-  fans[key] = {
+  devices[key] = {
     deviceId = deviceId,
     name = name,
     on = toboolean(C4:GetDeviceVariable(deviceId, VAR_DEVICE_ON)),
   }
   RegisterVariableListener(deviceId, VAR_DEVICE_ON, function(_, _, strValue)
-    onFanState(key, toboolean(strValue), true)
+    onDeviceState(key, toboolean(strValue), true)
   end)
 end
 
 --- Register the handlers of the Relay connection.
 --- @param binding Binding
-local function registerFanRelayHandlers(binding)
+local function registerRelayHandlers(binding)
   RFP[binding.bindingId] = function(idBinding, strCommand, _tParams, _args)
     log:trace("RFP[%s](%s, %s)", binding.bindingId, idBinding, strCommand)
     if strCommand == "CLOSED" or strCommand == "OPENED" then
-      onFanState(FAN_RELAY_KEY, strCommand == "CLOSED", true)
+      onDeviceState(RELAY_KEY, strCommand == "CLOSED", true)
     elseif strCommand == "STATE_CLOSED" or strCommand == "STATE_OPENED" then
-      onFanState(FAN_RELAY_KEY, strCommand == "STATE_CLOSED", false)
+      onDeviceState(RELAY_KEY, strCommand == "STATE_CLOSED", false)
     end
   end
 
   OBC[binding.bindingId] = function(idBinding, _strClass, bIsBound, _otherDeviceId, _otherBindingId)
     log:trace("OBC[%s](%s, %s, %s)", binding.bindingId, idBinding, _strClass, bIsBound)
-    local fan = fans[FAN_RELAY_KEY]
-    if fan ~= nil then
+    local device = devices[RELAY_KEY]
+    if device ~= nil then
       -- Another relay, or none: what the last one showed says nothing about it.
-      fan.on = nil
+      device.on = nil
     end
     if not bIsBound then
-      owned[FAN_RELAY_KEY] = nil
+      owned[RELAY_KEY] = nil
     end
   end
 end
 
 --- Make or remove the Relay connection as the Control Method asks.
-local function reconcileFanRelay()
+local function reconcileRelay()
   if Properties["Control Method"] == METHOD_RELAY then
-    local relay = bindings:getOrAddDynamicBinding(NS_OUTPUT, OUTPUT_FAN_RELAY, "CONTROL", false, "Relay", "RELAY")
+    local relay = bindings:getOrAddDynamicBinding(NS_OUTPUT, OUTPUT_RELAY, "CONTROL", false, "Relay", "RELAY")
     if relay then
-      registerFanRelayHandlers(relay)
+      registerRelayHandlers(relay)
     end
   else
-    local relay = bindings:getDynamicBinding(NS_OUTPUT, OUTPUT_FAN_RELAY)
+    local relay = bindings:getDynamicBinding(NS_OUTPUT, OUTPUT_RELAY)
     if relay then
       RFP[relay.bindingId] = nil
       OBC[relay.bindingId] = nil
-      bindings:deleteBinding(NS_OUTPUT, OUTPUT_FAN_RELAY)
+      bindings:deleteBinding(NS_OUTPUT, OUTPUT_RELAY)
     end
   end
 end
 
---- The devices the Control Method's selector names.
+--- @class SelectedDevice
+--- @field name string Its display name.
+--- @field timer boolean True for a Control4 timer.
+
+--- The devices the Control Method's selector names. A timer is keyed by its driver, which takes its commands and
+--- holds its variables, whichever of the driver and its proxy the selector holds.
 --- @param method string The Control Method.
---- @return table<string, string> names Each device's display name, by its id as text.
+--- @return table<string, SelectedDevice> devices By device id as text.
 local function selectedDevices(method)
-  local names = {}
-  local property = method == METHOD_LIGHT and "Light Switches" or method == METHOD_FAN and "Fan Controller" or nil
+  local selected = {}
+  local property = method == METHOD_LIGHT and "Light Switches"
+    or method == METHOD_FAN and "Fan Controller"
+    or method == METHOD_TIMER and "Timers"
+    or nil
   if property ~= nil then
-    ParseDeviceIdPropertyList(property, function(deviceId, device)
-      names[tostring(deviceId)] = device.displayName
-      return device
+    ParseDeviceIdPropertyList(property, function(deviceId, info)
+      local key = tostring(deviceId)
+      if method == METHOD_TIMER then
+        for protocolId, protocol in pairs(info.protocol or {}) do
+          if TIMER_DRIVERS[protocol.driverFileName] then
+            key = tostring(protocolId)
+          end
+        end
+      end
+      selected[key] = { name = info.displayName, timer = method == METHOD_TIMER }
+      return info
     end)
   end
-  return names
+  return selected
 end
 
---- Watch the fans the Control Method and its selector name, and show only that selector.
-local function configureFans()
-  local method = Properties["Control Method"]
-  local devices = selectedDevices(method)
+--- A device the alert turned on that is no longer among the devices watched, so it can still be turned off.
+--- @param key string
+--- @return SwitchedDevice device
+local function unwatchedDevice(key)
+  if key == RELAY_KEY then
+    return { name = "the relay" }
+  end
+  local deviceId = tointeger(key)
+  local info = GetDevice(deviceId)
+  return {
+    deviceId = deviceId,
+    timer = info ~= nil and TIMER_DRIVERS[info.driverFileName] == true,
+    name = info and info.displayName or ("device " .. key),
+  }
+end
 
-  -- A fan the alert turned on that is no longer selected is turned off while it can still be reached,
-  -- also when it left the selection while the driver was down and so has no entry in fans yet.
+--- Watch the devices the Control Method and its selector name, and show only that selector.
+local function configureDevices()
+  local method = Properties["Control Method"]
+  local selected = selectedDevices(method)
+
+  -- A device the alert turned on that is no longer selected is turned off while it can still be reached,
+  -- also when it left the selection while the driver was down and so has no entry in devices yet.
   local ownedKeys = TableKeys(owned)
   table.sort(ownedKeys)
   for _, key in ipairs(ownedKeys) do
-    local stays = (key == FAN_RELAY_KEY and method == METHOD_RELAY) or devices[key] ~= nil
+    local stays = (key == RELAY_KEY and method == METHOD_RELAY) or selected[key] ~= nil
     if not stays and state.active then
-      local fan = fans[key]
-        or (key == FAN_RELAY_KEY and { name = "the relay" } or { name = "device " .. key, deviceId = tointeger(key) })
+      local device = devices[key] or unwatchedDevice(key)
       -- Forgotten before the off goes out, so its answer is not taken for someone switching it off.
-      if fan.deviceId ~= nil then
-        UnregisterVariableListener(fan.deviceId, VAR_DEVICE_ON)
-      end
-      fans[key] = nil
+      unwatch(device)
+      devices[key] = nil
       owned[key] = nil
-      sendFan(fan, false)
+      sendDevice(device, false)
     end
   end
-  local previous = fans
-  forgetFans()
-  reconcileFanRelay()
+  local previous = devices
+  forgetDevices()
+  reconcileRelay()
   C4:SetPropertyAttribs("Light Switches", method == METHOD_LIGHT and constants.SHOW_PROPERTY or constants.HIDE_PROPERTY)
   C4:SetPropertyAttribs("Fan Controller", method == METHOD_FAN and constants.SHOW_PROPERTY or constants.HIDE_PROPERTY)
+  C4:SetPropertyAttribs("Timers", method == METHOD_TIMER and constants.SHOW_PROPERTY or constants.HIDE_PROPERTY)
 
   if method == METHOD_RELAY then
-    local before = previous[FAN_RELAY_KEY]
-    fans[FAN_RELAY_KEY] = { name = "the relay", on = before and before.on or nil }
+    local before = previous[RELAY_KEY]
+    devices[RELAY_KEY] = { name = "the relay", on = before and before.on or nil }
   else
-    for key, name in pairs(devices) do
-      watchDevice(tointeger(key), name)
+    for key, entry in pairs(selected) do
+      if entry.timer then
+        watchTimer(tointeger(key), entry.name)
+      else
+        watchSwitch(tointeger(key), entry.name)
+      end
     end
   end
 
   for key, _ in pairs(owned) do
-    if fans[key] == nil then
+    if devices[key] == nil then
       owned[key] = nil
     end
   end
-  if anyFanOn() then
-    Detector.fanStarted(state, now())
-  elseif state.fanRunning then
-    -- No selected fan runs any longer: it stopped while the driver was down, or is no longer selected.
-    Detector.fanStopped(state, now())
+  if anyDeviceOn() then
+    Detector.deviceStarted(state, now())
+  elseif state.deviceRunning then
+    -- No selected device runs any longer: it stopped while the driver was down, or is no longer selected.
+    Detector.deviceStopped(state, now())
   end
   if gInitialized and state.active and licensed() then
-    engageFans()
+    engageDevices()
     saveState()
   end
 end
@@ -551,12 +674,12 @@ local function apply(changes, quiet)
     if change.type == Detector.Change.STARTED then
       rawPeak = state.lastRh
       tellContact()
-      engageFans()
+      engageDevices()
       C4:FireEvent(EVENT_STARTED)
     elseif change.type == Detector.Change.CLEARED then
       rawPeak = nil
       tellContact()
-      releaseFans()
+      releaseDevices()
       if not quiet then
         C4:FireEvent(EVENT_CLEARED)
       end
@@ -845,7 +968,7 @@ local function reconcileConnections()
   if contact then
     registerContactHandlers(contact)
   end
-  -- The Relay connection is left to configureFans, which must send a dropped relay an OPEN before deleting it.
+  -- The Relay connection is left to configureDevices, which must send a dropped relay an OPEN before deleting it.
   reconcileReference()
 end
 
@@ -920,6 +1043,17 @@ function OnDriverInit()
   local record = persist:get(PERSIST_STATE)
   if type(record) == "table" and type(record.state) == "table" then
     state = record.state
+    -- v20261113 saved these under names that called every switched device a fan.
+    for oldKey, newKey in pairs({
+      fanRunning = "deviceRunning",
+      fanRest = "deviceRest",
+      fanRestUntil = "deviceRestUntil",
+    }) do
+      if state[newKey] == nil then
+        state[newKey] = state[oldKey]
+      end
+      state[oldKey] = nil
+    end
     rawPeak = tonumber(record.rawPeak)
     owned = type(record.owned) == "table" and record.owned or {}
   else
@@ -927,7 +1061,7 @@ function OnDriverInit()
     rawPeak = nil
     owned = {}
   end
-  fans = {}
+  devices = {}
   -- An alert that outlasted the downtime is restored as it was and ended by the first tick.
   Detector.restart(state, now())
   lastContactState = nil
@@ -1138,20 +1272,27 @@ end
 
 function OPC.Control_Method(propertyValue)
   log:trace("OPC.Control_Method('%s')", propertyValue)
-  configureFans()
+  configureDevices()
 end
 
 function OPC.Light_Switches(propertyValue)
   log:trace("OPC.Light_Switches('%s')", propertyValue)
   if Properties["Control Method"] == METHOD_LIGHT then
-    configureFans()
+    configureDevices()
   end
 end
 
 function OPC.Fan_Controller(propertyValue)
   log:trace("OPC.Fan_Controller('%s')", propertyValue)
   if Properties["Control Method"] == METHOD_FAN then
-    configureFans()
+    configureDevices()
+  end
+end
+
+function OPC.Timers(propertyValue)
+  log:trace("OPC.Timers('%s')", propertyValue)
+  if Properties["Control Method"] == METHOD_TIMER then
+    configureDevices()
   end
 end
 
@@ -1229,7 +1370,7 @@ function EC.Reset_Driver(params)
   end
   CancelTimer("PairSample")
   CancelTimer("PairReference")
-  forgetFans()
+  forgetDevices()
 
   -- Reset all dynamic state
   bindings:reset()
@@ -1259,7 +1400,7 @@ function EC.Reset_Driver(params)
   --#endif
 
   reconcileConnections()
-  configureFans()
+  configureDevices()
   createVariables()
   showModeProperties()
   tellContact(true)
