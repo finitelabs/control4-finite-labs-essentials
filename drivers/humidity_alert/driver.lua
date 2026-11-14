@@ -436,7 +436,7 @@ local function watchTimer(deviceId, name)
     onFanState(key, nowOn, true)
   end
   -- A timer writes its variables one at a time, and halfway from On to a countdown it reads as a countdown that has
-  -- ended. It is read once they have all landed.
+  -- ended.
   local function changed()
     SetTimer(TIMER_SETTLE_PREFIX .. key, TIMER_SETTLE, settled)
   end
