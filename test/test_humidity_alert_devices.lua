@@ -1,10 +1,10 @@
--- The Humidity Alert's fans: an alert turns on the fans the Control Method selects and turns off only the ones it
--- turned on, a fan switched off during an alert ends it, and a fan something else ran is taken over at most once.
+-- The Humidity Alert's switched devices: an alert turns on the devices the Control Method selects and turns off only the ones it
+-- turned on, a device switched off during an alert ends it, and a device something else ran is taken over at most once.
 --
 -- Run from the driver root:
 --   make test
 -- or:
---   ./test/run_test.sh test_humidity_alert_fans.lua
+--   ./test/run_test.sh test_humidity_alert_devices.lua
 
 local LIGHT_A, LIGHT_B, FAN = 400, 401, 500
 
@@ -130,7 +130,7 @@ local function start(overrides, answer)
   end)
 end
 
---- A fresh driver in a resting room at 45 percent, with every fan off.
+--- A fresh driver in a resting room at 45 percent, with every device off.
 local function fresh(overrides)
   H.deviceVars = { [LIGHT_A] = { [1000] = "0" }, [LIGHT_B] = { [1000] = "0" }, [FAN] = { [1000] = "0" } }
   start()
@@ -141,7 +141,7 @@ local function fresh(overrides)
   end
 end
 
-T.section("humidity_alert fans: the Control Method decides which connection and selector exist")
+T.section("humidity_alert devices: the Control Method decides which connection and selector exist")
 fresh()
 T.eq("None has no Relay connection", relay(), nil)
 T.eq("and hides both selectors", { attribs["Light Switches"], attribs["Fan Controller"] }, { 1, 1 })
@@ -157,7 +157,7 @@ setProperty("Light Switches", "400,401")
 setProperty("Control Method", "None")
 T.eq("a hidden selector keeps its value", Properties["Light Switches"], "400,401")
 
-T.section("humidity_alert fans: light switches go on with the alert and off with it")
+T.section("humidity_alert devices: light switches go on with the alert and off with it")
 fresh(LIGHTS)
 T.eq("a start of the driver commands nothing", start(LIGHTS), "contact STATE_OPENED")
 for _ = 1, 4 do
@@ -168,21 +168,21 @@ T.eq("the switches turning on is the driver's own doing", shows(LIGHT_A, true) .
 T.eq("Clear Alert", command("Clear Alert"), "contact OPENED; device 400 OFF; device 401 OFF; event Alert Cleared")
 T.eq("the switches turning off is too", shows(LIGHT_A, false) .. shows(LIGHT_B, false), "")
 
-T.section("humidity_alert fans: a fan that already runs is not the alert's, and is left running")
+T.section("humidity_alert devices: a device that already runs is not the alert's, and is left running")
 fresh(LIGHTS)
 shows(LIGHT_B, true)
-T.eq("a shower turns on only the fan that is off", report(75), "contact CLOSED; device 400 ON; event Alert Started")
+T.eq("a shower turns on only the device that is off", report(75), "contact CLOSED; device 400 ON; event Alert Started")
 shows(LIGHT_A, true)
 T.eq("the end turns off only that one", command("Clear Alert"), "contact OPENED; device 400 OFF; event Alert Cleared")
 
-T.section("humidity_alert fans: a fan the alert turned on, switched off, ends the alert")
+T.section("humidity_alert devices: a device the alert turned on, switched off, ends the alert")
 fresh(LIGHTS)
 report(75)
 shows(LIGHT_A, true)
 shows(LIGHT_B, true)
 minutes(20)
 T.eq(
-  "twenty minutes in, something turns one off: the alert ends and its other fan goes off",
+  "twenty minutes in, something turns one off: the alert ends and its other device goes off",
   shows(LIGHT_A, false),
   "contact OPENED; device 401 OFF; event Alert Cleared"
 )
@@ -190,7 +190,7 @@ T.eq("Alert", Properties["Alert"], "Clear")
 shows(LIGHT_B, false)
 T.eq("the room still wet does not start it again", report(76), "")
 
-T.section("humidity_alert fans: a fan something else ran is turned back on once if it stops during an alert")
+T.section("humidity_alert devices: a device something else ran is turned back on once if it stops during an alert")
 fresh(LIGHTS)
 shows(LIGHT_B, true)
 report(75)
@@ -198,33 +198,33 @@ shows(LIGHT_A, true)
 T.eq("it stops mid-alert: the alert takes it over", shows(LIGHT_B, false), "device 401 ON")
 T.eq("which is the driver's own doing", shows(LIGHT_B, true), "")
 T.eq(
-  "switched off again, it ends the alert like any fan of its own",
+  "switched off again, it ends the alert like any device of its own",
   shows(LIGHT_B, false),
   "contact OPENED; device 400 OFF; event Alert Cleared"
 )
 
-T.section("humidity_alert fans: an off sent as one alert ended that lands after the next began is put right")
+T.section("humidity_alert devices: an off sent as one alert ended that lands after the next began is put right")
 fresh(LIGHTS)
 command("Start Alert", { Minutes = "30" })
 shows(LIGHT_A, true)
 shows(LIGHT_B, true)
 command("Clear Alert")
 T.eq(
-  "a new alert before the fans have stopped sends nothing",
+  "a new alert before the devices have stopped sends nothing",
   command("Start Alert", { Minutes = "30" }),
   "contact CLOSED; event Alert Started"
 )
-T.eq("the late off does not end it: the fan is turned on again", shows(LIGHT_A, false), "device 400 ON")
+T.eq("the late off does not end it: the device is turned on again", shows(LIGHT_A, false), "device 400 ON")
 shows(LIGHT_A, true)
 T.eq("and is the alert's own from there", shows(LIGHT_A, false), "contact OPENED; event Alert Cleared")
 
-T.section("humidity_alert fans: with no alert the driver never commands a fan")
+T.section("humidity_alert devices: with no alert the driver never commands a device")
 fresh(LIGHTS)
-T.eq("something turns a fan on", shows(LIGHT_A, true), "")
+T.eq("something turns a device on", shows(LIGHT_A, true), "")
 minutes(20)
 T.eq("and off", shows(LIGHT_A, false), "")
 
-T.section("humidity_alert fans: a fan that stops lets outdoor air back, so the next small climb is not a shower")
+T.section("humidity_alert devices: a device that stops lets outdoor air back, so the next small climb is not a shower")
 fresh(LIGHTS)
 shows(LIGHT_A, true)
 minutes(5)
@@ -232,12 +232,12 @@ shows(LIGHT_A, false)
 T.eq("a climb of 8 points after it stops", report(53), "")
 fresh(LIGHTS)
 T.eq(
-  "the same climb with no fan having run",
+  "the same climb with no device having run",
   report(53),
   "contact CLOSED; device 400 ON; device 401 ON; event Alert Started"
 )
 
-T.section("humidity_alert fans: a restart keeps the alert's fans its own")
+T.section("humidity_alert devices: a restart keeps the alert's devices its own")
 fresh(LIGHTS)
 report(75)
 shows(LIGHT_A, true)
@@ -249,7 +249,7 @@ T.eq(
   "contact OPENED; device 400 OFF; device 401 OFF; event Alert Cleared"
 )
 
-T.section("humidity_alert fans: a fan taken over is still the alert's after a restart")
+T.section("humidity_alert devices: a device taken over is still the alert's after a restart")
 fresh(LIGHTS)
 shows(LIGHT_B, true)
 report(75)
@@ -263,7 +263,7 @@ T.eq(
   "contact OPENED; device 400 OFF; device 401 OFF; event Alert Cleared"
 )
 
-T.section("humidity_alert fans: a fan dropped from the selection while the driver was down is still turned off")
+T.section("humidity_alert devices: a device dropped from the selection while the driver was down is still turned off")
 fresh(LIGHTS)
 report(75)
 shows(LIGHT_A, true)
@@ -306,7 +306,7 @@ T.eq("and then removes its connection", relay(), nil)
 T.eq("the end sends only the contact", command("Clear Alert"), "contact OPENED; event Alert Cleared")
 
 T.section(
-  "humidity_alert fans: a fan dropped from the selection mid-alert is turned off, and its off does not end the alert"
+  "humidity_alert devices: a device dropped from the selection mid-alert is turned off, and its off does not end the alert"
 )
 for _, method in ipairs({ "None", "Light Switch" }) do
   fresh(RELAY)
@@ -330,7 +330,9 @@ for _, method in ipairs({ "None", "Light Switch" }) do
   T.eq("and the alert carries on", Properties["Alert"], "Active (Rise)")
 end
 
-T.section("humidity_alert fans: an alert that ended while the controller was down turns its fans off at the first tick")
+T.section(
+  "humidity_alert devices: an alert that ended while the controller was down turns its devices off at the first tick"
+)
 fresh(LIGHTS)
 command("Start Alert", { Minutes = "5" })
 shows(LIGHT_A, true)
@@ -346,7 +348,7 @@ T.eq(
   "contact OPENED; device 400 OFF; device 401 OFF; event Alert Cleared"
 )
 
-T.section("humidity_alert fans: every other end turns the alert's fans off")
+T.section("humidity_alert devices: every other end turns the alert's devices off")
 fresh(LIGHTS)
 command("Start Alert", { Minutes = "30" })
 T.eq(
@@ -384,7 +386,7 @@ T.eq(
   "contact OPENED; device 400 OFF; device 401 OFF"
 )
 
-T.section("humidity_alert fans: a switch taken out of the selection during an alert is turned off")
+T.section("humidity_alert devices: a switch taken out of the selection during an alert is turned off")
 fresh(LIGHTS)
 command("Start Alert", { Minutes = "30" })
 shows(LIGHT_A, true)
@@ -396,14 +398,14 @@ T.eq(
   "contact OPENED; device 400 OFF; event Alert Cleared"
 )
 
-T.section("humidity_alert fans: a relay closes with the alert and opens with it")
+T.section("humidity_alert devices: a relay closes with the alert and opens with it")
 fresh(RELAY)
 T.eq("a shower", report(75), "contact CLOSED; relay CLOSE; event Alert Started")
 T.eq("the relay closing is the driver's own doing", relayTells("CLOSED"), "")
 T.eq("Clear Alert", command("Clear Alert"), "contact OPENED; relay OPEN; event Alert Cleared")
 T.eq("the relay opening is too", relayTells("OPENED"), "")
 
-T.section("humidity_alert fans: a relay opened during an alert ends it; a relay telling where it stands does not")
+T.section("humidity_alert devices: a relay opened during an alert ends it; a relay telling where it stands does not")
 fresh(RELAY)
 report(75)
 relayTells("CLOSED")
@@ -415,7 +417,7 @@ relayTells("CLOSED")
 T.eq("a relay telling that it stands open is not a change", relayTells("STATE_OPENED"), "")
 T.eq("Alert", Properties["Alert"], "Active (Rise)")
 
-T.section("humidity_alert fans: a relay something else closed is closed again once if it opens during an alert")
+T.section("humidity_alert devices: a relay something else closed is closed again once if it opens during an alert")
 fresh(RELAY)
 relayTells("CLOSED")
 T.eq("a shower finds it closed and sends nothing", report(75), "contact CLOSED; event Alert Started")
@@ -424,7 +426,7 @@ relayTells("CLOSED")
 T.eq("opened again, it ends the alert", relayTells("OPENED"), "contact OPENED; event Alert Cleared")
 T.eq("with no alert, a relay something else closed is left alone", relayTells("CLOSED") .. relayTells("OPENED"), "")
 
-T.section("humidity_alert fans: a fan speed controller goes on with the alert and off with it")
+T.section("humidity_alert devices: a fan speed controller goes on with the alert and off with it")
 fresh(CONTROLLER)
 T.eq("a shower", report(75), "contact CLOSED; device 500 ON; event Alert Started")
 shows(FAN, true)
@@ -433,6 +435,30 @@ shows(FAN, false)
 command("Start Alert", { Minutes = "30" })
 shows(FAN, true)
 T.eq("switched off during an alert, it ends it", shows(FAN, false), "contact OPENED; event Alert Cleared")
+
+T.section("humidity_alert devices: a state saved under the names v20261113 used is read under the new ones")
+fresh(LIGHTS)
+shows(LIGHT_A, true)
+minutes(5)
+shows(LIGHT_A, false)
+-- With nothing changing, the state is written at most every five minutes.
+minutes(6)
+local persist = require("lib.persist")
+ShimPersistLand()
+local record = persist:get("AlertState")
+local restUntil = record.state.deviceRestUntil
+T.eq("a device that stopped leaves a rest window", type(restUntil), "number")
+record.state.fanRest, record.state.deviceRest = record.state.deviceRest, nil
+record.state.fanRestUntil, record.state.deviceRestUntil = restUntil, nil
+record.state.fanRunning, record.state.deviceRunning = false, nil
+persist:set("AlertState", record)
+start(LIGHTS)
+command("Start Alert", { Minutes = "30" })
+ShimPersistLand()
+local restored = persist:get("AlertState").state
+T.eq("after a restart the rest window is kept", restored.deviceRestUntil, restUntil)
+T.eq("and so is the level the room rested at", restored.deviceRest ~= nil, true)
+T.eq("and the old names are gone", { restored.fanRest, restored.fanRestUntil, restored.fanRunning }, { nil, nil, nil })
 
 if H.gate and H.gate._timer then
   H.gate._timer:Cancel()

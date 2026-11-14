@@ -1,6 +1,6 @@
 -- The Humidity Alert's Timer control method: an alert sets the selected Control4 timers to On, which runs with no
 -- countdown, and to Off when it ends. A timer counting down when an alert starts is set to On and is the alert's,
--- since its countdown would turn the fan off mid-alert.
+-- since its countdown would turn the device off mid-alert.
 --
 -- Run from the driver root:
 --   make test

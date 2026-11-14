@@ -45,7 +45,7 @@ Detector.Change = {
 --- @type number
 local RISE_WINDOW = 15 * 60
 
---- How long after an alert, or after a fan stops, a start needs a larger rise.
+--- How long after an alert, or after a switched device stops, a start needs a larger rise.
 --- @type number
 local HOLD_OFF = 15 * 60
 
@@ -162,11 +162,11 @@ local REFERENCE_MARGIN = 8
 --- @field peakTime number|nil When that was.
 --- @field lowSincePeak number|nil The lowest humidity since the peak.
 --- @field holdOffUntil number|nil When the hold-off after an alert ends.
---- @field leakGuardUntil number|nil When the hold-off after a fan stop ends.
+--- @field leakGuardUntil number|nil When the hold-off after a switched device stops ends.
 --- @field floorTime number|nil Samples before this no longer set the baseline.
---- @field fanRunning boolean|nil True while a fan the driver watches runs.
---- @field fanRest HumiditySample|nil The highest sample the room rested at before the fan ran.
---- @field fanRestUntil number|nil When that sample stops counting, once the fan has stopped.
+--- @field deviceRunning boolean|nil True while a device the driver watches runs.
+--- @field deviceRest HumiditySample|nil The highest sample the room rested at before the device ran.
+--- @field deviceRestUntil number|nil When that sample stops counting, once the device has stopped.
 
 --- A state with nothing learned and no alert.
 --- @return HumidityState state A new state.
@@ -269,7 +269,7 @@ end
 
 --- @param state HumidityState
 --- @param now number
---- @return boolean guarding True during the hold-off that follows a fan stop.
+--- @return boolean guarding True during the hold-off that follows a device stopping.
 local function inLeakGuard(state, now)
   return state.leakGuardUntil ~= nil and now < state.leakGuardUntil
 end
@@ -281,8 +281,8 @@ end
 --- @param c number|nil
 local function remember(state, now, rh, c)
   local history = state.history
-  -- A running fan pulls the room's own air over a sensor in its housing: not where it rests.
-  local rest = not state.active and not inHoldOff(state, now) and not state.fanRunning
+  -- A running exhaust fan pulls the room's own air over a sensor in its housing: not where it rests.
+  local rest = not state.active and not inHoldOff(state, now) and not state.deviceRunning
   local sample = { t = now, rh = rh, c = c, rest = rest }
   local last = history[#history]
   if last ~= nil and math.floor(last.t / BUCKET) == math.floor(now / BUCKET) then
@@ -352,9 +352,9 @@ local function restingHigh(state, now, low, refC)
       end
     end
   end
-  -- A fan run of any length must not age out the level the room rested at before it.
-  local kept = state.fanRest
-  if kept ~= nil and (state.fanRunning or (state.fanRestUntil ~= nil and now < state.fanRestUntil)) then
+  -- A device run of any length must not age out the level the room rested at before it.
+  local kept = state.deviceRest
+  if kept ~= nil and (state.deviceRunning or (state.deviceRestUntil ~= nil and now < state.deviceRestUntil)) then
     local value = valueAt(kept.rh, kept.c, refC)
     if high == nil or value > high then
       high = value
@@ -835,7 +835,7 @@ function Detector.startManual(state, settings, now, seconds)
   return changes
 end
 
---- End the alert now, by command or because its fan was switched off by hand.
+--- End the alert now, by command or because its device was switched off by hand.
 --- @param state HumidityState The state, changed in place.
 --- @param settings HumiditySettings The current settings.
 --- @param now number The time, in seconds.
@@ -850,16 +850,16 @@ function Detector.clear(state, settings, now)
   return changes
 end
 
---- A fan stopped while no alert was active. A sensor in a fan housing then
+--- A switched device stopped while no alert was active. A sensor in an exhaust fan's housing then
 --- reads outdoor air leaking back, so the next rise is held to the larger
 --- amount and the baseline is taken again once the reading has settled.
 --- @param state HumidityState The state, changed in place.
 --- @param now number The time, in seconds.
-function Detector.fanStopped(state, now)
+function Detector.deviceStopped(state, now)
   advance(state, now)
-  if state.fanRunning then
-    state.fanRunning = false
-    state.fanRestUntil = now + REST_WINDOW
+  if state.deviceRunning then
+    state.deviceRunning = false
+    state.deviceRestUntil = now + REST_WINDOW
   end
   if not state.active then
     state.leakGuardUntil = now + HOLD_OFF
@@ -867,17 +867,17 @@ function Detector.fanStopped(state, now)
   end
 end
 
---- A fan started. The level the room rested at before it is kept for as long
---- as the fan runs, so the climb after it stops is measured against that level.
+--- A switched device started. The level the room rested at before it is kept for as long
+--- as the device runs, so the climb after it stops is measured against that level.
 --- @param state HumidityState The state, changed in place.
 --- @param now number The time, in seconds.
-function Detector.fanStarted(state, now)
+function Detector.deviceStarted(state, now)
   advance(state, now)
-  if state.fanRunning then
+  if state.deviceRunning then
     return
   end
-  local kept = state.fanRest
-  if kept ~= nil and (state.fanRestUntil == nil or now >= state.fanRestUntil) then
+  local kept = state.deviceRest
+  if kept ~= nil and (state.deviceRestUntil == nil or now >= state.deviceRestUntil) then
     kept = nil
   end
   for _, sample in ipairs(state.history) do
@@ -885,9 +885,9 @@ function Detector.fanStarted(state, now)
       kept = sample
     end
   end
-  state.fanRest = kept
-  state.fanRestUntil = nil
-  state.fanRunning = true
+  state.deviceRest = kept
+  state.deviceRestUntil = nil
+  state.deviceRunning = true
 end
 
 --- The sensor was bound or changed: the next sample only sets a baseline.
@@ -907,8 +907,8 @@ function Detector.restart(state, now)
     state.holdOffUntil = nil
     state.leakGuardUntil = nil
     state.floorTime = nil
-    state.fanRest = nil
-    state.fanRestUntil = nil
+    state.deviceRest = nil
+    state.deviceRestUntil = nil
   end
   state.history = state.history or {}
   -- The reference must be heard again: its stored readings have no known age.
