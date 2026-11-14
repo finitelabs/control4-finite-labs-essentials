@@ -18,7 +18,8 @@ each runs on the controller with no cloud service or extra hardware.
 - Lights used as relays by other drivers, with their state kept in step
 - Text and math built from Control4 variables, recalculated when they change
 - HTTP, TCP, UDP and Wake-on-LAN commands sent from programming
-- Inbound webhooks that fire programming events with what they carry
+- Inbound webhooks that fire programming events with what they carry, and can
+  answer the caller with variable values
 - Composer tabs for expressions and requests, with a searchable variable browser
 
 ## Included drivers
@@ -39,9 +40,9 @@ outputs, switched from programming.
 Raises an alert when something adds moisture to a room and its humidity rises,
 and holds it until the room has dried out, in a dry winter and a humid summer
 alike. It closes a contact for Control4 programming, and can switch a device
-itself, a bathroom exhaust fan for example, by a relay, light switches or a fan
-speed controller. A second sensor elsewhere in the house keeps humidity the
-whole house shares from counting as the room's.
+itself by a relay, light switches or a fan speed controller. A second sensor
+elsewhere in the house keeps humidity the whole house shares from counting as
+the room's.
 
 ### Device Programmer
 
@@ -64,7 +65,8 @@ changes. Written in a Composer tab with a variable browser and a live preview.
 
 Named HTTP, TCP, UDP and Wake-on-LAN requests, sent from programming with one
 command, with Sent and Failed events and the last response in a variable.
-Inbound webhooks fire events with their payload.
+Inbound webhooks fire events with their payload, and can answer the caller with
+text and the current values of Control4 variables.
 
 ## System requirements
 
