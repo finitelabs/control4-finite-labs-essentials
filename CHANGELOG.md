@@ -18,6 +18,12 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Removed
 -->
 
+## Unreleased
+
+### Fixed
+
+- Fixed Composer listing Humidity Alert's conditionals out of order.
+
 ## v20261114 - 2026-11-14
 
 ### Added
