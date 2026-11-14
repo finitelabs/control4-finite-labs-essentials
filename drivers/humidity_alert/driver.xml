@@ -25,6 +25,7 @@
       <description>NAME alert is STRING</description>
       <true_text>Active</true_text>
       <false_text>Clear</false_text>
+      <sort_order>1</sort_order>
     </conditional>
     <conditional>
       <id>2</id>
@@ -34,6 +35,7 @@
       <description>NAME humidity sensor is STRING</description>
       <true_text>Stale</true_text>
       <false_text>Reporting</false_text>
+      <sort_order>2</sort_order>
     </conditional>
   </conditionals>
   <events>
