@@ -390,7 +390,19 @@ Equations may use the full Lua `math` and `string` libraries (for example
 available without a prefix:
 
 `abs`, `ceil`, `floor`, `sqrt`, `min`, `max`, `round(x, digits)`, `c2f`, `f2c`,
-`pi`, `huge`, `tonumber`, `tostring`
+`pi`, `huge`, `tonumber`, `tostring`, `json(text, path)`
+
+`json(text, path)` reads one value from a variable that holds JSON. The path
+starts at `$`, names fields after dots, and picks an array's item with `[n]`,
+counted from 0:
+
+```
+json(PARAM{96,1003}, "$.sensors[0].temp")
+```
+
+Numbers, text, and true or false come back as they are. A path to an object or
+array gives that part's JSON text, which `json` can read again. Text that isn't
+JSON, or a path that leads to nothing, gives nil.
 
 Operators follow Lua syntax: `+`, `-`, `*`, `/`, `%` (modulo), `^` (power), and
 parentheses for grouping. Comparisons (`==`, `~=`, `<`, `<=`, `>`, `>=`)

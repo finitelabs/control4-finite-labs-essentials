@@ -18,6 +18,13 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Removed
 -->
 
+## Unreleased
+
+### Added
+
+- Added `json(text, path)` to Variable Expressions, which reads one value from a
+  variable that holds JSON, such as `json(PARAM{96,1003}, "$.sensors[0].temp")`.
+
 ## v20261113 - 2026-11-13
 
 ### Added

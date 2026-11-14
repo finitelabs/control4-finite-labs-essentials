@@ -25,7 +25,7 @@
 
 (function () {
   // Every name the sandbox (lib/expression-sandbox.lua) gives an expression; math and string are libraries.
-  var NAMES = ["abs", "ceil", "floor", "sqrt", "min", "max", "round", "pi", "huge", "c2f", "f2c", "device_name", "room_name", "tonumber", "tostring", "type"];
+  var NAMES = ["abs", "ceil", "floor", "sqrt", "min", "max", "round", "pi", "huge", "c2f", "f2c", "device_name", "room_name", "json", "tonumber", "tostring", "type"];
   var LIBRARIES = ["math", "string"];
   var WORDS = ["and", "or", "not", "true", "false"];
 
@@ -225,6 +225,8 @@
         "<p>" + code(["abs", "ceil", "floor", "sqrt", "min", "max", "round(x, places)", "pi", "huge"]) + "</p>" +
         "<p>" + code(["c2f", "f2c"]) + " convert between Celsius and Fahrenheit.</p>" +
         "<p>" + code(["device_name(id)", "room_name(id)"]) + " give a device's name and room.</p>" +
+        '<p><code>json(text, "$.path")</code> reads one value from JSON text: <code>json(PARAM{device id,variable id}, "$.sensors[0].temp")</code>. ' +
+          "Fields follow dots, <code>[0]</code> is an array's first item, and <code>[0][1]</code> reads an array inside one. An object or array comes back as its JSON text, and text that isn't JSON or a path to nothing gives nil.</p>" +
         "<p>" + code(["tonumber", "tostring", "type"]) + ", and the <code>math</code> and <code>string</code> libraries: <code>math.fmod</code>, <code>string.lower</code> and the rest.</p>",
     },
     string: {
