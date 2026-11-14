@@ -22,7 +22,8 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Fixed
 
-- Fixed Composer listing Humidity Alert's conditionals out of order.
+- Fixed Composer listing Humidity Alert's and Sensor Multiplexer's conditionals
+  out of order.
 
 ## v20261114 - 2026-11-14
 
