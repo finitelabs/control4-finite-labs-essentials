@@ -63,15 +63,15 @@ local SLOTS = 8
 --- A room writes its variables one at a time, and Control4's default volumes land after the source does. The room
 --- is read once it has been quiet this long.
 --- @type integer
-local SETTLE = 2 * ONE_SECOND
+local SETTLE_MS = 2 * ONE_SECOND
 
 local PERSIST_STATE = "VolumeState"
 
 local EVENT_FIXED = "Fixed Volume Set"
 local EVENT_RESTORED = "Volume Restored"
 
-local VAR_ACTIVE = "FIXED_VOLUME_ACTIVE"
-local VAR_SAVED = "SAVED_VOLUME"
+local VAR_ACTIVE = "Fixed Volume Active"
+local VAR_SAVED = "Saved Volume"
 
 --- The settings Reset Driver returns to their defaults.
 --- @type table<string, string>
@@ -183,7 +183,7 @@ local function showStatus(room)
   local status
   if not current.enabled then
     status = "Disabled"
-  elseif next(current.sources) == nil then
+  elseif IsEmpty(current.sources) then
     status = "No sources picked"
   elseif notice then
     status = notice
@@ -223,7 +223,7 @@ end
 local function roomSources(room)
   local found, seen = {}, {}
   for _, command in ipairs({ "GET_WATCH_DEVICES", "GET_LISTEN_DEVICES" }) do
-    local sources = Select(ParseXml(C4:SendToDevice(room, command, {})), "sources", "source")
+    local sources = Select(ParseXml(SendToDevice(room, command, {})), "sources", "source")
     if not IsList(sources) then
       sources = { sources }
     end
@@ -280,7 +280,7 @@ local function apply(changes, room)
   for _, change in ipairs(changes) do
     if change.type == Tracker.Change.SET then
       log:info("Setting %s's volume to %d", deviceName(watchedRoom), change.level)
-      C4:SendToDevice(watchedRoom, "SET_VOLUME_LEVEL", { LEVEL = tostring(change.level) })
+      SendToDevice(watchedRoom, "SET_VOLUME_LEVEL", { LEVEL = tostring(change.level) })
     elseif change.type == Tracker.Change.FIXED then
       notice = nil
       C4:FireEvent(EVENT_FIXED)
@@ -321,7 +321,7 @@ local function watchRoom()
   watchedRoom = room
   for _, id in ipairs(ROOM_VARIABLES) do
     RegisterVariableListener(room, id, function()
-      SetTimer("Settle", SETTLE, function()
+      SetTimer("Settle", SETTLE_MS, function()
         evaluate()
       end)
     end)
@@ -348,7 +348,10 @@ end
 --- Create the variables, in their fixed order, with what the state holds.
 local function createVariables()
   values:update(VAR_ACTIVE, Tracker.isActive(state), "BOOL")
-  values:update(VAR_SAVED, -1, "NUMBER")
+  -- A restored level stands until the room is read, so a start tells programming nothing new.
+  if values:getValue(VAR_SAVED) == nil then
+    values:update(VAR_SAVED, -1, "NUMBER")
+  end
 end
 
 --#ifndef DRIVERCENTRAL

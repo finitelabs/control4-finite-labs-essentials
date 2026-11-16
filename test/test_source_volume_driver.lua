@@ -46,7 +46,6 @@ function C4:UpdatePropertyList(name, list, value)
   lists[name] = { list = list, value = value }
 end
 
--- The driver reads the time from os.time; the test moves it.
 local clock = 1800000000
 os.time = function()
   return clock
@@ -135,8 +134,8 @@ setRoom(AIRPLAY, 35)
 recordLevels()
 T.eq("the first load", start(PICKS), "")
 T.eq("Room Status", Properties["Room Status"], "Not holding: AirPlay, Office is not picked")
-T.eq("FIXED_VOLUME_ACTIVE", Variables["FIXED_VOLUME_ACTIVE"], "0")
-T.eq("SAVED_VOLUME", tonumber(Variables["SAVED_VOLUME"]), -1)
+T.eq("Fixed Volume Active", Variables["Fixed Volume Active"], "0")
+T.eq("Saved Volume", tonumber(Variables["Saved Volume"]), -1)
 
 T.section("source_volume: each Source list holds the room's watch and listen sources")
 T.eq("Source 1", lists["Source 1"].list, "(Select),Computer (9),AirPlay Office (20)")
@@ -154,21 +153,24 @@ T.eq("Source 8 Volume", attribs["Source 8 Volume"], 1)
 T.section("source_volume: the picked source sets its level, and AirPlay gets its level back")
 T.eq("the computer", room(COMPUTER, 35), "set 60; event Fixed Volume Set")
 T.eq("Room Status", Properties["Room Status"], "Holding 60 for Computer, will restore 35")
-T.eq("FIXED_VOLUME_ACTIVE", Variables["FIXED_VOLUME_ACTIVE"], "1")
-T.eq("SAVED_VOLUME", tonumber(Variables["SAVED_VOLUME"]), 35)
+T.eq("Fixed Volume Active", Variables["Fixed Volume Active"], "1")
+T.eq("Saved Volume", tonumber(Variables["Saved Volume"]), 35)
 T.truthy("the conditional", TC.FIXED_VOLUME_ACTIVE("FIXED_VOLUME_ACTIVE", { VALUE = "Active", LOGIC = "EQUAL" }))
 T.eq("the level arrives", room(COMPUTER, 60), "")
 T.eq("AirPlay", room(AIRPLAY, 60), "set 35; event Volume Restored")
 T.eq("the level arrives", room(AIRPLAY, 35), "")
-T.eq("FIXED_VOLUME_ACTIVE", Variables["FIXED_VOLUME_ACTIVE"], "0")
-T.eq("SAVED_VOLUME", tonumber(Variables["SAVED_VOLUME"]), -1)
+T.eq("Fixed Volume Active", Variables["Fixed Volume Active"], "0")
+T.eq("Saved Volume", tonumber(Variables["Saved Volume"]), -1)
 T.falsy("the conditional", TC.FIXED_VOLUME_ACTIVE("FIXED_VOLUME_ACTIVE", { VALUE = "Active", LOGIC = "EQUAL" }))
 
 T.section("source_volume: a restart under the picked source sends nothing and still restores")
 room(COMPUTER, 35)
 room(COMPUTER, 60)
 setRoom(COMPUTER, 60)
+ShimRestartDirector()
 T.eq("the restart", start(PICKS), "")
+T.eq("Fixed Volume Active", Variables["Fixed Volume Active"], "1")
+T.eq("Saved Volume", tonumber(Variables["Saved Volume"]), 35)
 T.eq("Room Status", Properties["Room Status"], "Holding 60 for Computer, will restore 35")
 T.eq("AirPlay", room(AIRPLAY, 60), "set 35; event Volume Restored")
 room(AIRPLAY, 35)
@@ -218,7 +220,7 @@ T.eq(
   end),
   ""
 )
-T.eq("SAVED_VOLUME", tonumber(Variables["SAVED_VOLUME"]), -1)
+T.eq("Saved Volume", tonumber(Variables["Saved Volume"]), -1)
 ExecuteCommand("Enable Volume Control", {})
 
 T.section("source_volume: a pick the room no longer lists stays in its slot's list")

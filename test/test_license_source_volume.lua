@@ -41,7 +41,7 @@ setRoom(20, 35)
 
 H.standardChecks(
   "source_volume",
-  { ["Source 1"] = "9", ["Source 1 Volume"] = "60" },
+  { ["Source 1"] = "Computer (9)", ["Source 1 Volume"] = "60" },
   {
     {
       "the room switching to the picked source and back",
