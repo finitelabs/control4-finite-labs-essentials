@@ -47,7 +47,11 @@ local function setDevices()
         ["1003"] = { name = "STATUS", value = '{"battery":{"pct":87}}', type = "STRING" },
       },
     },
-    [200] = { deviceName = "Meter", roomName = "Garage", variables = { ["7"] = { name = "WATTS", value = "1500" } } },
+    [200] = {
+      deviceName = "Meter",
+      roomName = "Garage",
+      variables = { ["7"] = { name = "WATTS", value = "1500" } },
+    },
     [300] = { deviceName = "Empty", roomName = "Attic" },
     [100001] = { variables = { ["2301"] = { name = "GLOBAL_LIMIT", value = "90" } } },
   })
@@ -83,12 +87,35 @@ local text, problem = Expressions.substitute("PARAM{100,LEVEL}% and PARAM{100,10
 T.eq("values replace the tokens", text, "42% and Charging")
 T.eq("with no problem", problem, nil)
 T.contains("a token renders as its names", Expressions.render("PARAM{100,1001}"), "LEVEL]")
+local function bracket(value)
+  return "<" .. value .. ">"
+end
+T.eq(
+  "a format reads each value, and the text around them stays",
+  Expressions.substitute("PARAM{100,LEVEL}% and PARAM{100,1002}", "string", bracket),
+  "<42>% and <Charging>"
+)
+text, problem = Expressions.substitute("1 PARAM{200,NOPE}", "string", bracket)
+T.eq("a missing value isn't formatted", text, "1 ERROR_VARIABLE_NOT_FOUND")
+T.truthy("and is still the problem", problem ~= nil)
 
 T.section("Evaluation")
 T.eq("an equation gives a number", Expressions.evaluate("equation", "PARAM{100,LEVEL} * 2").result, 84)
 T.eq("a condition gives true or false", Expressions.evaluate("condition", "PARAM{100,LEVEL} < 50").result, true)
 T.eq("and false counts as a result", Expressions.evaluate("condition", "PARAM{100,LEVEL} > 50").result, false)
 T.eq("a string is its substitution", Expressions.evaluate("string", "at PARAM{100,LEVEL}").result, "at 42")
+T.eq("a value can be a number", Expressions.evaluate("value", "PARAM{100,LEVEL} / 4").result, 10.5)
+T.eq("or text", Expressions.evaluate("value", 'round(PARAM{100,LEVEL} / 4) .. "%"').result, "11%")
+T.eq(
+  "which a comparison can pick",
+  Expressions.evaluate("value", 'PARAM{100,LEVEL} > 40 and "High" or "Low"').result,
+  "High"
+)
+T.eq(
+  "a variable in quotes is written into the text",
+  Expressions.evaluate("value", '"PARAM{100,LEVEL}" .. 1').result,
+  "421"
+)
 T.eq("a global variable's agent reads too", Expressions.evaluate("equation", "PARAM{100001,GLOBAL_LIMIT}").result, 90)
 T.eq("Essentials' helpers work", Expressions.evaluate("equation", "round(c2f(PARAM{100,LEVEL} - 42), 1)").result, 32)
 T.eq(
@@ -136,6 +163,52 @@ T.contains(
   Expressions.evaluate("condition", "1").error,
   "not a boolean (got number)"
 )
+T.eq(
+  "a value that is true or false says so",
+  Expressions.evaluate("value", "PARAM{100,LEVEL} > 40").error,
+  "result is not a number or text (got boolean)"
+)
+T.eq(
+  "and so does one that is nothing",
+  Expressions.evaluate("value", "nil").error,
+  "result is not a number or text (got nil)"
+)
+
+T.section("round")
+for _, case in ipairs({
+  { "2.5", 3 },
+  { "-2.5", -3 },
+  { "2.4", 2 },
+  { "-2.4", -2 },
+  { "0.5", 1 },
+  { "-0.5", -1 },
+  { "2.25, 1", 2.3 },
+  { "-2.25, 1", -2.3 },
+  { "1234, -2", 1200 },
+  { "0.145, 2", 0.15 },
+  { "-0.145, 2", -0.15 },
+  { "1.005, 2", 1.01 },
+  { "1234567890123456", 1234567890123456 },
+  { "12345678901234.56, 2", 12345678901234.56 },
+  { "100000000000000.5", 100000000000001 },
+  { "10000000000000.25, 1", 10000000000000.3 },
+}) do
+  T.eq("round(" .. case[1] .. ")", Expressions.evaluate("equation", "round(" .. case[1] .. ")").result, case[2])
+end
+T.eq("what rounds to zero is 0, not -0", tostring(Expressions.evaluate("equation", "round(-0.4)").result), "0")
+T.eq("and to places too", tostring(Expressions.evaluate("equation", "round(-0.04, 1)").result), "0")
+local misses = {}
+for hundredths = 5, 995, 10 do
+  for _, sign in ipairs({ 1, -1 }) do
+    local half = sign * hundredths / 1000
+    local want = sign * (hundredths + 5) / 1000
+    local got = Expressions.evaluate("equation", string.format("round(%.3f, 2)", half)).result
+    if math.abs(got - want) > 1e-9 then
+      misses[#misses + 1] = string.format("%.3f gave %s", half, tostring(got))
+    end
+  end
+end
+T.eq("every two-place half from 0.005 to 0.995 rounds away from zero", table.concat(misses, ", "), "")
 
 T.section("A value can't become code")
 -- A value that ran as code would hang here, not fail, so a hook turns that into an error.
@@ -311,7 +384,10 @@ ShimSetDevices({
   },
   [97] = {
     deviceName = "Sensor B",
-    variables = { ["1001"] = { name = "Temperature", value = "71" }, ["1002"] = { name = "Humidity", value = "44.9" } },
+    variables = {
+      ["1001"] = { name = "Temperature", value = "71" },
+      ["1002"] = { name = "Humidity", value = "44.9" },
+    },
   },
   [98] = { deviceName = "Sensor C", variables = { ["1001"] = { name = "Temperature", value = "72.5" } } },
   [120] = {

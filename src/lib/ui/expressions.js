@@ -5,12 +5,13 @@
 //       value(), setValue(text), setMode(mode), insert(text), sync(), preview(now), used(), hold
 //   Kit.expressionHelp(options)              a help panel of its own, for one that serves several fields
 //   Kit.expressionError(raw, text, rendered, label)  an engine error as a plain sentence
-// The modes: equation comes out a number, condition true or false, string is the text with each variable's value in
-// it, and text colors only the variables and is never evaluated. In demo mode a preview goes to the page's demo answer.
+// The modes: equation comes out a number, condition true or false, value a number or text, and string is the text
+// with each variable's value in it. text colors only the variables and plain colors nothing; neither is evaluated. In
+// demo mode a preview goes to the page's demo answer.
 //
 // Editor options:
-//   mode                 "equation" (the default), "condition", "string" or "text"
-//   escapes              colors \r \n \t \0 \\ and \xNN in string and text modes
+//   mode                 "equation" (the default), "condition", "value", "string", "text" or "plain"
+//   escapes              colors \r \n \t \0 \\ and \xNN in string and text modes, and adds them to the help
 //   singleLine           Enter adds no line, and value() reads a pasted line break as a space
 //   onInput(text)        after each edit
 //   preview              the element the preview fills, ahead of what the page put in it, or false
@@ -46,7 +47,12 @@
   var USED = /PARAM\s*\{\s*([^,}]*?)\s*,\s*([^}]*?)\s*\}/g;
 
   function evaluated(mode) {
-    return mode === "equation" || mode === "condition";
+    return mode === "equation" || mode === "condition" || mode === "value";
+  }
+
+  // What the driver works out a preview for.
+  function previewed(mode) {
+    return mode !== "text" && mode !== "plain";
   }
 
   function paint(text, source, classes) {
@@ -72,7 +78,10 @@
 
   function highlight(text, mode, escapes) {
     text = Kit.str(text);
-    var out = evaluated(mode) ? paint(text, CODE, CODE_CLASSES) : paint(text, escapes ? ESCAPED : TEXT, TEXT_CLASSES);
+    var out;
+    if (evaluated(mode)) out = paint(text, CODE, CODE_CLASSES);
+    else if (mode === "plain") out = Kit.esc(text);
+    else out = paint(text, escapes ? ESCAPED : TEXT, TEXT_CLASSES);
     // A last empty line needs something in it, or the <pre> ends a line short of the textarea.
     if (out === "" || text.charAt(text.length - 1) === "\n") out += "​";
     return out;
@@ -161,10 +170,10 @@
   function expressionError(raw, text, rendered, label) {
     var error = Kit.str(raw);
     var field = label ? '"' + label + '"' : "It";
-    var m = /^result is not a (boolean|number) \(got (\w+)\)$/.exec(error);
+    var m = /^result is not a (boolean|number|number or text) \(got (\w+)\)$/.exec(error);
     if (m) {
       if (m[1] === "boolean") return field + " has to come out true or false: add a comparison.";
-      return field + " has to come out a number, and this gives " + kind(m[2]) + ".";
+      return field + " has to come out " + (m[1] === "number" ? "a number" : "a number or text") + ", and this gives " + kind(m[2]) + ".";
     }
     m = /^variable ([\s\S]+) not found on device ([\s\S]+)$/.exec(error);
     if (m) {
@@ -189,29 +198,50 @@
       .join(" ");
   }
 
+  // A variable, as the help writes one.
+  var P = "PARAM{device id,variable id}";
+
   var HELP = {
     tokens: {
       title: "Variables",
       html:
-        "<p><code>PARAM{device id,variable id}</code> reads a variable's current value. Choosing a variable from the list puts one at the cursor.</p>" +
+        "<p>" + code([P]) + " reads a variable's current value. Choosing a variable from the list puts one at the cursor.</p>" +
         "<p>A variable can also go by its exact name, case and all: <code>PARAM{device id,LEVEL}</code>.</p>",
     },
     condition: {
       title: "True or false",
-      html: "<p>It has to come out <code>true</code> or <code>false</code>, so it usually ends in a comparison. A variable that already holds true or false can stand alone.</p>",
+      html:
+        "<p>It has to come out <code>true</code> or <code>false</code>, so it usually ends in a comparison: " + code([P + " >= 80"]) + ".</p>" +
+        "<p>Join comparisons to check more than one thing: " + code([P + ' == "Charging" and ' + P + ' < 100']) + ". A variable that already holds true or false can stand alone.</p>",
     },
     equation: {
       title: "A number",
       html:
-        "<p>It is worked out as math with each variable's value, and has to come out a number.</p>" +
-        "<p>A comparison picks between two numbers: <code>PARAM{device id,variable id} &gt; 50 and 1 or 0</code>.</p>",
+        "<p>It is worked out as math with each variable's value, and has to come out a number: " + code(["(" + P + " + " + P + ") / 2"]) + ".</p>" +
+        "<p>A comparison picks between two numbers: " + code([P + " > 50 and 1 or 0"]) + ".</p>",
     },
-    operators: {
+    value: {
+      title: "A number or text",
+      html:
+        "<p>It is worked out with each variable's value, and comes out a number or text: " + code(["round(" + P + ")"]) + ".</p>" +
+        "<p><code>..</code> joins text and numbers: " + code(['round(' + P + ') .. "%"']) + ".</p>" +
+        "<p>A comparison picks between two: " + code([P + ' > 50 and "Open" or "Closed"']) + ".</p>",
+    },
+    string: {
+      title: "Text with variables",
+      html:
+        "<p>The text as written, with each variable's current value in place of its " + code([P]) + ": " + code([P + "%"]) + " comes out <code>62%</code>.</p>" +
+        "<p>Nothing in it is worked out, so quotes and signs show as typed.</p>",
+    },
+    compare: {
       title: "Comparing",
       html:
         "<p>" + code(["==", "~=", "<", "<=", ">", ">="]) + ", where <code>~=</code> means not equal.</p>" +
-        "<p>Join them with " + code(["and", "or", "not"]) + ".</p>" +
-        "<p>Math: " + code(["+", "-", "*", "/", "%", "^", "( )"]) + ", and <code>..</code> joins text.</p>",
+        "<p>Join them with " + code(["and", "or", "not"]) + ".</p>",
+    },
+    math: {
+      title: "Math",
+      html: "<p>" + code(["+", "-", "*", "/", "%", "^", "( )"]) + ", where <code>%</code> is the remainder and <code>^</code> raises to a power.</p>",
     },
     text: {
       title: "Text",
@@ -222,16 +252,13 @@
     functions: {
       title: "Functions",
       html:
-        "<p>" + code(["abs", "ceil", "floor", "sqrt", "min", "max", "round(x, places)", "pi", "huge"]) + "</p>" +
+        "<p>" + code(["abs", "ceil", "floor", "sqrt", "min", "max", "pi", "huge"]) + "</p>" +
+        "<p><code>round(x, places)</code> rounds to that many decimal places, none if left out. A half rounds away from zero.</p>" +
         "<p>" + code(["c2f", "f2c"]) + " convert between Celsius and Fahrenheit.</p>" +
         "<p>" + code(["device_name(id)", "room_name(id)"]) + " give a device's name and room.</p>" +
-        '<p><code>json(text, "$.path")</code> reads one value from JSON text: <code>json(PARAM{device id,variable id}, "$.sensors[0].temp")</code>. ' +
+        '<p><code>json(text, "$.path")</code> reads one value from JSON text: ' + code(["json(" + P + ', "$.sensors[0].temp")']) + ". " +
           "Fields follow dots, <code>[0]</code> is an array's first item, and <code>[0][1]</code> reads an array inside one. An object or array comes back as its JSON text, and text that isn't JSON or a path to nothing gives nil.</p>" +
         "<p>" + code(["tonumber", "tostring", "type"]) + ", and the <code>math</code> and <code>string</code> libraries: <code>math.fmod</code>, <code>string.lower</code> and the rest.</p>",
-    },
-    string: {
-      title: "Text with variables",
-      html: "<p>The text as written, with each variable's current value in place of its <code>PARAM{device id,variable id}</code>. Nothing in it is worked out.</p>",
     },
     escapes: {
       title: "Escapes",
@@ -242,15 +269,17 @@
   };
 
   var HELP_FOR = {
-    condition: ["condition", "tokens", "operators", "text", "functions"],
-    equation: ["tokens", "equation", "operators", "text", "functions"],
-    string: ["tokens", "string"],
+    condition: ["condition", "tokens", "compare", "text", "math", "functions"],
+    equation: ["equation", "tokens", "math", "compare", "text", "functions"],
+    value: ["value", "tokens", "math", "compare", "text", "functions"],
+    string: ["string", "tokens"],
     text: ["tokens"],
+    plain: [],
   };
 
   function helpSections(mode, escapes) {
     var list = (HELP_FOR[mode] || HELP_FOR.equation).slice();
-    if (escapes && !evaluated(mode)) list.push("escapes");
+    if (escapes && (mode === "string" || mode === "text")) list.push("escapes");
     return list;
   }
 
@@ -407,7 +436,7 @@
       clearTimeout(timer);
       seq++;
       var text = value();
-      var wanted = mode !== "text" && !!(parts || options.onResult) && (options.previewWhen ? options.previewWhen(text) : text.trim() !== "");
+      var wanted = previewed(mode) && !!(parts || options.onResult) && (options.previewWhen ? options.previewWhen(text) : text.trim() !== "");
       if (!wanted) return idle();
       if (now) ask();
       else timer = setTimeout(ask, 350);

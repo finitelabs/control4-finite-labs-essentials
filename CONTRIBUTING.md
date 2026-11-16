@@ -38,6 +38,9 @@ then pull the change in with `copier update`.
 **Common libraries (`src/lib/`):**
 
 - `bindings.lua`: binding management
+- `companions.lua`: gives each of a hub driver's bindings a companion driver,
+  one at a time: the one it had, a spare, or a new one, named and shown only in
+  its room
 - `conditionals.lua`: conditional/programming UI management; gives each one a
   `sort_order`
 - `diagnostics.lua`: Cloud Monitoring, a DriverCentral build's reports of its

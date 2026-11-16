@@ -394,6 +394,26 @@ end
 -- Built-in Functions
 ---------------------------------------------------------------------------
 
+--- Round to a number of decimal places, a half away from zero: -2.5 is -3, as 2.5 is 3.
+--- @param num number
+--- @param places? number Decimal places (optional; none).
+--- @return number rounded
+local function roundHalfAway(num, places)
+  local mult = 10 ^ (places or 0)
+  local scaled = num * mult
+  -- To 15 digits, so a half the float holds a hair under, as 0.145 * 100 is 14.4999..., is still a half. From 1e14 the
+  -- float holds every half exactly, and the step would round one away.
+  if math.abs(scaled) < 1e14 then
+    scaled = tonumber(string.format("%.15g", scaled)) or scaled
+  end
+  if scaled >= 0 then
+    return math.floor(scaled + 0.5) / mult
+  end
+  -- Negated after rounding, so what rounds to zero isn't -0.
+  local rounded = math.floor(-scaled + 0.5)
+  return rounded == 0 and 0 or -rounded / mult
+end
+
 --- Resolve a device ID to its display name via GetDevice().
 --- @param id any Device ID (number or string)
 --- @return string
@@ -567,7 +587,7 @@ local function buildEnv(bindings)
     max = math.max,
     pi = math.pi,
     huge = math.huge,
-    round = round,
+    round = roundHalfAway,
     -- Built-in transform functions
     device_name = function(id)
       return unlimited(deviceName, id)

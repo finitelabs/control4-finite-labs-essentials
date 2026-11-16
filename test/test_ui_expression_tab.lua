@@ -72,6 +72,8 @@ reply = ask({ id = "x1-2", mode = "condition", expression = 'PARAM{100,1002} == 
 T.eq("a condition comes out true or false", reply.result, "true")
 reply = ask({ id = "x1-3", mode = "string", expression = "Level PARAM{100,LEVEL}%" })
 T.eq("a string is the text with its values", reply.result, "Level 42%")
+reply = ask({ id = "x1-6", mode = "value", expression = 'round(PARAM{100,LEVEL} / 4) .. "%"' })
+T.eq("a value comes out a number or text", reply.result, "11%")
 reply = ask({ id = "x1-4", mode = "equation", expression = "PARAM{100,1002} + 1" })
 T.contains("an error is the engine's", reply.error, "runtime error")
 T.eq("with no result", reply.result, "")
