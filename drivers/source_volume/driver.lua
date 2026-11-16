@@ -362,7 +362,7 @@ function OnDriverLateInit()
 
   gInitialized = true
   UpdateProperty("Driver Status", "Ready")
-  -- Registering a listener delivers the room's current values, which settle into the first read.
+  -- Acts on the room at once; the values the new listeners deliver start one more read once the room is quiet.
   evaluate()
 
   --#ifdef DRIVERCENTRAL
