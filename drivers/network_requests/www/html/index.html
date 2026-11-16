@@ -123,8 +123,8 @@
             </div>
             <div>
               <label for="req-url">URL</label>
-              <input type="text" id="req-url" class="mono" data-tok="1" spellcheck="false"
-                placeholder="http://192.168.1.10:8080/api/v1/thing"/>
+              <textarea id="req-url" data-tok="1" rows="1" spellcheck="false"
+                placeholder="http://192.168.1.10:8080/api/v1/thing"></textarea>
             </div>
           </div>
           <label>Headers</label>
@@ -293,30 +293,27 @@ var gEditor = { open: false, originalName: '', type: 'http', encoding: 'text' };
 var gSendAfterSave = false;      // Save & Send flow
 
 // Tokens and escapes are colored in the body and the payload; neither is evaluated as it is typed.
-var bodyEditor = Kit.expressionEditor(document.getElementById('req-body'), { mode: 'text', escapes: true });
+var urlEditor = Kit.expressionEditor(document.getElementById('req-url'), { mode: 'text', singleLine: true });
+var bodyEditor = Kit.expressionEditor(document.getElementById('req-body'), { mode: 'text' });
 var payloadEditor = Kit.expressionEditor(document.getElementById('req-payload'), { mode: 'text', escapes: true });
 Kit.expressionHelp({
   toggle: document.getElementById('help-toggle'),
   panel: document.getElementById('help-panel'),
   sections: [
-    { title: 'Variable tokens',
-      html: '<p><code>PARAM{deviceId,variableId}</code> is replaced with the variable\'s current value each time the'
-        + ' request is sent. Click a variable in the browser to insert its token into the focused field. Variables can'
-        + ' also be referenced by name: <code>PARAM{96,HUMIDITY}</code> (exact match, case sensitive). Tokens work in'
-        + ' the URL, body, header values, and Text payloads.</p>' },
-    { title: 'Text payloads (TCP / UDP)',
-      html: '<p>Sent as typed, after decoding the escapes below. For example, the payload <code>PWR ON\\r\\n</code>'
-        + ' sends <code>PWR&nbsp;ON</code> followed by a carriage return and a line feed.</p>' },
-    { title: 'Hex payloads (TCP / UDP)',
-      html: '<p>To send raw bytes instead of text, switch the <b>Text | Hex</b> toggle above the payload field to Hex,'
-        + ' then write the whole payload as hex digits. Whitespace, commas, and <code>0x</code> prefixes are ignored,'
-        + ' so <code>02 41 54 0d</code>, <code>0x02,0x41,0x54,0x0d</code>, and <code>0241540d</code> all send the'
-        + ' same 4 bytes. Variable tokens are not substituted in Hex payloads.</p>' },
+    'tokens',
     { title: 'HTTP',
-      html: '<p>HTTPS is supported; TLS certificates are only checked when <b>Validate TLS certificate</b> is on, so'
-        + ' self-signed LAN devices work by default. For basic auth, put the user name and password in the URL ahead'
-        + ' of the host. The last response body is published to the <code>&lt;Name&gt; Response</code> variable.</p>' },
+      html: '<p>Variables go in the URL, the header values and the body, each with its value when the request is sent.</p>'
+        + '<p>HTTPS works, and its certificate is checked only with <b>Validate TLS certificate</b> on. For basic auth, put'
+        + ' the user name and password in the URL ahead of the host: <code>http://user:password@host/</code>.</p>'
+        + '<p>The last response body goes to the <code>&lt;Name&gt; Response</code> variable.</p>' },
+    { title: 'TCP and UDP text',
+      html: '<p>The payload goes out as typed, with each variable\'s value in it and each escape below as the character'
+        + ' it stands for: <code>PWR ON\\r\\n</code> sends <code>PWR&nbsp;ON</code>, a carriage return and a line feed.</p>' },
     'escapes',
+    { title: 'TCP and UDP hex',
+      html: '<p>With <b>Hex</b> on, the payload is the bytes to send, two hex digits each. Spaces, commas and'
+        + ' <code>0x</code> are skipped, so <code>02 41 54 0d</code>, <code>0x02,0x41,0x54,0x0d</code> and'
+        + ' <code>0241540d</code> all send the same four bytes. A hex payload takes no variables.</p>' },
   ],
 });
 
@@ -427,23 +424,20 @@ Kit.expressionHelp({
   toggle: document.getElementById('hook-help-toggle'),
   panel: document.getElementById('hook-help-panel'),
   sections: [
-    { title: 'Variable tokens',
-      html: '<p><code>PARAM{deviceId,variableId}</code> is replaced with the variable\'s current value each time the'
-        + ' webhook is called. Click a variable in the browser to insert its token into the response. Variables can'
-        + ' also be referenced by name: <code>PARAM{96,HUMIDITY}</code> (exact match, case sensitive).</p>' },
+    'tokens',
     { title: 'Response',
-      html: '<p>The response is sent as typed, with status 200. With <b>Automatic</b>, a response that is a JSON'
-        + ' object or array is sent as <code>application/json</code> and anything else as <code>text/plain</code>;'
-        + ' <b>JSON</b> and <b>Text</b> set the type whatever the response holds. If a variable cannot be found,'
-        + ' or the response comes to more than 16 KB, the caller gets status 500 and an error.</p>' },
+      html: '<p>Each call gets the response as typed, with each variable\'s value in it, and status 200.</p>'
+        + '<p>With <b>Automatic</b>, a response that is a JSON object or array goes as <code>application/json</code>'
+        + ' and anything else as <code>text/plain</code>. <b>JSON</b> and <b>Text</b> set the type whatever the response'
+        + ' holds. A missing variable, or a response over 16 KB, gets the caller status 500 and an error.</p>' },
     { title: 'The call\'s own payload',
-      html: '<p>The <code>&lt;Name&gt; Payload</code> variable is updated before the response is built, so a token'
-        + ' for this driver\'s own payload variable returns what the caller just sent. Control4 programming on'
-        + ' the <code>&lt;Name&gt; Received</code> event runs after the answer is sent.</p>' },
+      html: '<p>The <code>&lt;Name&gt; Payload</code> variable takes the call\'s payload before the response is built,'
+        + ' so a variable that reads it gives what the caller just sent. Programming on the'
+        + ' <code>&lt;Name&gt; Received</code> event runs after the answer goes out.</p>' },
     { title: 'Who can read it',
-      html: '<p>Without a key, anything on the network that can reach the webhook port can call the webhook and'
-        + ' read the values in its response. Set a key to require <code>?key=...</code> on every call; a call'
-        + ' without it is refused before any variable is read.</p>' },
+      html: '<p>Without a key, anything on the network that reaches the webhook port can call it and read the values in'
+        + ' its response. A key makes every call need <code>?key=...</code>, and a call without it is refused before'
+        + ' any variable is read.</p>' },
   ],
 });
 var hookBrowser = Kit.variableBrowser(document.getElementById('hook-vb'), {
@@ -619,7 +613,7 @@ function openEditor(req) {
   nameEl.style.opacity = req ? '0.6' : '';
   document.getElementById('req-name-lock').style.display = req ? 'inline' : 'none';
   document.getElementById('req-method').value = req && req.method ? req.method : 'GET';
-  document.getElementById('req-url').value = req ? (req.url || '') : '';
+  urlEditor.setValue(req ? (req.url || '') : '');
   document.getElementById('req-tls').checked = req ? !!req.tlsVerify : false;
   document.getElementById('req-host').value = req ? (req.host || '') : '';
   document.getElementById('req-port').value = req && req.port ? req.port : '';
@@ -665,11 +659,16 @@ function setEncoding(enc) {
   gEditor.encoding = enc;
   document.getElementById('enc-text').className = enc === 'text' ? 'on' : '';
   document.getElementById('enc-hex').className = enc === 'hex' ? 'on' : '';
+  // A hex payload takes no variables or escapes, so nothing in it is colored.
+  payloadEditor.setMode(enc === 'hex' ? 'plain' : 'text');
 }
 
 // ── Header rows ─────────────────────────────────────────────
+var gHeaderRows = [];            // [{row, value}]: each header's row and its value's editor, in order
+
 function renderHeaderRows(headers) {
   document.getElementById('req-headers').innerHTML = '';
+  gHeaderRows = [];
   (headers || []).forEach(function(h) { addHeaderRow(h.name || '', h.value || ''); });
 }
 
@@ -678,18 +677,24 @@ function addHeaderRow(name, value) {
   var row = document.createElement('div');
   row.className = 'hgrid';
   row.innerHTML = '<input type="text" class="mono h-name" spellcheck="false" placeholder="Content-Type" value="' + esc(name) + '"/>'
-    + '<input type="text" class="mono h-value" data-tok="1" spellcheck="false" placeholder="application/json" value="' + esc(value) + '"/>'
+    + '<textarea class="h-value" data-tok="1" rows="1" spellcheck="false" placeholder="application/json"></textarea>'
     + '<span class="hdel" title="Remove header">&#10005;</span>';
-  row.querySelector('.hdel').addEventListener('click', function() { row.remove(); browser.render(); });
   wrap.appendChild(row);
+  var header = { row: row, value: Kit.expressionEditor(row.querySelector('.h-value'), { mode: 'text', singleLine: true }) };
+  header.value.setValue(value);
+  gHeaderRows.push(header);
+  row.querySelector('.hdel').addEventListener('click', function() {
+    row.remove();
+    gHeaderRows.splice(gHeaderRows.indexOf(header), 1);
+    browser.render();
+  });
 }
 
 function collectHeaders() {
   var out = [];
-  document.querySelectorAll('#req-headers .hgrid').forEach(function(row) {
-    var name = row.querySelector('.h-name').value.trim();
-    var value = row.querySelector('.h-value').value;
-    if (name) out.push({ name: name, value: value });
+  gHeaderRows.forEach(function(header) {
+    var name = header.row.querySelector('.h-name').value.trim();
+    if (name) out.push({ name: name, value: header.value.value() });
   });
   return out;
 }
@@ -733,7 +738,7 @@ function saveRequest(sendAfter) {
   errEl.textContent = '';
   if (!name) { nameInput.classList.add('input-error'); errEl.textContent = 'Name is required.'; return; }
   var type = gEditor.type;
-  if (type === 'http' && !document.getElementById('req-url').value.trim()) { errEl.textContent = 'URL is required.'; return; }
+  if (type === 'http' && !urlEditor.value().trim()) { errEl.textContent = 'URL is required.'; return; }
   if ((type === 'tcp' || type === 'udp') && !document.getElementById('req-host').value.trim()) { errEl.textContent = 'Host is required.'; return; }
   if (type === 'wol' && !document.getElementById('req-mac').value.trim()) { errEl.textContent = 'MAC address is required.'; return; }
   if (!gEditor.originalName) {
@@ -752,7 +757,7 @@ function saveRequest(sendAfter) {
     originalName: gEditor.originalName,
     type: type,
     method: document.getElementById('req-method').value,
-    url: document.getElementById('req-url').value.trim(),
+    url: urlEditor.value().trim(),
     body: bodyEditor.value(),
     headers: collectHeaders(),
     tlsVerify: document.getElementById('req-tls').checked,

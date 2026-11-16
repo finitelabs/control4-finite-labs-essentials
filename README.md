@@ -228,10 +228,21 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ## Unreleased
 
+### Changed
+
+- Changed Network Requests' URL and header values to color their variables, as
+  the body does.
+- Changed the syntax help in Variable Expressions to cover only what each mode
+  can use.
+
 ### Fixed
 
 - Fixed Composer listing Humidity Alert's and Sensor Multiplexer's conditionals
   out of order.
+- Fixed Network Requests coloring escapes in an HTTP body, which sends them as
+  typed, and variables in a hex payload, which takes none.
+- Fixed round in Variable Expressions rounding a negative half toward zero
+  instead of away from it.
 
 ## v20261114 - 2026-11-14
 

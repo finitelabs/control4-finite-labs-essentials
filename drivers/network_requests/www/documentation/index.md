@@ -196,10 +196,12 @@ HTTP request.
    variable. It is fixed once the request has been saved: to rename, create a
    new request and delete the old one. Names must be unique.
 1. **Type** - switches between HTTP, TCP, UDP, and WOL.
-1. **Method / URL** - the HTTP method and the destination. For basic auth, put
-   the user name and password in the URL ahead of the host.
+1. **Method / URL** - the HTTP method and the destination. `PARAM{}` tokens are
+   highlighted and replaced as in the Body. For basic auth, put the user name
+   and password in the URL ahead of the host.
 1. **Headers** - optional request headers. **+ Add header** adds a row and the X
-   removes one; rows left without a name are dropped when saving.
+   removes one; rows left without a name are dropped when saving. Tokens in a
+   value are highlighted and replaced as in the Body.
 1. **Validate TLS certificate** - off by default, so self-signed HTTPS endpoints
    on the LAN work without extra setup. Turn it on when the certificate matters.
 1. **Body** - the request body. `PARAM{}` tokens are highlighted and replaced
@@ -227,7 +229,8 @@ variables browser works the same way and is left out of the screenshot below.
    sends raw bytes: whitespace, commas, and `0x` prefixes are ignored, so
    `02 41 54 0d`, `0x02,0x41,0x54,0x0d`, and `0241540d` all send the same four
    bytes. Tokens are not substituted in hex payloads.
-1. **Payload** - the bytes to send. Escapes and tokens are highlighted.
+1. **Payload** - the bytes to send. Escapes and tokens are highlighted in a text
+   payload, and nothing is in a hex one.
 1. **Wait for a response** - TCP only. The driver holds the connection open
    until the device answers and publishes the answer to the Response variable.
    UDP is always fire and forget.

@@ -16,10 +16,10 @@ local pageParams = require("lib.ui.page-params")
 local ExpressionTab = {}
 
 --- Every mode the engine evaluates.
-local MODES = { "equation", "condition", "string" }
+local MODES = { "equation", "condition", "value", "string" }
 
 --- @class ExpressionTabOptions
---- @field modes? string[] The modes the page may ask for; the first answers any other. Default equation, condition, string.
+--- @field modes? string[] The modes the page may ask for; the first answers any other. Default equation, condition, value, string.
 --- @field maxLength? integer The longest expression evaluated, in bytes. The rest is cut, and `substituted` too.
 --- @field hold? fun(expression: string, mode: string): string|nil Why the driver refuses this text whatever its variables hold.
 --- @field extra? fun(evaluation: ExpressionEvaluation, mode: string, expression: string): table|nil Fields to add.
