@@ -16,6 +16,8 @@ each runs on the controller with no cloud service or extra hardware.
   passed through at a time
 - Virtual temperature, humidity, contact and relay devices that programming sets
 - Lights used as relays by other drivers, with their state kept in step
+- A room's volume held at a set level for the sources you pick, and put back
+  when another source plays
 - Text and math built from Control4 variables, recalculated when they change
 - HTTP, TCP, UDP and Wake-on-LAN commands sent from programming
 - Inbound webhooks that fire programming events with what they carry, and can
@@ -43,6 +45,13 @@ alike. It closes a contact for Control4 programming, and can switch a device
 itself by a relay, light switches, a fan speed controller or a Control4 timer. A
 second sensor elsewhere in the house keeps humidity the whole house shares from
 counting as the room's.
+
+### Source Volume
+
+Holds a room at a fixed volume while a source you pick is playing, such as a
+computer that sets its own volume, and puts back the level the room had before
+when another source takes over. Each picked source has its own level, and
+sources you don't pick are left alone.
 
 ### Device Programmer
 
