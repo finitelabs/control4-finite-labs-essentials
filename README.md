@@ -17,9 +17,7 @@ standalone and can be installed individually or together.
 <div style="font-size: small">
 
 - [System Requirements](#system-requirements)
-
 - [Included Drivers](#included-drivers)
-
   - [Sensor Aggregator](#sensor-aggregator)
   - [Sensor Multiplexer](#sensor-multiplexer)
   - [Device Programmer](#device-programmer)
@@ -27,13 +25,9 @@ standalone and can be installed individually or together.
   - [Variable Expressions](#variable-expressions)
   - [Network Requests](#network-requests)
   - [Humidity Alert](#humidity-alert)
-
 - [Installation](#installation)
-
   - [Installing the Drivers](#installing-the-drivers)
-
 - [Support](#support)
-
 - [Changelog](#changelog)
 
 </div>
