@@ -77,7 +77,7 @@ local VAR_SAVED = "SAVED_VOLUME"
 --- @type table<string, string>
 local SETTING_DEFAULTS = { ["Volume Control"] = "Enabled" }
 for slot = 1, SLOTS do
-  SETTING_DEFAULTS["Source " .. slot] = ""
+  SETTING_DEFAULTS["Source " .. slot] = constants.SELECT_OPTION
   SETTING_DEFAULTS["Source " .. slot .. " Volume"] = "50"
 end
 
@@ -115,12 +115,19 @@ local function now()
   return os.time()
 end
 
+--- The source a slot holds, read from its "Name (id)" option; nil while it holds none.
+--- @param slot integer
+--- @return integer|nil
+local function slotSource(slot)
+  return tointeger(string.match(Properties["Source " .. slot] or "", "%((%d+)%)$"))
+end
+
 --- The tracker's settings as the properties give them. A source picked in two slots keeps its first level.
 --- @return SourceVolumeSettings settings
 local function settings()
   local sources = {}
   for slot = 1, SLOTS do
-    local id = tointeger(Properties["Source " .. slot])
+    local id = slotSource(slot)
     if id and id > 0 and sources[id] == nil then
       sources[id] = tointeger(Properties["Source " .. slot .. " Volume"]) or 50
     end
@@ -200,12 +207,63 @@ end
 local function showSlots()
   local previousFilled = true
   for slot = 1, SLOTS do
-    local filled = not IsEmpty(Properties["Source " .. slot])
+    local filled = slotSource(slot) ~= nil
     local shown = previousFilled or filled
     local attrib = shown and constants.SHOW_PROPERTY or constants.HIDE_PROPERTY
     C4:SetPropertyAttribs("Source " .. slot, attrib)
     C4:SetPropertyAttribs("Source " .. slot .. " Volume", attrib)
     previousFilled = filled
+  end
+end
+
+--- The room's watch and listen sources, each once. Like the room's own lists, less the special audio entries,
+--- the digital audio clients and the music library drivers, which are never a source that plays.
+--- @param room integer
+--- @return { id: integer, name: string }[]
+local function roomSources(room)
+  local found, seen = {}, {}
+  for _, command in ipairs({ "GET_WATCH_DEVICES", "GET_LISTEN_DEVICES" }) do
+    local sources = Select(ParseXml(C4:SendToDevice(room, command, {})), "sources", "source")
+    if not IsList(sources) then
+      sources = { sources }
+    end
+    for _, source in ipairs(sources) do
+      local id = tointeger(Select(source, "id"))
+      local kind = Select(source, "type")
+      local device = id and not seen[id] and GetDevice(id)
+      if device and kind ~= "SPECIAL_AUDIO" and kind ~= "DIGITAL_AUDIO_CLIENT" then
+        local library = false
+        for _, protocol in pairs(device.protocol or {}) do
+          library = library or protocol.driverFileName == "AddMusic.c4z" or protocol.driverFileName == "MyMusic.c4z"
+        end
+        if not library then
+          seen[id] = true
+          table.insert(found, { id = id, name = device.deviceName })
+        end
+      end
+    end
+  end
+  return found
+end
+
+--- Fill each Source slot's list with the room's sources. A slot keeps a pick the room no longer lists.
+local function updateSourceLists()
+  local options = { constants.SELECT_OPTION }
+  local listed = {}
+  for _, source in ipairs(roomSources(watchedRoom)) do
+    -- A comma would split the option in two.
+    local option = string.format("%s (%d)", (tostring(source.name):gsub(",", "")), source.id)
+    table.insert(options, option)
+    listed[option] = true
+  end
+  for slot = 1, SLOTS do
+    local name = "Source " .. slot
+    local current = slotSource(slot) and Properties[name] or constants.SELECT_OPTION
+    local list = table.concat(options, ",")
+    if not listed[current] and current ~= constants.SELECT_OPTION then
+      list = list .. "," .. current
+    end
+    C4:UpdatePropertyList(name, list, current)
   end
 end
 
@@ -268,6 +326,7 @@ local function watchRoom()
       end)
     end)
   end
+  updateSourceLists()
 end
 
 --- Read the room and act on it.
@@ -280,6 +339,8 @@ evaluate = function()
   if room.source ~= lastSource then
     notice = nil
     lastSource = room.source
+    -- A source added to the room shows in the lists once the room's source next changes.
+    updateSourceLists()
   end
   apply(Tracker.update(state, settings(), room, now()), room)
 end
@@ -361,6 +422,8 @@ function OnDriverLateInit()
   --#endif
 
   gInitialized = true
+  -- Watched before the license check, so the Source lists fill in either way.
+  watchRoom()
   UpdateProperty("Driver Status", "Ready")
   -- Acts on the room at once; the values the new listeners deliver start one more read once the room is quiet.
   evaluate()

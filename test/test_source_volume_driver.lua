@@ -13,7 +13,38 @@ local H = require("license_harness")
 local ROOM = 19
 local COMPUTER = 9
 local AIRPLAY = 20
+local LIBRARY = 30
+local CLIENT = 100002
 local AMP = 100
+
+ShimSetDevices({
+  [COMPUTER] = { deviceName = "Computer", driverFileName = "uibutton.c4i", roomId = ROOM },
+  [AIRPLAY] = { deviceName = "AirPlay, Office", driverFileName = "airplay.c4i", roomId = ROOM },
+  [LIBRARY] = {
+    deviceName = "My Music",
+    driverFileName = "media_service.c4i",
+    protocol = { { driverFileName = "MyMusic.c4z" } },
+  },
+  [CLIENT] = { deviceName = "Digital Media", driverFileName = "digital_audio_client.c4i" },
+})
+
+--- The room's sources, as the room answers GET_WATCH_DEVICES and GET_LISTEN_DEVICES.
+local sourceLists = {
+  GET_WATCH_DEVICES = "<sources><source><id>9</id><type>VIDEO_SELECTION</type></source></sources>",
+  GET_LISTEN_DEVICES = "<sources>"
+    .. "<source><id>4294966298</id><type>SPECIAL_AUDIO</type></source>"
+    .. "<source><id>9</id><type>AUDIO_SELECTION</type></source>"
+    .. "<source><id>20</id><type>AUDIO_SELECTION</type></source>"
+    .. "<source><id>30</id><type>DIGITAL_AUDIO_SERVER</type></source>"
+    .. "<source><id>100002</id><type>DIGITAL_AUDIO_CLIENT</type></source>"
+    .. "</sources>",
+}
+
+--- Each Source list as the driver last filled it: { list = "a,b", value = "a" }.
+local lists = {}
+function C4:UpdatePropertyList(name, list, value)
+  lists[name] = { list = list, value = value }
+end
 
 -- The driver reads the time from os.time; the test moves it.
 local clock = 1800000000
@@ -53,6 +84,9 @@ local function recordLevels()
     if id == ROOM and cmd == "SET_VOLUME_LEVEL" then
       H.effects[#H.effects + 1] = "set " .. tostring(params.LEVEL)
       return
+    end
+    if id == ROOM and sourceLists[cmd] then
+      return sourceLists[cmd]
     end
     return real(self, id, cmd, params)
   end
@@ -94,15 +128,21 @@ local function start(overrides)
   return effects
 end
 
-local PICKS = { ["Source 1"] = tostring(COMPUTER), ["Source 1 Volume"] = "60" }
+local PICKS = { ["Source 1"] = "Computer (9)", ["Source 1 Volume"] = "60" }
 
 T.section("source_volume: a room on an unpicked source is left alone")
 setRoom(AIRPLAY, 35)
 recordLevels()
 T.eq("the first load", start(PICKS), "")
-T.eq("Room Status", Properties["Room Status"], "Not holding: device 20 is not picked")
+T.eq("Room Status", Properties["Room Status"], "Not holding: AirPlay, Office is not picked")
 T.eq("FIXED_VOLUME_ACTIVE", Variables["FIXED_VOLUME_ACTIVE"], "0")
 T.eq("SAVED_VOLUME", tonumber(Variables["SAVED_VOLUME"]), -1)
+
+T.section("source_volume: each Source list holds the room's watch and listen sources")
+T.eq("Source 1", lists["Source 1"].list, "(Select),Computer (9),AirPlay Office (20)")
+T.eq("Source 1's pick", lists["Source 1"].value, "Computer (9)")
+T.eq("Source 2", lists["Source 2"].list, "(Select),Computer (9),AirPlay Office (20)")
+T.eq("Source 2's pick", lists["Source 2"].value, "(Select)")
 
 T.section("source_volume: each Source slot shows once the one before it is filled")
 T.eq("Source 1", attribs["Source 1"], 0)
@@ -113,7 +153,7 @@ T.eq("Source 8 Volume", attribs["Source 8 Volume"], 1)
 
 T.section("source_volume: the picked source sets its level, and AirPlay gets its level back")
 T.eq("the computer", room(COMPUTER, 35), "set 60; event Fixed Volume Set")
-T.eq("Room Status", Properties["Room Status"], "Holding 60 for device 9, will restore 35")
+T.eq("Room Status", Properties["Room Status"], "Holding 60 for Computer, will restore 35")
 T.eq("FIXED_VOLUME_ACTIVE", Variables["FIXED_VOLUME_ACTIVE"], "1")
 T.eq("SAVED_VOLUME", tonumber(Variables["SAVED_VOLUME"]), 35)
 T.truthy("the conditional", TC.FIXED_VOLUME_ACTIVE("FIXED_VOLUME_ACTIVE", { VALUE = "Active", LOGIC = "EQUAL" }))
@@ -129,7 +169,7 @@ room(COMPUTER, 35)
 room(COMPUTER, 60)
 setRoom(COMPUTER, 60)
 T.eq("the restart", start(PICKS), "")
-T.eq("Room Status", Properties["Room Status"], "Holding 60 for device 9, will restore 35")
+T.eq("Room Status", Properties["Room Status"], "Holding 60 for Computer, will restore 35")
 T.eq("AirPlay", room(AIRPLAY, 60), "set 35; event Volume Restored")
 room(AIRPLAY, 35)
 
@@ -151,7 +191,7 @@ T.eq(
 )
 T.eq("Room Status", Properties["Room Status"], "Volume 60 was sent but didn't arrive")
 T.eq("AirPlay: the room never left 35, so nothing is sent", room(AIRPLAY, 35), "event Volume Restored")
-T.eq("Room Status", Properties["Room Status"], "Not holding: device 20 is not picked")
+T.eq("Room Status", Properties["Room Status"], "Not holding: AirPlay, Office is not picked")
 
 T.section("source_volume: a room whose volume can't be set to a level")
 T.eq("the computer", room(COMPUTER, 35, { [1016] = "0" }), "")
@@ -180,6 +220,15 @@ T.eq(
 )
 T.eq("SAVED_VOLUME", tonumber(Variables["SAVED_VOLUME"]), -1)
 ExecuteCommand("Enable Volume Control", {})
+
+T.section("source_volume: a pick the room no longer lists stays in its slot's list")
+sourceLists.GET_WATCH_DEVICES = "<sources></sources>"
+sourceLists.GET_LISTEN_DEVICES = "<sources><source><id>20</id><type>AUDIO_SELECTION</type></source></sources>"
+room(AIRPLAY, 35)
+room(COMPUTER, 35)
+room(AIRPLAY, 35)
+T.eq("Source 1", lists["Source 1"].list, "(Select),AirPlay Office (20),Computer (9)")
+T.eq("Source 2", lists["Source 2"].list, "(Select),AirPlay Office (20)")
 
 T.section("source_volume: a room that is off")
 T.eq("off", room(0, -1), "")

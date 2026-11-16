@@ -210,10 +210,11 @@ volume, so the room keeps the level it has.
 
 #### Source 1 … Source 8
 
-A source in this room that plays at a fixed volume. Pick the device the room
-selects when you choose the source on a touch screen or remote: a TV input, a
-receiver's AirPlay input, a matrix or A/V-over-IP transmitter, or a no-control
-source device. Each slot appears once the one before it is filled.
+A source in this room that plays at a fixed volume. The list holds the room's
+own Watch and Listen sources, the ones a touch screen or remote offers in the
+room the driver is in, such as a TV input, an AirPlay receiver or a computer's
+UI button. A source added to the room appears once the room's source next
+changes. Each slot appears once the one before it is filled.
 
 #### Source 1 Volume … Source 8 Volume \[ 0 - 100, default: **_50_** \]
 

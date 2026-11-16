@@ -146,28 +146,8 @@
       </property>
       <property>
         <name>Source 1</name>
-        <type>DEVICE_SELECTOR</type>
-        <items>
-          <item>avswitch.c4i</item>
-          <item>cable.c4i</item>
-          <item>cd.c4i</item>
-          <item>control4_digitalaudio.c4i</item>
-          <item>discchanger.c4i</item>
-          <item>dvd.c4i</item>
-          <item>dvr.c4i</item>
-          <item>ipod.c4i</item>
-          <item>media_player.c4i</item>
-          <item>media_service.c4i</item>
-          <item>plasma.c4i</item>
-          <item>projector.c4i</item>
-          <item>receiver.c4i</item>
-          <item>satellite.c4i</item>
-          <item>tuner.c4i</item>
-          <item>tunerXM.c4i</item>
-          <item>tv.c4i</item>
-          <item>vcr.c4i</item>
-        </items>
-        <multiselect>false</multiselect>
+        <type>DYNAMIC_LIST</type>
+        <default>(Select)</default>
         <description>A source in this room that plays at a fixed volume.</description>
       </property>
       <property>
@@ -180,28 +160,8 @@
       </property>
       <property>
         <name>Source 2</name>
-        <type>DEVICE_SELECTOR</type>
-        <items>
-          <item>avswitch.c4i</item>
-          <item>cable.c4i</item>
-          <item>cd.c4i</item>
-          <item>control4_digitalaudio.c4i</item>
-          <item>discchanger.c4i</item>
-          <item>dvd.c4i</item>
-          <item>dvr.c4i</item>
-          <item>ipod.c4i</item>
-          <item>media_player.c4i</item>
-          <item>media_service.c4i</item>
-          <item>plasma.c4i</item>
-          <item>projector.c4i</item>
-          <item>receiver.c4i</item>
-          <item>satellite.c4i</item>
-          <item>tuner.c4i</item>
-          <item>tunerXM.c4i</item>
-          <item>tv.c4i</item>
-          <item>vcr.c4i</item>
-        </items>
-        <multiselect>false</multiselect>
+        <type>DYNAMIC_LIST</type>
+        <default>(Select)</default>
         <description>A source in this room that plays at a fixed volume.</description>
       </property>
       <property>
@@ -214,28 +174,8 @@
       </property>
       <property>
         <name>Source 3</name>
-        <type>DEVICE_SELECTOR</type>
-        <items>
-          <item>avswitch.c4i</item>
-          <item>cable.c4i</item>
-          <item>cd.c4i</item>
-          <item>control4_digitalaudio.c4i</item>
-          <item>discchanger.c4i</item>
-          <item>dvd.c4i</item>
-          <item>dvr.c4i</item>
-          <item>ipod.c4i</item>
-          <item>media_player.c4i</item>
-          <item>media_service.c4i</item>
-          <item>plasma.c4i</item>
-          <item>projector.c4i</item>
-          <item>receiver.c4i</item>
-          <item>satellite.c4i</item>
-          <item>tuner.c4i</item>
-          <item>tunerXM.c4i</item>
-          <item>tv.c4i</item>
-          <item>vcr.c4i</item>
-        </items>
-        <multiselect>false</multiselect>
+        <type>DYNAMIC_LIST</type>
+        <default>(Select)</default>
         <description>A source in this room that plays at a fixed volume.</description>
       </property>
       <property>
@@ -248,28 +188,8 @@
       </property>
       <property>
         <name>Source 4</name>
-        <type>DEVICE_SELECTOR</type>
-        <items>
-          <item>avswitch.c4i</item>
-          <item>cable.c4i</item>
-          <item>cd.c4i</item>
-          <item>control4_digitalaudio.c4i</item>
-          <item>discchanger.c4i</item>
-          <item>dvd.c4i</item>
-          <item>dvr.c4i</item>
-          <item>ipod.c4i</item>
-          <item>media_player.c4i</item>
-          <item>media_service.c4i</item>
-          <item>plasma.c4i</item>
-          <item>projector.c4i</item>
-          <item>receiver.c4i</item>
-          <item>satellite.c4i</item>
-          <item>tuner.c4i</item>
-          <item>tunerXM.c4i</item>
-          <item>tv.c4i</item>
-          <item>vcr.c4i</item>
-        </items>
-        <multiselect>false</multiselect>
+        <type>DYNAMIC_LIST</type>
+        <default>(Select)</default>
         <description>A source in this room that plays at a fixed volume.</description>
       </property>
       <property>
@@ -282,28 +202,8 @@
       </property>
       <property>
         <name>Source 5</name>
-        <type>DEVICE_SELECTOR</type>
-        <items>
-          <item>avswitch.c4i</item>
-          <item>cable.c4i</item>
-          <item>cd.c4i</item>
-          <item>control4_digitalaudio.c4i</item>
-          <item>discchanger.c4i</item>
-          <item>dvd.c4i</item>
-          <item>dvr.c4i</item>
-          <item>ipod.c4i</item>
-          <item>media_player.c4i</item>
-          <item>media_service.c4i</item>
-          <item>plasma.c4i</item>
-          <item>projector.c4i</item>
-          <item>receiver.c4i</item>
-          <item>satellite.c4i</item>
-          <item>tuner.c4i</item>
-          <item>tunerXM.c4i</item>
-          <item>tv.c4i</item>
-          <item>vcr.c4i</item>
-        </items>
-        <multiselect>false</multiselect>
+        <type>DYNAMIC_LIST</type>
+        <default>(Select)</default>
         <description>A source in this room that plays at a fixed volume.</description>
       </property>
       <property>
@@ -316,28 +216,8 @@
       </property>
       <property>
         <name>Source 6</name>
-        <type>DEVICE_SELECTOR</type>
-        <items>
-          <item>avswitch.c4i</item>
-          <item>cable.c4i</item>
-          <item>cd.c4i</item>
-          <item>control4_digitalaudio.c4i</item>
-          <item>discchanger.c4i</item>
-          <item>dvd.c4i</item>
-          <item>dvr.c4i</item>
-          <item>ipod.c4i</item>
-          <item>media_player.c4i</item>
-          <item>media_service.c4i</item>
-          <item>plasma.c4i</item>
-          <item>projector.c4i</item>
-          <item>receiver.c4i</item>
-          <item>satellite.c4i</item>
-          <item>tuner.c4i</item>
-          <item>tunerXM.c4i</item>
-          <item>tv.c4i</item>
-          <item>vcr.c4i</item>
-        </items>
-        <multiselect>false</multiselect>
+        <type>DYNAMIC_LIST</type>
+        <default>(Select)</default>
         <description>A source in this room that plays at a fixed volume.</description>
       </property>
       <property>
@@ -350,28 +230,8 @@
       </property>
       <property>
         <name>Source 7</name>
-        <type>DEVICE_SELECTOR</type>
-        <items>
-          <item>avswitch.c4i</item>
-          <item>cable.c4i</item>
-          <item>cd.c4i</item>
-          <item>control4_digitalaudio.c4i</item>
-          <item>discchanger.c4i</item>
-          <item>dvd.c4i</item>
-          <item>dvr.c4i</item>
-          <item>ipod.c4i</item>
-          <item>media_player.c4i</item>
-          <item>media_service.c4i</item>
-          <item>plasma.c4i</item>
-          <item>projector.c4i</item>
-          <item>receiver.c4i</item>
-          <item>satellite.c4i</item>
-          <item>tuner.c4i</item>
-          <item>tunerXM.c4i</item>
-          <item>tv.c4i</item>
-          <item>vcr.c4i</item>
-        </items>
-        <multiselect>false</multiselect>
+        <type>DYNAMIC_LIST</type>
+        <default>(Select)</default>
         <description>A source in this room that plays at a fixed volume.</description>
       </property>
       <property>
@@ -384,28 +244,8 @@
       </property>
       <property>
         <name>Source 8</name>
-        <type>DEVICE_SELECTOR</type>
-        <items>
-          <item>avswitch.c4i</item>
-          <item>cable.c4i</item>
-          <item>cd.c4i</item>
-          <item>control4_digitalaudio.c4i</item>
-          <item>discchanger.c4i</item>
-          <item>dvd.c4i</item>
-          <item>dvr.c4i</item>
-          <item>ipod.c4i</item>
-          <item>media_player.c4i</item>
-          <item>media_service.c4i</item>
-          <item>plasma.c4i</item>
-          <item>projector.c4i</item>
-          <item>receiver.c4i</item>
-          <item>satellite.c4i</item>
-          <item>tuner.c4i</item>
-          <item>tunerXM.c4i</item>
-          <item>tv.c4i</item>
-          <item>vcr.c4i</item>
-        </items>
-        <multiselect>false</multiselect>
+        <type>DYNAMIC_LIST</type>
+        <default>(Select)</default>
         <description>A source in this room that plays at a fixed volume.</description>
       </property>
       <property>
