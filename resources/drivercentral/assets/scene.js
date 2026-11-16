@@ -140,7 +140,6 @@
     },
     // A grid of labeled tiles beside the hub: a set of tools.
     tiles(c) {
-      // Past six tools, a fourth column, with the hub moved left to make room.
       const wide = c.items.length > 6;
       const hx = wide ? 1470 : 1540, xs = wide ? [1652, 1756, 1860, 1964] : [1730, 1846, 1962], h = wide ? 42 : 46;
       const cells = [132, 292].flatMap((y) => xs.map((x) => [x, y]));

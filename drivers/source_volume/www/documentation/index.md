@@ -247,7 +247,8 @@ the current version.
 
 ### Reset Driver
 
-> ⚠️ This clears every Source pick and level, and forgets the saved volume.
+> [!WARNING]
+> This clears every Source pick and level, and forgets the saved volume.
 
 Resets the driver: its variables and every setting return to their defaults, and
 the driver forgets any saved level.

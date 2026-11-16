@@ -231,6 +231,18 @@ local _, twoAmps = session({
   { 91, room(GAME, 40) },
   { 100, room(0, -1, { volumeDevice = 0 }) },
 })
+local _, audioBack = session({
+  { 0, room(AIRPLAY, 35) },
+  { 5, video(30, 50) },
+  { 10, video(COMPUTER, 50) },
+  { 11, video(COMPUTER, 60) },
+  { 90, room(AIRPLAY, 35) },
+})
+T.eq(
+  "AirPlay back on the audio amp: the video amp's 50 is not its level to restore",
+  Tracker.savedLevel(audioBack, room(AIRPLAY, 35)),
+  -1
+)
 T.eq(
   "off with no volume device and a level saved on each amp: neither is named",
   Tracker.savedLevel(twoAmps, room(0, -1, { volumeDevice = 0 })),

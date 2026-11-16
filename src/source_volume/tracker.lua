@@ -228,8 +228,8 @@ function Tracker.savedLevel(state, room)
   if saved == nil and state.activeDevice then
     saved = state.saved[state.activeDevice]
   end
-  if saved == nil then
-    -- A room that is off may name no volume device; a single saved level is still the one that comes back.
+  if saved == nil and (tonumber(room.volumeDevice) or 0) == 0 then
+    -- A room that is off names no volume device; a single saved level is still the one that comes back.
     local only, count = nil, 0
     for _, level in pairs(state.saved) do
       only, count = level, count + 1
