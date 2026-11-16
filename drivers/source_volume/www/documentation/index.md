@@ -210,15 +210,14 @@ volume, so the room keeps the level it has.
 
 #### Source 1 … Source 8
 
-A source in this room that plays at a fixed volume. The list holds the room's
-own Watch and Listen sources, the ones a touch screen or remote offers in the
-room the driver is in, such as a TV input, an AirPlay receiver or a computer's
-UI button. A source added to the room appears once the room's source next
-changes. Each slot appears once the one before it is filled.
+Selects a source that plays at a fixed volume, from the Watch and Listen sources
+of the room the driver is in, a computer's UI button among them. A source added
+to the room joins the list once the room's source next changes, and each slot
+appears once the one before it is filled.
 
 #### Source 1 Volume … Source 8 Volume \[ 0 - 100, default: **_50_** \]
 
-The room's volume while that source plays.
+Sets the room's volume while that source plays.
 
 ### Status
 
@@ -247,15 +246,9 @@ the current version.
 
 <!-- #endif -->
 
-### Enable Volume Control
-
-Sets Volume Control to Enabled.
-
-### Disable Volume Control
-
-Sets Volume Control to Disabled.
-
 ### Reset Driver
+
+> ⚠️ This clears every Source pick and level, and forgets the saved volume.
 
 Resets the driver: its variables and every setting return to their defaults, and
 the driver forgets any saved level.
@@ -269,6 +262,14 @@ It also turns Cloud Monitoring back on, as a fresh install has it.
 **Parameters:**
 
 - **Are You Sure?** \[ **_No_** | Yes \] - Confirmation to reset the driver.
+
+### Enable Volume Control
+
+Sets Volume Control to Enabled.
+
+### Disable Volume Control
+
+Sets Volume Control to Disabled.
 
 <!-- #ifdef DRIVERCENTRAL -->
 
@@ -344,8 +345,8 @@ the driver reads the room again and carries on.
 
 | Variable            | Type   | Description                                               |
 | ------------------- | ------ | --------------------------------------------------------- |
-| FIXED_VOLUME_ACTIVE | BOOL   | True while a picked source holds the room                 |
-| SAVED_VOLUME        | NUMBER | The level that will be put back, or -1 when there is none |
+| Fixed Volume Active | BOOL   | True while a picked source holds the room                 |
+| Saved Volume        | NUMBER | The level that will be put back, or -1 when there is none |
 
 ## Commands
 

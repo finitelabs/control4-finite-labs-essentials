@@ -48,9 +48,9 @@ counting as the room's.
 
 ### Source Volume
 
-Holds a room at a fixed volume while a source you pick is playing, such as a
-computer that sets its own volume, and puts back the level the room had before
-when another source takes over. Each picked source has its own level, and
+Holds a room at a fixed volume while a source you pick is playing, and puts back
+the level the room had before when another source takes over. It suits a
+computer that sets its own volume. Each picked source has its own level, and
 sources you don't pick are left alone.
 
 ### Device Programmer

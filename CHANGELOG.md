@@ -23,8 +23,8 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 ### Added
 
 - Added Source Volume, a driver that holds a room at a fixed volume while
-  sources you pick play, such as a computer that sets its own volume, and puts
-  the earlier level back when another source takes over.
+  sources you pick play and puts the earlier level back when another source
+  takes over.
 
 ### Changed
 
