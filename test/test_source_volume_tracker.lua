@@ -228,18 +228,12 @@ T.eq("sent once more after 3 seconds, then reported", (session({
   { 13, room(COMPUTER, 35) },
   { 16, room(COMPUTER, 35) },
 })), "set 60; fixed 9@60; set 60; missed 60")
-T.eq(
-  "arriving late is fine",
-  (
-    session({
-      { 0, room(AIRPLAY, 35) },
-      { 10, room(COMPUTER, 35) },
-      { 13, room(COMPUTER, 35) },
-      { 14, room(COMPUTER, 60) },
-    })
-  ),
-  "set 60; fixed 9@60; set 60"
-)
+T.eq("arriving late is fine", (session({
+  { 0, room(AIRPLAY, 35) },
+  { 10, room(COMPUTER, 35) },
+  { 13, room(COMPUTER, 35) },
+  { 14, room(COMPUTER, 60) },
+})), "set 60; fixed 9@60; set 60")
 T.eq("a slow amp doesn't count as a slider move", (session({
   { 0, room(AIRPLAY, 35) },
   { 10, room(COMPUTER, 35) },
@@ -247,13 +241,19 @@ T.eq("a slow amp doesn't count as a slider move", (session({
   { 12, room(COMPUTER, 60) },
   { 90, room(AIRPLAY, 60) },
 })), "set 60; fixed 9@60; set 35; restored 35")
-T.eq("switching back before the level arrives restores once it settles", (session({
+T.eq("switching back before the level arrives: nothing is resent under AirPlay", (session({
   { 0, room(AIRPLAY, 35) },
   { 10, room(COMPUTER, 35) },
   { 11, room(AIRPLAY, 35) },
   { 14, room(AIRPLAY, 35) },
   { 18, room(AIRPLAY, 35) },
-})), "set 60; fixed 9@60; set 60; missed 60")
+})), "set 60; fixed 9@60")
+T.eq("switching back before the level arrives: a late 60 still restores", (session({
+  { 0, room(AIRPLAY, 35) },
+  { 10, room(COMPUTER, 35) },
+  { 11, room(AIRPLAY, 35) },
+  { 12, room(AIRPLAY, 60) },
+})), "set 60; fixed 9@60; set 35; restored 35")
 
 T.section("a restart in the middle")
 local _, stored = session({ { 0, room(AIRPLAY, 35) }, { 10, room(COMPUTER, 35) }, { 11, room(COMPUTER, 60) } })
@@ -293,17 +293,11 @@ T.eq(
   (session({ { 0, room(AIRPLAY, 35) }, { 10, room(COMPUTER, 35) } }, nil, settings({ enabled = false }))),
   ""
 )
-T.eq(
-  "an unknown volume is never saved",
-  (
-    session({
-      { 0, room(AIRPLAY, -1) },
-      { 10, room(COMPUTER, -1) },
-      { 11, room(COMPUTER, 60) },
-      { 90, room(AIRPLAY, 60) },
-    })
-  ),
-  "set 60; fixed 9@60"
-)
+T.eq("an unknown volume is never saved", (session({
+  { 0, room(AIRPLAY, -1) },
+  { 10, room(COMPUTER, -1) },
+  { 11, room(COMPUTER, 60) },
+  { 90, room(AIRPLAY, 60) },
+})), "set 60; fixed 9@60")
 
 T.finish()

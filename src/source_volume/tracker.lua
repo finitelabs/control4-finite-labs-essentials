@@ -74,8 +74,8 @@ local function key(id)
 end
 
 --- Send a level and remember it until the room shows it.
-local function send(state, changes, device, level, now)
-  state.sent = { device = device, level = level, at = now, retried = false }
+local function send(state, changes, source, device, level, now)
+  state.sent = { source = source, device = device, level = level, at = now, retried = false }
   changes[#changes + 1] = { type = Tracker.Change.SET, level = level }
 end
 
@@ -85,7 +85,7 @@ local function followSent(state, room, now, changes)
   if not sent then
     return false
   end
-  if sent.device ~= room.volumeDevice or not room.power then
+  if key(sent.device) ~= key(room.volumeDevice) or not room.power then
     state.sent = nil
     return false
   end
@@ -96,14 +96,18 @@ local function followSent(state, room, now, changes)
   if now - sent.at < Tracker.CONFIRM_SECONDS then
     return true
   end
-  if not sent.retried then
+  -- After a switch, keep waiting so a late level still restores, but never resend or report under another source.
+  local stillSelected = sent.source == tonumber(room.source)
+  if not sent.retried and stillSelected then
     sent.retried = true
     sent.at = now
     changes[#changes + 1] = { type = Tracker.Change.SET, level = sent.level }
     return true
   end
   state.sent = nil
-  changes[#changes + 1] = { type = Tracker.Change.MISSED, level = sent.level }
+  if stillSelected then
+    changes[#changes + 1] = { type = Tracker.Change.MISSED, level = sent.level }
+  end
   return false
 end
 
@@ -170,7 +174,7 @@ function Tracker.update(state, settings, room, now)
       state.activeDevice = device
       state.held[device] = fixed
       if room.volume ~= fixed then
-        send(state, changes, room.volumeDevice, fixed, now)
+        send(state, changes, source, room.volumeDevice, fixed, now)
       end
       changes[#changes + 1] = { type = Tracker.Change.FIXED, source = source, level = fixed }
     elseif not inFlight and known(room.volume) then
@@ -192,7 +196,7 @@ function Tracker.update(state, settings, room, now)
     end
     if room.discrete and room.volume == held then
       if room.volume ~= saved then
-        send(state, changes, room.volumeDevice, saved, now)
+        send(state, changes, source, room.volumeDevice, saved, now)
       end
       changes[#changes + 1] = { type = Tracker.Change.RESTORED, level = saved }
       state.last[device] = saved
