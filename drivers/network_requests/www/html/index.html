@@ -292,7 +292,8 @@ var gRequests = [];              // [{name, type, method, url, body, headers, ho
 var gEditor = { open: false, originalName: '', type: 'http', encoding: 'text' };
 var gSendAfterSave = false;      // Save & Send flow
 
-// Tokens and escapes are colored in the body and the payload; neither is evaluated as it is typed.
+// Variables are colored in the URL, header values, body and text payload, and escapes in the text payload. None is
+// evaluated as it is typed.
 var urlEditor = Kit.expressionEditor(document.getElementById('req-url'), { mode: 'text', singleLine: true });
 var bodyEditor = Kit.expressionEditor(document.getElementById('req-body'), { mode: 'text' });
 var payloadEditor = Kit.expressionEditor(document.getElementById('req-payload'), { mode: 'text', escapes: true });
