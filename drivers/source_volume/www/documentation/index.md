@@ -208,6 +208,21 @@ address is removed.
 Turns the driver on or off. Disabled changes nothing and forgets any saved
 volume, so the room keeps the level it has.
 
+#### Room Status (read-only)
+
+What the driver is doing in its room:
+
+| Value                                           | Meaning                                                                        |
+| ----------------------------------------------- | ------------------------------------------------------------------------------ |
+| Holding 60 for Office Computer, will restore 35 | A picked source is playing. 35 comes back when an unpicked source takes over.  |
+| Not holding: AirPlay is not picked              | The room is playing a source you didn't pick.                                  |
+| Room is off                                     | The room is off, with no level saved.                                          |
+| Room is off, will restore 35                    | The room is off, and 35 comes back when it turns on to an unpicked source.     |
+| No sources picked                               | No Source slot is filled.                                                      |
+| Disabled                                        | Volume Control is Disabled.                                                    |
+| This room's volume can't be set to a level      | The room's volume device takes only volume up and down, so nothing is changed. |
+| Volume 60 was sent but didn't arrive            | The room didn't reach the level after it was sent twice.                       |
+
 #### Source 1 … Source 8
 
 Selects a source that plays at a fixed volume, from the Watch and Listen sources
@@ -218,22 +233,6 @@ appears once the one before it is filled.
 #### Source 1 Volume … Source 8 Volume \[ 0 - 100, default: **_50_** \]
 
 Sets the room's volume while that source plays.
-
-### Status
-
-#### Room Status (read-only)
-
-What the driver is doing in its room:
-
-| Value                                           | Meaning                                                                        |
-| ----------------------------------------------- | ------------------------------------------------------------------------------ |
-| Holding 60 for Office Computer, will restore 35 | A picked source is playing. 35 comes back when an unpicked source takes over.  |
-| Not holding: AirPlay is not picked              | The room is playing a source you didn't pick.                                  |
-| Room is off                                     | The room is off. A saved level is kept for the next unpicked source.           |
-| No sources picked                               | No Source slot is filled.                                                      |
-| Disabled                                        | Volume Control is Disabled.                                                    |
-| This room's volume can't be set to a level      | The room's volume device takes only volume up and down, so nothing is changed. |
-| Volume 60 was sent but didn't arrive            | The room didn't reach the level after it was sent twice.                       |
 
 ## Driver Actions
 

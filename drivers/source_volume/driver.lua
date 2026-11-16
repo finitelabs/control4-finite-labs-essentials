@@ -189,6 +189,9 @@ local function showStatus(room)
     status = notice
   elseif room == nil or not room.power or room.source == 0 then
     status = "Room is off"
+    if saved >= 0 then
+      status = status .. string.format(", will restore %d", saved)
+    end
   elseif Tracker.isActive(state) then
     local fixed = current.sources[room.source]
     status = string.format("Holding %d for %s", fixed or room.volume, deviceName(room.source))

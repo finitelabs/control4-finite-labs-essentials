@@ -145,6 +145,12 @@
         <description>Disabled changes nothing and forgets any saved volume.</description>
       </property>
       <property>
+        <name>Room Status</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
         <name>Source 1</name>
         <type>DYNAMIC_LIST</type>
         <default>(Select)</default>
@@ -255,17 +261,6 @@
         <maximum>100</maximum>
         <default>50</default>
         <description>The room's volume while Source 8 plays.</description>
-      </property>
-      <property>
-        <name>Status</name>
-        <type>LABEL</type>
-        <default>Status</default>
-      </property>
-      <property>
-        <name>Room Status</name>
-        <type>STRING</type>
-        <default/>
-        <readonly>true</readonly>
       </property>
     </properties>
     <actions>

@@ -166,6 +166,17 @@ T.eq("off, then on with the computer again: still 60, still 35 to restore", (ses
   { 5000, room(COMPUTER, 60) },
   { 6000, room(AIRPLAY, 60) },
 })), "set 60; fixed 9@60; fixed 9@60; set 35; restored 35")
+local _, offState = session({
+  { 0, room(AIRPLAY, 35) },
+  { 10, room(COMPUTER, 35) },
+  { 11, room(COMPUTER, 60) },
+  { 100, room(0, -1, { volumeDevice = 0 }) },
+})
+T.eq(
+  "off with no volume device: 35 is still the level to restore",
+  Tracker.savedLevel(offState, room(0, -1, { volumeDevice = 0 })),
+  35
+)
 
 T.section("the room turned on straight to the picked source")
 T.eq("the level from the last unpicked source is saved", (session({
@@ -211,6 +222,20 @@ T.eq("and the video amp gets its 50 back the next time a TV source uses it", (se
   { 90, room(AIRPLAY, 35) },
   { 200, video(30, 60) },
 })), "set 60; fixed 9@60; set 50; restored 50")
+local _, twoAmps = session({
+  { 0, room(AIRPLAY, 35) },
+  { 5, video(30, 50) },
+  { 10, video(COMPUTER, 50) },
+  { 11, video(COMPUTER, 60) },
+  { 90, room(GAME, 35) },
+  { 91, room(GAME, 40) },
+  { 100, room(0, -1, { volumeDevice = 0 }) },
+})
+T.eq(
+  "off with no volume device and a level saved on each amp: neither is named",
+  Tracker.savedLevel(twoAmps, room(0, -1, { volumeDevice = 0 })),
+  -1
+)
 
 T.section("a room whose volume can't be set to a level")
 T.eq("says so once, sends nothing, restores nothing", (session({
