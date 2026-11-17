@@ -25,6 +25,7 @@ standalone and can be installed individually or together.
   - [Variable Expressions](#variable-expressions)
   - [Network Requests](#network-requests)
   - [Humidity Alert](#humidity-alert)
+  - [Source Volume](#source-volume)
 - [Installation](#installation)
   - [Installing the Drivers](#installing-the-drivers)
 - [Support](#support)
@@ -177,6 +178,24 @@ no adjustment between a dry winter and a humid summer.
   light switches or a fan speed controller, and turns off only what it turned on
 - Events, conditionals, variables and commands for programming
 
+## Source Volume
+
+Hold a room at a fixed volume while one of the sources you picked is playing,
+and put the room back to the level it had before when another source takes over.
+It suits a source that controls its own volume, such as a computer. Sources you
+don't pick are left alone.
+
+**Key features:**
+
+- Up to eight sources per room, each with its own volume
+- Restores the level from before, also after going from one picked source to
+  another or turning the room off
+- Steps aside when something else sets the volume as the source changes, such as
+  Control4's default volumes
+- A saved level for each volume device in a room with separate audio and video
+  amplifiers
+- Events, a conditional, variables and commands for programming
+
 # <span style="color:#059669">Installation</span>
 
 ## Installing the Drivers
@@ -221,6 +240,12 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 -->
 
 ## Unreleased
+
+### Added
+
+- Added Source Volume, a driver that holds a room at a fixed volume while
+  sources you pick play and puts the earlier level back when another source
+  takes over.
 
 ### Changed
 

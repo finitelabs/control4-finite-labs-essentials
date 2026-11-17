@@ -11,7 +11,7 @@ Marketing images for the Finite Labs Essentials DriverCentral listing (product 9
 
 `assets/` holds what the pages share: the Finite Labs logo, `scene.js`, which draws the banners' art, and the Essentials mark in white as `brand-mark.png`, the same art as this repo's `resources/Driver Icons.sketch` (a rounded cell with Es cut out, in Helvetica Neue Bold outlines).
 
-The banners' art is `tiles`: the six utilities as labeled tiles, set on each banner's `<svg class="scene">`. The template's DriverCentral README lists the styles, and the headline, chips and subtitle shrink until they end clear of the art.
+The banners' art is `tiles`: every driver as a labeled tile, in three columns or, past six, four, set on each banner's `<svg class="scene">`. The template's DriverCentral README lists the styles, and the headline, chips and subtitle shrink until they end clear of the art.
 
 ## Rendering
 

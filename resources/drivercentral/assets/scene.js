@@ -12,6 +12,7 @@
     lightstrip: '<path d="M-22 -4 C-12 -14 -4 6 6 -4 S20 2 22 -6" stroke-width="7" stroke-opacity="0.35"/><path d="M-22 -4 C-12 -14 -4 6 6 -4 S20 2 22 -6"/><circle cx="-14" cy="-8" r="2.4" fill="#fff" stroke="none"/><circle cx="-1" cy="-2" r="2.4" fill="#fff" stroke="none"/><circle cx="13" cy="-3" r="2.4" fill="#fff" stroke="none"/><path d="M-22 -4 V12"/>',
     switch: '<rect x="-14" y="-19" width="28" height="38" rx="6"/><rect x="-7" y="-11" width="14" height="22" rx="3"/>',
     meter: '<path d="M-17 8 A18 18 0 0 1 17 8"/><path d="M0 8 L8 -6"/><circle cy="8" r="2.6" fill="#fff" stroke="none"/>',
+    drop: '<path d="M0 -19 C8 -8 13 -2 13 5 A13 13 0 0 1 -13 5 C-13 -2 -8 -8 0 -19 Z"/>',
     sound: '<path d="M-14 -6 H-7 L2 -14 V14 L-7 6 H-14 Z"/><path d="M8 -7 A10 10 0 0 1 8 7"/><path d="M13 -13 A18 18 0 0 1 13 13"/>',
     moon: '<path d="M7 -17 A17 17 0 1 0 15 9 A13 13 0 0 1 7 -17 Z"/>',
     sunrise: '<path d="M-20 10 H20"/><path d="M-12 10 A12 12 0 0 1 12 10"/><path d="M0 -15 V-9"/><path d="M-15 -6 L-11 -2"/><path d="M15 -6 L11 -2"/>',
@@ -139,10 +140,12 @@
     },
     // A grid of labeled tiles beside the hub: a set of tools.
     tiles(c) {
-      const hx = 1540, cells = [[1730, 132], [1846, 132], [1962, 132], [1730, 292], [1846, 292], [1962, 292]];
-      let s = cells.map(([x, y]) => `<path d="M${hx + 74} ${HY} C${hx + 120} ${HY} ${x - 90} ${y} ${x - 46} ${y}" fill="none" stroke="url(#link)" stroke-width="2" stroke-opacity="0.7"/>`).join("");
+      const wide = c.items.length > 6;
+      const hx = wide ? 1470 : 1540, xs = wide ? [1652, 1756, 1860, 1964] : [1730, 1846, 1962], h = wide ? 42 : 46;
+      const cells = [132, 292].flatMap((y) => xs.map((x) => [x, y]));
+      let s = cells.map(([x, y]) => `<path d="M${hx + 74} ${HY} C${hx + 120} ${HY} ${x - 90} ${y} ${x - h} ${y}" fill="none" stroke="url(#link)" stroke-width="2" stroke-opacity="0.7"/>`).join("");
       s += hub(c, hx, HY);
-      return s + cells.map(([x, y], i) => (c.items[i] ? `<rect x="${x - 46}" y="${y - 58}" width="92" height="92" rx="18" fill="#181a21" stroke="rgba(255,255,255,0.40)" stroke-width="2"/>`
+      return s + cells.map(([x, y], i) => (c.items[i] ? `<rect x="${x - h}" y="${y - 12 - h}" width="${2 * h}" height="${2 * h}" rx="18" fill="#181a21" stroke="rgba(255,255,255,0.40)" stroke-width="2"/>`
         + `<g ${STROKE} transform="translate(${x} ${y - 12})">${ICONS[c.items[i][0]] || ""}</g>`
         + `<text x="${x}" y="${y + 56}" text-anchor="middle" fill="#c3c8d2" font-family="Inter, sans-serif" font-size="15" font-weight="500">${c.items[i][1]}</text>` : "")).join("");
     },

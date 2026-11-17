@@ -41,12 +41,21 @@ Tracker.CONFIRM_SECONDS = 3
 --- @field sources table<number, number> Picked source to its fixed level.
 
 --- @class SourceVolumeChange
---- @field type SourceVolumeChangeType
---- @field level number|nil
---- @field source number|nil
+--- @field type SourceVolumeChangeType What happened.
+--- @field level number|nil The level sent, set or put back.
+--- @field source number|nil The picked source it concerns.
+
+--- @class SourceVolumeState
+--- @field active number|nil The picked source holding the room, nil while none does.
+--- @field activeDevice string|nil The volume device the held source acts on.
+--- @field off boolean Whether the room was off at the last snapshot.
+--- @field saved table<string, number> Per volume device, the level to put back.
+--- @field held table<string, number> Per volume device, the last level seen under the picked source.
+--- @field last table<string, number> Per volume device, the last level seen under an unpicked source.
+--- @field sent table|nil The level sent and not yet seen in the room.
 
 --- A fresh state.
---- @return table
+--- @return SourceVolumeState state
 function Tracker.new()
   return {
     active = nil,
@@ -96,7 +105,8 @@ local function followSent(state, room, now, changes)
   if now - sent.at < Tracker.CONFIRM_SECONDS then
     return true
   end
-  -- After a switch, keep waiting so a late level still restores, but never resend or report under another source.
+  -- After a switch, keep waiting so a late level still restores, but never
+  -- resend or report under another source.
   local stillSelected = sent.source == tonumber(room.source)
   if not sent.retried and stillSelected then
     sent.retried = true
@@ -112,7 +122,7 @@ local function followSent(state, room, now, changes)
 end
 
 --- Forget everything saved, as when the driver is disabled.
---- @param state table
+--- @param state SourceVolumeState
 function Tracker.forget(state)
   for k in pairs(state) do
     state[k] = nil
@@ -123,11 +133,11 @@ function Tracker.forget(state)
 end
 
 --- Act on a settled snapshot of the room.
---- @param state table
+--- @param state SourceVolumeState
 --- @param settings SourceVolumeSettings
 --- @param room SourceVolumeRoom
 --- @param now number Seconds.
---- @return SourceVolumeChange[]
+--- @return SourceVolumeChange[] changes What the call changed, in order.
 function Tracker.update(state, settings, room, now)
   local changes = {}
   if not settings.enabled then
@@ -210,20 +220,30 @@ function Tracker.update(state, settings, room, now)
 end
 
 --- The level that will be put back on the room's current volume device, or -1.
---- @param state table
+--- @param state SourceVolumeState
 --- @param room SourceVolumeRoom
---- @return number
+--- @return number level The level, or -1 when none is saved.
 function Tracker.savedLevel(state, room)
   local saved = state.saved[key(room.volumeDevice)]
   if saved == nil and state.activeDevice then
     saved = state.saved[state.activeDevice]
   end
+  if saved == nil and (tonumber(room.volumeDevice) or 0) == 0 then
+    -- A room that is off names no volume device; a single saved level is still the one that comes back.
+    local only, count = nil, 0
+    for _, level in pairs(state.saved) do
+      only, count = level, count + 1
+    end
+    if count == 1 then
+      saved = only
+    end
+  end
   return saved or -1
 end
 
 --- Whether a picked source holds the room.
---- @param state table
---- @return boolean
+--- @param state SourceVolumeState
+--- @return boolean active
 function Tracker.isActive(state)
   return state.active ~= nil
 end
