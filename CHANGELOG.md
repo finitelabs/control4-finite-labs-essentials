@@ -48,11 +48,11 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 - Added `json(text, path)` to Variable Expressions, which reads one value from a
   variable that holds JSON, such as `json(PARAM{96,1003}, "$.sensors[0].temp")`.
-- Humidity Alert can switch a device through Control4 timers: with Control
-  Method Timer it sets the selected timers to On, which has no countdown, while
-  an alert is active and to Off when it ends. A timer that gives a device turned
-  on by hand its own countdown keeps doing so, and no longer cuts an alert
-  short.
+- Added switching a device through Control4 timers to Humidity Alert. With
+  Control Method Timer it sets the selected timers to On, which has no
+  countdown, while an alert is active and to Off when it ends. A timer that
+  gives a device turned on by hand its own countdown keeps doing so, and no
+  longer cuts an alert short.
 
 ## v20261113 - 2026-11-13
 
@@ -136,23 +136,24 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Fixed
 
-- Device Programmer, Light Relay, Sensor Aggregator, Sensor Multiplexer and
-  Variable Expressions can now update themselves. Copies already installed need
-  one manual update in Composer to get this fix.
-- Sensor Multiplexer now shows the Finite Labs icon in Composer and on
-  Navigators instead of a generic placeholder.
+- Fixed Device Programmer, Light Relay, Sensor Aggregator, Sensor Multiplexer
+  and Variable Expressions not updating themselves. Copies already installed
+  need one manual update in Composer to get this fix.
+- Fixed Sensor Multiplexer showing a generic placeholder instead of the Finite
+  Labs icon in Composer and on Navigators.
 - Fixed the delete button being cut off in the Requests and Expressions tabs.
-- A device a driver shows through a proxy of the same name now appears once in
-  the Variable Expressions and Network Requests variable browser, with its own
-  variables listed first, and devices with no variables are hidden.
-- The variable browser now refreshes each time it opens, so new devices and
-  variables appear and the values shown are current.
+- Fixed a device a driver shows through a proxy of the same name appearing more
+  than once in the Variable Expressions and Network Requests variable browser.
+  It now appears once with its own variables listed first, and devices with no
+  variables are hidden.
+- Fixed the variable browser not refreshing each time it opens. New devices and
+  variables now appear and the values shown are current.
 
 ## v20260712 - 2026-07-12
 
 ### Added
 
-- Initial release of Network Requests, which sends named HTTP, TCP, UDP and
+- Added the Network Requests driver, which sends named HTTP, TCP, UDP and
   Wake-on-LAN requests from programming, with variables in them, Sent and Failed
   events and each response kept. It also receives webhooks, guarded by an
   optional key, with a Received event and the payload in a variable.
@@ -161,10 +162,10 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Added
 
-- Initial release of Device Programmer.
-- Initial release of Light Relay.
-- Initial release of Sensor Aggregator.
-- Initial release of Sensor Multiplexer.
-- Initial release of Variable Expressions.
+- Added the Device Programmer driver.
+- Added the Light Relay driver.
+- Added the Sensor Aggregator driver.
+- Added the Sensor Multiplexer driver.
+- Added the Variable Expressions driver.
 
 <!-- #endif -->
