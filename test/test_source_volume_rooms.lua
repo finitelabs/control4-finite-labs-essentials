@@ -1,5 +1,5 @@
 -- The Source Volume driver's volume groups: the old Source slots moved into groups, each group's checkbox list of
--- every room's sources as Room > Name (the room's own first), checking and unchecking, any
+-- every room's sources as Room > Name, by room and name, checking and unchecking, any
 -- number of sources at one level, and a room that joins another room's session.
 --
 -- Run from the driver root:

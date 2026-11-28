@@ -232,12 +232,11 @@ a source to check or uncheck it. A source is in one group at most, so checking
 it in one group takes it out of any other. A group holds any number of sources,
 and they all play at that group's volume.
 
-The sources of the room the driver is in come first. A room that joins another
-room's audio session plays that room's source, so a source that only another
-room lists can be checked too. Each source shows as its room, then `>`, then its
-name. A source added to a room shows the next time this room's source changes,
-or at once with Refresh List. Each group appears once the one before it has a
-source.
+A room that joins another room's audio session plays that room's source, so a
+source that only another room lists can be checked too. Each source shows as its
+room, then `>`, then its name, sorted by room and then name. A source added to a
+room shows the next time this room's source changes, or at once with Refresh
+List. Each group appears once the one before it has a source.
 
 #### Group 1 Volume … Group 8 Volume \[ 0 - 100, default: **_50_** \]
 

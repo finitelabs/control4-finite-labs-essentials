@@ -140,11 +140,11 @@ T.eq("Saved Volume", tonumber(Variables["Saved Volume"]), -1)
 
 local REFRESH = " --  Refresh List"
 
-T.section("source_volume: each group's list checks its sources among the room's watch and listen sources")
-T.eq("Group 1", lists["Group 1 Sources"].list, "(Select)," .. REFRESH .. ",[X] Computer (9),[  ] AirPlay Office (20)")
+T.section("source_volume: each group's list checks its sources among the room's watch and listen sources, by name")
+T.eq("Group 1", lists["Group 1 Sources"].list, "(Select)," .. REFRESH .. ",[  ] AirPlay Office (20),[X] Computer (9)")
 T.eq("Group 1's value", lists["Group 1 Sources"].value, "(Select)")
 T.eq("Group 1 Volume", Properties["Group 1 Volume"], "60")
-T.eq("Group 2", lists["Group 2 Sources"].list, "(Select)," .. REFRESH .. ",[  ] Computer (9),[  ] AirPlay Office (20)")
+T.eq("Group 2", lists["Group 2 Sources"].list, "(Select)," .. REFRESH .. ",[  ] AirPlay Office (20),[  ] Computer (9)")
 T.eq("the old Source 1 is cleared", Properties["Source 1"], "(Select)")
 
 T.section("source_volume: each group shows once the one before it has a source, and the old slots never")

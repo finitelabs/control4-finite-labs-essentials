@@ -329,20 +329,19 @@ local function addRoomSources(room, found, seen)
   end
 end
 
---- Every room's sources, each once: the watched room's own first, in its order, then the rest by room and name. A room that
---- joins another room's session plays that room's source, which its own lists may not hold.
+--- Every room's sources, each once, by room, then name. A room that joins another room's session plays that room's
+--- source, which its own lists may not hold.
 --- @return SourceVolumeSource[]
 local function projectSources()
   local found, seen = {}, {}
   addRoomSources(watchedRoom, found, seen)
-  local others = {}
   for id in pairs(C4:GetDevicesByC4iName("roomdevice.c4i") or {}) do
     id = tointeger(id)
     if id and id ~= watchedRoom then
-      addRoomSources(id, others, seen)
+      addRoomSources(id, found, seen)
     end
   end
-  table.sort(others, function(a, b)
+  table.sort(found, function(a, b)
     if (a.room or "") ~= (b.room or "") then
       return (a.room or "") < (b.room or "")
     end
@@ -351,9 +350,6 @@ local function projectSources()
     end
     return a.id < b.id
   end)
-  for _, source in ipairs(others) do
-    table.insert(found, source)
-  end
   return found
 end
 
