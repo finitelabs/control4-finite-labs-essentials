@@ -263,17 +263,12 @@ end
 local function projectSources()
   local found, seen = {}, {}
   addRoomSources(watchedRoom, found, seen)
-  local rooms = {}
+  local others = {}
   for id in pairs(C4:GetDevicesByC4iName("roomdevice.c4i") or {}) do
     id = tointeger(id)
     if id and id ~= watchedRoom then
-      table.insert(rooms, id)
+      addRoomSources(id, others, seen)
     end
-  end
-  table.sort(rooms)
-  local others = {}
-  for _, id in ipairs(rooms) do
-    addRoomSources(id, others, seen)
   end
   table.sort(others, function(a, b)
     if a.name ~= b.name then
@@ -403,7 +398,7 @@ evaluate = function()
   if room.source ~= lastSource then
     notice = nil
     lastSource = room.source
-    -- A session joined from a room added since the last read shows in the lists at once.
+    -- A source added to any room since the last read shows in the lists at once.
     updateSourceLists()
   end
   apply(Tracker.update(state, settings(), room, now()), room)
