@@ -239,6 +239,14 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 - Removed
 -->
 
+## Unreleased
+
+### Changed
+
+- Changed Source Volume's Source lists to hold every room's sources, so a room
+  that joins another room's audio session can hold that session's source at a
+  fixed volume.
+
 ## v20261118 - 2026-11-18
 
 ### Added

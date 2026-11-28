@@ -68,7 +68,8 @@ connect: the driver acts on the room it is added to.
 
 # <span style="color:#059669">Features</span>
 
-- Up to eight sources per room, each with its own volume from 0 to 100
+- Up to eight sources per room, each with its own volume from 0 to 100, picked
+  from any room's sources
 - Saves the room's volume when a picked source starts and restores it when an
   unpicked source takes over
 - Going from one picked source to another keeps the level from before the first,
@@ -226,9 +227,12 @@ What the driver is doing in its room:
 #### Source 1 … Source 8
 
 Selects a source that plays at a fixed volume, from the Watch and Listen sources
-of the room the driver is in, a computer's UI button among them. A source added
-to the room joins the list once the room's source next changes, and each slot
-appears once the one before it is filled.
+of every room, a computer's UI button among them. The sources of the room the
+driver is in come first. A room that joins another room's audio session plays
+that room's source, so a source that only another room lists can be picked too.
+When two sources share a name, each also shows the room it is in. A source added
+to any room joins the list within five minutes, and each slot appears once the
+one before it is filled.
 
 #### Source 1 Volume … Source 8 Volume \[ 0 - 100, default: **_50_** \]
 

@@ -65,6 +65,10 @@ local SLOTS = 8
 --- @type integer
 local SETTLE_MS = 2 * ONE_SECOND
 
+--- Director sends no event when a room's source lists change, so the Source lists are read again this often.
+--- @type integer
+local LIST_REFRESH_MS = 5 * ONE_MINUTE
+
 local PERSIST_STATE = "VolumeState"
 
 local EVENT_FIXED = "Fixed Volume Set"
@@ -219,12 +223,17 @@ local function showSlots()
   end
 end
 
---- The room's watch and listen sources, each once. Like the room's own lists, less the special audio entries,
+--- @class SourceVolumeSource
+--- @field id integer
+--- @field name string
+--- @field room string|nil The device's own room.
+
+--- Add a room's watch and listen sources not yet seen. Like the room's own lists, less the special audio entries,
 --- the digital audio clients and the music library drivers, which are never a source that plays.
 --- @param room integer
---- @return { id: integer, name: string }[]
-local function roomSources(room)
-  local found, seen = {}, {}
+--- @param found SourceVolumeSource[]
+--- @param seen table<integer, boolean>
+local function addRoomSources(room, found, seen)
   for _, command in ipairs({ "GET_WATCH_DEVICES", "GET_LISTEN_DEVICES" }) do
     local sources = Select(ParseXml(SendToDevice(room, command, {})), "sources", "source")
     if not IsList(sources) then
@@ -241,32 +250,84 @@ local function roomSources(room)
         end
         if not library then
           seen[id] = true
-          table.insert(found, { id = id, name = device.deviceName })
+          table.insert(found, { id = id, name = tostring(device.deviceName), room = device.roomName })
         end
       end
     end
   end
+end
+
+--- Every room's sources, each once: the watched room's own first, in its order, then the rest by name. A room that
+--- joins another room's session plays that room's source, which its own lists may not hold.
+--- @return SourceVolumeSource[]
+local function projectSources()
+  local found, seen = {}, {}
+  addRoomSources(watchedRoom, found, seen)
+  local rooms = {}
+  for id in pairs(C4:GetDevicesByC4iName("roomdevice.c4i") or {}) do
+    id = tointeger(id)
+    if id and id ~= watchedRoom then
+      table.insert(rooms, id)
+    end
+  end
+  table.sort(rooms)
+  local others = {}
+  for _, id in ipairs(rooms) do
+    addRoomSources(id, others, seen)
+  end
+  table.sort(others, function(a, b)
+    if a.name ~= b.name then
+      return a.name < b.name
+    end
+    return a.id < b.id
+  end)
+  for _, source in ipairs(others) do
+    table.insert(found, source)
+  end
   return found
 end
 
---- Fill each Source slot's list with the room's sources. A slot keeps a pick the room no longer lists.
+--- The Source lists as last filled, to skip filling them again unchanged.
+--- @type string|nil
+local lastLists = nil
+
+--- Fill each Source slot's list with every room's sources. A name two sources share gets the device's room. A slot
+--- keeps a pick no room lists any more.
 local function updateSourceLists()
-  local options = { constants.SELECT_OPTION }
-  local listed = {}
-  for _, source in ipairs(roomSources(watchedRoom)) do
-    -- A comma would split the option in two.
-    local option = string.format("%s (%d)", (tostring(source.name):gsub(",", "")), source.id)
-    table.insert(options, option)
-    listed[option] = true
+  local sources = projectSources()
+  local named = {}
+  for _, source in ipairs(sources) do
+    named[source.name] = (named[source.name] or 0) + 1
   end
-  for slot = 1, SLOTS do
-    local name = "Source " .. slot
-    local current = slotSource(slot) and Properties[name] or constants.SELECT_OPTION
-    local list = table.concat(options, ",")
-    if not listed[current] and current ~= constants.SELECT_OPTION then
-      list = list .. "," .. current
+  local options = { constants.SELECT_OPTION }
+  local byId = {}
+  for _, source in ipairs(sources) do
+    local label = source.name
+    if named[source.name] > 1 and not IsEmpty(source.room) then
+      label = string.format("%s (%s)", label, source.room)
     end
-    C4:UpdatePropertyList(name, list, current)
+    -- A comma would split the option in two.
+    local option = string.format("%s (%d)", (label:gsub(",", "")), source.id)
+    table.insert(options, option)
+    byId[source.id] = option
+  end
+  local list = table.concat(options, ",")
+  local picks = {}
+  for slot = 1, SLOTS do
+    local id = slotSource(slot)
+    picks[slot] = id and (byId[id] or Properties["Source " .. slot]) or constants.SELECT_OPTION
+  end
+  local filled = list .. "|" .. table.concat(picks, "|")
+  if filled == lastLists then
+    return
+  end
+  lastLists = filled
+  for slot = 1, SLOTS do
+    local slotList = list
+    if picks[slot] ~= constants.SELECT_OPTION and not byId[slotSource(slot)] then
+      slotList = slotList .. "," .. picks[slot]
+    end
+    C4:UpdatePropertyList("Source " .. slot, slotList, picks[slot])
   end
 end
 
@@ -342,7 +403,7 @@ evaluate = function()
   if room.source ~= lastSource then
     notice = nil
     lastSource = room.source
-    -- A source added to the room shows in the lists once the room's source next changes.
+    -- A session joined from a room added since the last read shows in the lists at once.
     updateSourceLists()
   end
   apply(Tracker.update(state, settings(), room, now()), room)
@@ -400,6 +461,7 @@ function OnDriverInit()
   watchedRoom = nil
   notice = nil
   lastSource = nil
+  lastLists = nil
 
   createVariables()
 end
@@ -430,6 +492,11 @@ function OnDriverLateInit()
   gInitialized = true
   -- Watched before the license check, so the Source lists fill in either way.
   watchRoom()
+  SetTimer("SourceLists", LIST_REFRESH_MS, function()
+    if licensed() then
+      updateSourceLists()
+    end
+  end, true)
   UpdateProperty("Driver Status", "Ready")
   -- Acts on the room at once; the values the new listeners deliver start one more read once the room is quiet.
   evaluate()
@@ -594,6 +661,7 @@ function EC.Reset_Driver(params)
   lastStored = nil
   notice = nil
   lastSource = nil
+  lastLists = nil
 
   local resetValues = GetPropertyResetValues({})
   for propName, defaultValue in pairs(resetValues) do
