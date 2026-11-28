@@ -68,7 +68,8 @@ connect: the driver acts on the room it is added to.
 
 # <span style="color:#059669">Features</span>
 
-- Up to eight sources per room, each with its own volume from 0 to 100
+- Any number of sources from any room, in up to eight groups that each have
+  their own volume from 0 to 100
 - Saves the room's volume when a picked source starts and restores it when an
   unpicked source takes over
 - Going from one picked source to another keeps the level from before the first,
@@ -218,21 +219,28 @@ What the driver is doing in its room:
 | Not holding: AirPlay is not picked              | The room is playing a source you didn't pick.                                  |
 | Room is off                                     | The room is off, with no level saved.                                          |
 | Room is off, will restore 35                    | The room is off, and 35 comes back when it turns on to an unpicked source.     |
-| No sources picked                               | No Source slot is filled.                                                      |
+| No sources picked                               | No group has a source checked.                                                 |
 | Disabled                                        | Volume Control is Disabled.                                                    |
 | This room's volume can't be set to a level      | The room's volume device takes only volume up and down, so nothing is changed. |
 | Volume 60 was sent but didn't arrive            | The room didn't reach the level after it was sent twice.                       |
 
-#### Source 1 … Source 8
+#### Group 1 Sources … Group 8 Sources
 
-Selects a source that plays at a fixed volume, from the Watch and Listen sources
-of the room the driver is in, a computer's UI button among them. A source added
-to the room joins the list once the room's source next changes, and each slot
-appears once the one before it is filled.
+Lists the Watch and Listen sources of every room, a computer's UI button among
+them, each marked `[X]` when the group holds it and `[  ]` when it doesn't. Pick
+a source to check or uncheck it. A source is in one group at most, so checking
+it in one group takes it out of any other. A group holds any number of sources,
+and they all play at that group's volume.
 
-#### Source 1 Volume … Source 8 Volume \[ 0 - 100, default: **_50_** \]
+A room that joins another room's audio session plays that room's source, so a
+source that only another room lists can be checked too. Each source shows as its
+room, then `>`, then its name, sorted by room and then name. A source added to a
+room shows the next time this room's source changes, or at once with Refresh
+List. Each group appears once the one before it has a source.
 
-Sets the room's volume while that source plays.
+#### Group 1 Volume … Group 8 Volume \[ 0 - 100, default: **_50_** \]
+
+Sets the room's volume while a source checked in that group plays.
 
 ## Driver Actions
 
@@ -248,7 +256,8 @@ the current version.
 ### Reset Driver
 
 > [!WARNING]
-> This clears every Source pick and level, and forgets the saved volume.
+> This unchecks every source, sets every group's volume back to 50, and forgets
+> the saved volume.
 
 Resets the driver: its variables and every setting return to their defaults, and
 the driver forgets any saved level.
@@ -316,6 +325,11 @@ each and puts a level back only on the device it changed.
 
 **Restarts.** The saved level and the picked source are stored. After a restart
 the driver reads the room again and carries on.
+
+**Updating from Source 1 … Source 8.** Earlier versions picked each source in
+its own slot with its own volume. On its first start after the update, the
+driver puts every picked source into a group, one group for each volume, in slot
+order, so each source keeps its level.
 
 ## Known Limits
 

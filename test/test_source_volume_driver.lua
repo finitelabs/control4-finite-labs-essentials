@@ -127,6 +127,7 @@ local function start(overrides)
   return effects
 end
 
+-- An earlier build's Source slot, which the first load moves into Group 1.
 local PICKS = { ["Source 1"] = "Computer (9)", ["Source 1 Volume"] = "60" }
 
 T.section("source_volume: a room on an unpicked source is left alone")
@@ -137,17 +138,22 @@ T.eq("Room Status", Properties["Room Status"], "Not holding: AirPlay, Office is 
 T.eq("Fixed Volume Active", Variables["Fixed Volume Active"], "0")
 T.eq("Saved Volume", tonumber(Variables["Saved Volume"]), -1)
 
-T.section("source_volume: each Source list holds the room's watch and listen sources")
-T.eq("Source 1", lists["Source 1"].list, "(Select),Computer (9),AirPlay Office (20)")
-T.eq("Source 1's pick", lists["Source 1"].value, "Computer (9)")
-T.eq("Source 2", lists["Source 2"].list, "(Select),Computer (9),AirPlay Office (20)")
-T.eq("Source 2's pick", lists["Source 2"].value, "(Select)")
+local REFRESH = " --  Refresh List"
 
-T.section("source_volume: each Source slot shows once the one before it is filled")
-T.eq("Source 1", attribs["Source 1"], 0)
-T.eq("Source 2", attribs["Source 2"], 0)
-T.eq("Source 2 Volume", attribs["Source 2 Volume"], 0)
-T.eq("Source 3", attribs["Source 3"], 1)
+T.section("source_volume: each group's list checks its sources among the room's watch and listen sources, by name")
+T.eq("Group 1", lists["Group 1 Sources"].list, "(Select)," .. REFRESH .. ",[  ] AirPlay Office (20),[X] Computer (9)")
+T.eq("Group 1's value", lists["Group 1 Sources"].value, "(Select)")
+T.eq("Group 1 Volume", Properties["Group 1 Volume"], "60")
+T.eq("Group 2", lists["Group 2 Sources"].list, "(Select)," .. REFRESH .. ",[  ] AirPlay Office (20),[  ] Computer (9)")
+T.eq("the old Source 1 is cleared", Properties["Source 1"], "(Select)")
+
+T.section("source_volume: each group shows once the one before it has a source, and the old slots never")
+T.eq("Group 1", attribs["Group 1 Sources"], 0)
+T.eq("Group 2", attribs["Group 2 Sources"], 0)
+T.eq("Group 2 Volume", attribs["Group 2 Volume"], 0)
+T.eq("Group 3", attribs["Group 3 Sources"], 1)
+T.eq("Group 8 Volume", attribs["Group 8 Volume"], 1)
+T.eq("Source 1", attribs["Source 1"], 1)
 T.eq("Source 8 Volume", attribs["Source 8 Volume"], 1)
 
 T.section("source_volume: the picked source sets its level, and AirPlay gets its level back")
@@ -169,7 +175,8 @@ room(COMPUTER, 60)
 setRoom(COMPUTER, 60)
 ShimRestartDirector()
 local restartWrites = H.run(function()
-  T.eq("the restart", start(PICKS), "")
+  -- Director keeps the group's volume; the stored groups keep the source, so nothing moves again.
+  T.eq("the restart", start({ ["Group 1 Volume"] = "60" }), "")
 end)
 T.falsy("the restart never writes -1 over Saved Volume", restartWrites:find("=-1", 1, true))
 T.eq("Fixed Volume Active", Variables["Fixed Volume Active"], "1")
@@ -226,14 +233,14 @@ T.eq(
 T.eq("Saved Volume", tonumber(Variables["Saved Volume"]), -1)
 ExecuteCommand("Enable Volume Control", {})
 
-T.section("source_volume: a pick the room no longer lists stays in its slot's list")
+T.section("source_volume: a checked source no room lists any more stays checked, so it can be unchecked")
 sourceLists.GET_WATCH_DEVICES = "<sources></sources>"
 sourceLists.GET_LISTEN_DEVICES = "<sources><source><id>20</id><type>AUDIO_SELECTION</type></source></sources>"
 room(AIRPLAY, 35)
 room(COMPUTER, 35)
 room(AIRPLAY, 35)
-T.eq("Source 1", lists["Source 1"].list, "(Select),AirPlay Office (20),Computer (9)")
-T.eq("Source 2", lists["Source 2"].list, "(Select),AirPlay Office (20)")
+T.eq("Group 1", lists["Group 1 Sources"].list, "(Select)," .. REFRESH .. ",[  ] AirPlay Office (20),[X] Computer (9)")
+T.eq("Group 2", lists["Group 2 Sources"].list, "(Select)," .. REFRESH .. ",[  ] AirPlay Office (20),[  ] Computer (9)")
 
 T.section("source_volume: a room turned off under the picked source shows the level it keeps")
 room(COMPUTER, 35)

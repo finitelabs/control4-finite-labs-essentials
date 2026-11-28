@@ -187,7 +187,8 @@ don't pick are left alone.
 
 **Key features:**
 
-- Up to eight sources per room, each with its own volume
+- Any number of sources from any room, in up to eight groups that each have
+  their own volume
 - Restores the level from before, also after going from one picked source to
   another or turning the room off
 - Steps aside when something else sets the volume as the source changes, such as
@@ -238,6 +239,16 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 ### Removed
 - Removed
 -->
+
+## Unreleased
+
+### Changed
+
+- Changed Source Volume to pick sources in up to eight volume groups instead of
+  eight Source slots. Each group checks any number of sources from any room, so
+  a room that joins another room's audio session can hold that session's source,
+  and many sources can share one volume. Sources picked in the Source slots move
+  into the groups with their levels on the first start after the update.
 
 ## v20261118 - 2026-11-18
 

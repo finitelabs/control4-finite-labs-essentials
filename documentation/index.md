@@ -208,7 +208,8 @@ don't pick are left alone.
 
 **Key features:**
 
-- Up to eight sources per room, each with its own volume
+- Any number of sources from any room, in up to eight groups that each have
+  their own volume
 - Restores the level from before, also after going from one picked source to
   another or turning the room off
 - Steps aside when something else sets the volume as the source changes, such as
