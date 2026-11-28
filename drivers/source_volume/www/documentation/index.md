@@ -234,10 +234,10 @@ and they all play at that group's volume.
 
 The sources of the room the driver is in come first. A room that joins another
 room's audio session plays that room's source, so a source that only another
-room lists can be checked too. When two sources share a name, each also shows
-the room it is in. A source added to a room shows the next time this room's
-source changes, or at once with Refresh List. Each group appears once the one
-before it has a source.
+room lists can be checked too. Each source shows as its room, then `>`, then its
+name. A source added to a room shows the next time this room's source changes,
+or at once with Refresh List. Each group appears once the one before it has a
+source.
 
 #### Group 1 Volume … Group 8 Volume \[ 0 - 100, default: **_50_** \]
 

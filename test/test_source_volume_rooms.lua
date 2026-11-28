@@ -1,5 +1,5 @@
 -- The Source Volume driver's volume groups: the old Source slots moved into groups, each group's checkbox list of
--- every room's sources (the room's own first, a shared name told apart by its room), checking and unchecking, any
+-- every room's sources as Room > Name (the room's own first), checking and unchecking, any
 -- number of sources at one level, and a room that joins another room's session.
 --
 -- Run from the driver root:
@@ -149,13 +149,13 @@ setRoom(0, 35)
 ShimPersistLand()
 H.run(function()
   H.load("source_volume", H.LICENSED, {
-    ["Source 1"] = "Computer (9)",
+    ["Source 1"] = "Kitchen > Computer (9)",
     ["Source 1 Volume"] = "60",
     ["Source 2"] = "Share Bridge (50)",
     ["Source 2 Volume"] = "40",
     ["Source 3"] = "Share Bridge (51)",
     ["Source 3 Volume"] = "60",
-    ["Source 4"] = "Computer (9)",
+    ["Source 4"] = "Kitchen > Computer (9)",
     ["Source 4 Volume"] = "30",
   })
   H.reads(1)
@@ -167,13 +167,13 @@ T.eq("Group 1 Volume", Properties["Group 1 Volume"], "60")
 T.eq(
   "Group 1",
   lists["Group 1 Sources"].list,
-  HEAD .. "[X] Computer (9),[  ] Share Bridge (Living Room) (50),[X] Share Bridge (Office) (51)"
+  HEAD .. "[X] Kitchen > Computer (9),[  ] Living Room > Share Bridge (50),[X] Office > Share Bridge (51)"
 )
 T.eq("Group 2 Volume", Properties["Group 2 Volume"], "40")
 T.eq(
   "Group 2",
   lists["Group 2 Sources"].list,
-  HEAD .. "[  ] Computer (9),[X] Share Bridge (Living Room) (50),[  ] Share Bridge (Office) (51)"
+  HEAD .. "[  ] Kitchen > Computer (9),[X] Living Room > Share Bridge (50),[  ] Office > Share Bridge (51)"
 )
 T.eq("Group 3 is shown, empty", attribs["Group 3 Sources"], 0)
 T.eq("Group 4 is hidden", attribs["Group 4 Sources"], 1)
@@ -205,21 +205,21 @@ end)
 T.eq(
   "Group 1",
   lists["Group 1 Sources"].list,
-  HEAD .. "[X] Computer (9),[  ] Share Bridge (Living Room) (50),[X] Share Bridge (Office) (51)"
+  HEAD .. "[X] Kitchen > Computer (9),[  ] Living Room > Share Bridge (50),[X] Office > Share Bridge (51)"
 )
 
 T.section("source_volume: picking a source checks it, and picking it again unchecks it")
-pick(1, "[  ] Share Bridge (Living Room) (50)")
+pick(1, "[  ] Living Room > Share Bridge (50)")
 T.eq("Group 1's value goes back", lists["Group 1 Sources"].value, "(Select)")
 T.eq(
   "checked in Group 1",
   lists["Group 1 Sources"].list,
-  HEAD .. "[X] Computer (9),[X] Share Bridge (Living Room) (50),[X] Share Bridge (Office) (51)"
+  HEAD .. "[X] Kitchen > Computer (9),[X] Living Room > Share Bridge (50),[X] Office > Share Bridge (51)"
 )
 T.eq(
   "and out of Group 2",
   lists["Group 2 Sources"].list,
-  HEAD .. "[  ] Computer (9),[  ] Share Bridge (Living Room) (50),[  ] Share Bridge (Office) (51)"
+  HEAD .. "[  ] Kitchen > Computer (9),[  ] Living Room > Share Bridge (50),[  ] Office > Share Bridge (51)"
 )
 T.eq("Group 3 hides behind the empty Group 2", attribs["Group 3 Sources"], 1)
 T.eq("now at Group 1's level", room(BRIDGE_LIVING, 35), "set 60; event Fixed Volume Set")
@@ -227,7 +227,7 @@ room(BRIDGE_LIVING, 60)
 T.eq(
   "unchecking the source that plays puts the level back",
   told(function()
-    pick(1, "[X] Share Bridge (Living Room) (50)")
+    pick(1, "[X] Living Room > Share Bridge (50)")
   end),
   "set 35; event Volume Restored"
 )
@@ -242,7 +242,7 @@ end
 listenLists[LIVING] = listen({ BRIDGE_LIVING, COMPUTER, unpack(speakers) })
 pick(2, REFRESH)
 for i = 1, SPEAKERS do
-  pick(2, "[  ] Speaker " .. i .. " (" .. (FIRST_SPEAKER + i - 1) .. ")")
+  pick(2, "[  ] Living Room > Speaker " .. i .. " (" .. (FIRST_SPEAKER + i - 1) .. ")")
 end
 T.eq("Group 2 checks all ten", select(2, lists["Group 2 Sources"].list:gsub("%[X%]", "")), SPEAKERS)
 room(BRIDGE_LIVING, 35)
@@ -259,6 +259,6 @@ T.section("source_volume: Refresh List shows a source added to another room")
 listenLists[OFFICE] = listen({ BRIDGE_OFFICE, TURNTABLE })
 pick(3, REFRESH)
 T.eq("Group 3's value goes back", lists["Group 3 Sources"].value, "(Select)")
-T.truthy("the turntable", lists["Group 3 Sources"].list:find("[  ] Turntable (52)", 1, true))
+T.truthy("the turntable", lists["Group 3 Sources"].list:find("[  ] Office > Turntable (52)", 1, true))
 
 T.finish()

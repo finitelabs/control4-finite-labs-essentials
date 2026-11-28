@@ -329,7 +329,7 @@ local function addRoomSources(room, found, seen)
   end
 end
 
---- Every room's sources, each once: the watched room's own first, in its order, then the rest by name. A room that
+--- Every room's sources, each once: the watched room's own first, in its order, then the rest by room and name. A room that
 --- joins another room's session plays that room's source, which its own lists may not hold.
 --- @return SourceVolumeSource[]
 local function projectSources()
@@ -343,6 +343,9 @@ local function projectSources()
     end
   end
   table.sort(others, function(a, b)
+    if (a.room or "") ~= (b.room or "") then
+      return (a.room or "") < (b.room or "")
+    end
     if a.name ~= b.name then
       return a.name < b.name
     end
@@ -358,8 +361,8 @@ end
 --- @type string|nil
 local lastLists = nil
 
---- Fill each group's list with every room's sources, checked where the group holds them. A name two sources share
---- gets the device's room. A checked source no room lists any more stays, so it can still be unchecked.
+--- Fill each group's list with every room's sources as Room > Name, checked where the group holds them. A checked
+--- source no room lists any more stays, so it can still be unchecked.
 --- @param force boolean|nil Fill the lists even when unchanged, to put a picked option back to (Select).
 local function updateSourceLists(force)
   local sources = projectSources()
@@ -375,16 +378,9 @@ local function updateSourceLists(force)
       end
     end
   end
-  local named = {}
-  for _, source in ipairs(sources) do
-    named[source.name] = (named[source.name] or 0) + 1
-  end
   local labels = {}
   for i, source in ipairs(sources) do
-    local label = source.name
-    if named[source.name] > 1 and not IsEmpty(source.room) then
-      label = string.format("%s (%s)", label, source.room)
-    end
+    local label = IsEmpty(source.room) and source.name or (source.room .. " > " .. source.name)
     -- A comma would split the option in two.
     labels[i] = string.format("%s (%d)", (label:gsub(",", "")), source.id)
   end
