@@ -22,9 +22,11 @@ Template for a new release entry (copy below the heading, fill in, uncomment):
 
 ### Changed
 
-- Changed Source Volume's Source lists to hold every room's sources, so a room
-  that joins another room's audio session can hold that session's source at a
-  fixed volume.
+- Changed Source Volume to pick sources in up to eight volume groups instead of
+  eight Source slots. Each group checks any number of sources from any room, so
+  a room that joins another room's audio session can hold that session's source,
+  and many sources can share one volume. Sources picked in the Source slots move
+  into the groups with their levels on the first start after the update.
 
 ## v20261118 - 2026-11-18
 

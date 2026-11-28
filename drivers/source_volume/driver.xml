@@ -151,6 +151,118 @@
         <readonly>true</readonly>
       </property>
       <property>
+        <name>Group 1 Sources</name>
+        <type>DYNAMIC_LIST</type>
+        <default>(Select)</default>
+        <description>Pick a source to check or uncheck it. Checked sources play at Group 1 Volume.</description>
+      </property>
+      <property>
+        <name>Group 1 Volume</name>
+        <type>RANGED_INTEGER</type>
+        <minimum>0</minimum>
+        <maximum>100</maximum>
+        <default>50</default>
+        <description>The room's volume while a source checked in Group 1 plays.</description>
+      </property>
+      <property>
+        <name>Group 2 Sources</name>
+        <type>DYNAMIC_LIST</type>
+        <default>(Select)</default>
+        <description>Pick a source to check or uncheck it. Checked sources play at Group 2 Volume.</description>
+      </property>
+      <property>
+        <name>Group 2 Volume</name>
+        <type>RANGED_INTEGER</type>
+        <minimum>0</minimum>
+        <maximum>100</maximum>
+        <default>50</default>
+        <description>The room's volume while a source checked in Group 2 plays.</description>
+      </property>
+      <property>
+        <name>Group 3 Sources</name>
+        <type>DYNAMIC_LIST</type>
+        <default>(Select)</default>
+        <description>Pick a source to check or uncheck it. Checked sources play at Group 3 Volume.</description>
+      </property>
+      <property>
+        <name>Group 3 Volume</name>
+        <type>RANGED_INTEGER</type>
+        <minimum>0</minimum>
+        <maximum>100</maximum>
+        <default>50</default>
+        <description>The room's volume while a source checked in Group 3 plays.</description>
+      </property>
+      <property>
+        <name>Group 4 Sources</name>
+        <type>DYNAMIC_LIST</type>
+        <default>(Select)</default>
+        <description>Pick a source to check or uncheck it. Checked sources play at Group 4 Volume.</description>
+      </property>
+      <property>
+        <name>Group 4 Volume</name>
+        <type>RANGED_INTEGER</type>
+        <minimum>0</minimum>
+        <maximum>100</maximum>
+        <default>50</default>
+        <description>The room's volume while a source checked in Group 4 plays.</description>
+      </property>
+      <property>
+        <name>Group 5 Sources</name>
+        <type>DYNAMIC_LIST</type>
+        <default>(Select)</default>
+        <description>Pick a source to check or uncheck it. Checked sources play at Group 5 Volume.</description>
+      </property>
+      <property>
+        <name>Group 5 Volume</name>
+        <type>RANGED_INTEGER</type>
+        <minimum>0</minimum>
+        <maximum>100</maximum>
+        <default>50</default>
+        <description>The room's volume while a source checked in Group 5 plays.</description>
+      </property>
+      <property>
+        <name>Group 6 Sources</name>
+        <type>DYNAMIC_LIST</type>
+        <default>(Select)</default>
+        <description>Pick a source to check or uncheck it. Checked sources play at Group 6 Volume.</description>
+      </property>
+      <property>
+        <name>Group 6 Volume</name>
+        <type>RANGED_INTEGER</type>
+        <minimum>0</minimum>
+        <maximum>100</maximum>
+        <default>50</default>
+        <description>The room's volume while a source checked in Group 6 plays.</description>
+      </property>
+      <property>
+        <name>Group 7 Sources</name>
+        <type>DYNAMIC_LIST</type>
+        <default>(Select)</default>
+        <description>Pick a source to check or uncheck it. Checked sources play at Group 7 Volume.</description>
+      </property>
+      <property>
+        <name>Group 7 Volume</name>
+        <type>RANGED_INTEGER</type>
+        <minimum>0</minimum>
+        <maximum>100</maximum>
+        <default>50</default>
+        <description>The room's volume while a source checked in Group 7 plays.</description>
+      </property>
+      <property>
+        <name>Group 8 Sources</name>
+        <type>DYNAMIC_LIST</type>
+        <default>(Select)</default>
+        <description>Pick a source to check or uncheck it. Checked sources play at Group 8 Volume.</description>
+      </property>
+      <property>
+        <name>Group 8 Volume</name>
+        <type>RANGED_INTEGER</type>
+        <minimum>0</minimum>
+        <maximum>100</maximum>
+        <default>50</default>
+        <description>The room's volume while a source checked in Group 8 plays.</description>
+      </property>
+      <property>
         <name>Source 1</name>
         <type>DYNAMIC_LIST</type>
         <default>(Select)</default>

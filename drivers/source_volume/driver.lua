@@ -56,7 +56,12 @@ local ROOM_VARIABLES = {
   VAR_USE_DEFAULT_VOLUMES,
 }
 
---- How many Source slots driver.xml has.
+--- How many volume groups driver.xml has: one for each of the old Source slots, so their picks always move whole.
+--- @type integer
+local GROUPS = 8
+
+--- How many hidden Source slots driver.xml keeps from earlier builds. Director drops a property's value once
+--- driver.xml no longer has it, so they stay until every install has moved its picks into the groups.
 --- @type integer
 local SLOTS = 8
 
@@ -65,11 +70,11 @@ local SLOTS = 8
 --- @type integer
 local SETTLE_MS = 2 * ONE_SECOND
 
---- Director sends no event when a room's source lists change, so the Source lists are read again this often.
---- @type integer
-local LIST_REFRESH_MS = 5 * ONE_MINUTE
-
 local PERSIST_STATE = "VolumeState"
+local PERSIST_GROUPS = "VolumeGroups"
+
+local CHECKED = "[X] "
+local UNCHECKED = "[  ] "
 
 local EVENT_FIXED = "Fixed Volume Set"
 local EVENT_RESTORED = "Volume Restored"
@@ -80,6 +85,9 @@ local VAR_SAVED = "Saved Volume"
 --- The settings Reset Driver returns to their defaults.
 --- @type table<string, string>
 local SETTING_DEFAULTS = { ["Volume Control"] = "Enabled" }
+for group = 1, GROUPS do
+  SETTING_DEFAULTS["Group " .. group .. " Volume"] = "50"
+end
 for slot = 1, SLOTS do
   SETTING_DEFAULTS["Source " .. slot] = constants.SELECT_OPTION
   SETTING_DEFAULTS["Source " .. slot .. " Volume"] = "50"
@@ -109,6 +117,10 @@ local lastSource = nil
 --- @type string|nil
 local lastStored = nil
 
+--- Each group's checked sources, in the order they were checked. A source is in one group at most.
+--- @type integer[][]
+local groups = {}
+
 --------------------------------------------------------------------------------
 -- Settings and the Room
 --------------------------------------------------------------------------------
@@ -119,24 +131,81 @@ local function now()
   return os.time()
 end
 
---- The source a slot holds, read from its "Name (id)" option; nil while it holds none.
---- @param slot integer
+--- The source a "Name (id)" option names; nil for any other value.
+--- @param option string|nil
 --- @return integer|nil
-local function slotSource(slot)
-  return tointeger(string.match(Properties["Source " .. slot] or "", "%((%d+)%)$"))
+local function optionSource(option)
+  return tointeger(string.match(option or "", "%((%d+)%)$"))
 end
 
---- The tracker's settings as the properties give them. A source picked in two slots keeps its first level.
+--- The groups with no source checked.
+--- @return integer[][]
+local function emptyGroups()
+  local empty = {}
+  for group = 1, GROUPS do
+    empty[group] = {}
+  end
+  return empty
+end
+
+--- Write the groups.
+local function saveGroups()
+  persist:set(PERSIST_GROUPS, groups)
+end
+
+--- The group a source is checked in, nil when it is in none.
+--- @param id integer
+--- @return integer|nil
+local function groupOf(id)
+  for group = 1, GROUPS do
+    for _, checked in ipairs(groups[group]) do
+      if checked == id then
+        return group
+      end
+    end
+  end
+  return nil
+end
+
+--- The tracker's settings: each checked source at its group's volume.
 --- @return SourceVolumeSettings settings
 local function settings()
   local sources = {}
-  for slot = 1, SLOTS do
-    local id = slotSource(slot)
-    if id and id > 0 and sources[id] == nil then
-      sources[id] = tointeger(Properties["Source " .. slot .. " Volume"]) or 50
+  for group = 1, GROUPS do
+    local level = tointeger(Properties["Group " .. group .. " Volume"]) or 50
+    for _, id in ipairs(groups[group]) do
+      sources[id] = level
     end
   end
   return { enabled = Properties["Volume Control"] ~= "Disabled", sources = sources }
+end
+
+--- Move the picks of earlier builds' Source slots into the groups, once: one group for each level, in slot order. The
+--- slots are cleared, and the groups are stored even when empty, so this never runs again.
+local function migrateSlots()
+  if persist:get(PERSIST_GROUPS) ~= nil then
+    return
+  end
+  groups = emptyGroups()
+  local levels, used = {}, 0
+  for slot = 1, SLOTS do
+    local id = optionSource(Properties["Source " .. slot])
+    if id and id > 0 and groupOf(id) == nil then
+      local level = tointeger(Properties["Source " .. slot .. " Volume"]) or 50
+      local group = levels[level]
+      if group == nil then
+        used = used + 1
+        group = used
+        levels[level] = group
+        UpdateProperty("Group " .. group .. " Volume", tostring(level))
+      end
+      table.insert(groups[group], id)
+      log:info("Moved Source %d, %s at %d, into Group %d", slot, GetDeviceDisplayNameOrId(id), level, group)
+    end
+    UpdateProperty("Source " .. slot, constants.SELECT_OPTION)
+    UpdateProperty("Source " .. slot .. " Volume", "50")
+  end
+  saveGroups()
 end
 
 --- A room variable, nil when the room has none.
@@ -210,16 +279,19 @@ local function showStatus(room)
   values:update(VAR_SAVED, saved, "NUMBER")
 end
 
---- Show each Source slot once the one before it is filled. A hidden slot keeps its value.
-local function showSlots()
+--- Show each group once the one before it has a source, and never the old Source slots.
+local function showGroups()
   local previousFilled = true
-  for slot = 1, SLOTS do
-    local filled = slotSource(slot) ~= nil
-    local shown = previousFilled or filled
-    local attrib = shown and constants.SHOW_PROPERTY or constants.HIDE_PROPERTY
-    C4:SetPropertyAttribs("Source " .. slot, attrib)
-    C4:SetPropertyAttribs("Source " .. slot .. " Volume", attrib)
+  for group = 1, GROUPS do
+    local filled = not IsEmpty(groups[group])
+    local attrib = (previousFilled or filled) and constants.SHOW_PROPERTY or constants.HIDE_PROPERTY
+    C4:SetPropertyAttribs("Group " .. group .. " Sources", attrib)
+    C4:SetPropertyAttribs("Group " .. group .. " Volume", attrib)
     previousFilled = filled
+  end
+  for slot = 1, SLOTS do
+    C4:SetPropertyAttribs("Source " .. slot, constants.HIDE_PROPERTY)
+    C4:SetPropertyAttribs("Source " .. slot .. " Volume", constants.HIDE_PROPERTY)
   end
 end
 
@@ -282,47 +354,55 @@ local function projectSources()
   return found
 end
 
---- The Source lists as last filled, to skip filling them again unchanged.
+--- The group lists as last filled, to skip filling them again unchanged.
 --- @type string|nil
 local lastLists = nil
 
---- Fill each Source slot's list with every room's sources. A name two sources share gets the device's room. A slot
---- keeps a pick no room lists any more.
-local function updateSourceLists()
+--- Fill each group's list with every room's sources, checked where the group holds them. A name two sources share
+--- gets the device's room. A checked source no room lists any more stays, so it can still be unchecked.
+--- @param force boolean|nil Fill the lists even when unchanged, to put a picked option back to (Select).
+local function updateSourceLists(force)
   local sources = projectSources()
+  local listed = {}
+  for _, source in ipairs(sources) do
+    listed[source.id] = true
+  end
+  for group = 1, GROUPS do
+    for _, id in ipairs(groups[group]) do
+      if not listed[id] then
+        listed[id] = true
+        table.insert(sources, { id = id, name = GetDeviceDisplayNameOrId(id) })
+      end
+    end
+  end
   local named = {}
   for _, source in ipairs(sources) do
     named[source.name] = (named[source.name] or 0) + 1
   end
-  local options = { constants.SELECT_OPTION }
-  local byId = {}
-  for _, source in ipairs(sources) do
+  local labels = {}
+  for i, source in ipairs(sources) do
     local label = source.name
     if named[source.name] > 1 and not IsEmpty(source.room) then
       label = string.format("%s (%s)", label, source.room)
     end
     -- A comma would split the option in two.
-    local option = string.format("%s (%d)", (label:gsub(",", "")), source.id)
-    table.insert(options, option)
-    byId[source.id] = option
+    labels[i] = string.format("%s (%d)", (label:gsub(",", "")), source.id)
   end
-  local list = table.concat(options, ",")
-  local picks = {}
-  for slot = 1, SLOTS do
-    local id = slotSource(slot)
-    picks[slot] = id and (byId[id] or Properties["Source " .. slot]) or constants.SELECT_OPTION
+  local lists = {}
+  for group = 1, GROUPS do
+    local options = { constants.SELECT_OPTION, constants.REFRESH_LIST_OPTION }
+    for i, source in ipairs(sources) do
+      table.insert(options, (groupOf(source.id) == group and CHECKED or UNCHECKED) .. labels[i])
+    end
+    lists[group] = table.concat(options, ",")
   end
-  local filled = list .. "|" .. table.concat(picks, "|")
-  if filled == lastLists then
+  local filled = table.concat(lists, "|")
+  if filled == lastLists and not force then
     return
   end
   lastLists = filled
-  for slot = 1, SLOTS do
-    local slotList = list
-    if picks[slot] ~= constants.SELECT_OPTION and not byId[slotSource(slot)] then
-      slotList = slotList .. "," .. picks[slot]
-    end
-    C4:UpdatePropertyList("Source " .. slot, slotList, picks[slot])
+  for group = 1, GROUPS do
+    C4:UpdatePropertyList("Group " .. group .. " Sources", lists[group], constants.SELECT_OPTION)
   end
 end
 
@@ -453,6 +533,13 @@ function OnDriverInit()
     end
   end
   lastStored = JSON:encode(state)
+  groups = emptyGroups()
+  local storedGroups = persist:get(PERSIST_GROUPS)
+  for group = 1, GROUPS do
+    for _, id in ipairs(Select(storedGroups, group) or {}) do
+      table.insert(groups[group], tointeger(id))
+    end
+  end
   watchedRoom = nil
   notice = nil
   lastSource = nil
@@ -467,6 +554,8 @@ function OnDriverLateInit()
   if not CheckMinimumVersion("Driver Status") then
     return
   end
+
+  migrateSlots()
 
   -- The router runs each handler in its own xpcall and reports its error, so the rest still run.
   for p, _ in pairs(Properties) do
@@ -485,13 +574,9 @@ function OnDriverLateInit()
   --#endif
 
   gInitialized = true
-  -- Watched before the license check, so the Source lists fill in either way.
+  -- Watched before the license check, so the group lists fill in either way.
   watchRoom()
-  SetTimer("SourceLists", LIST_REFRESH_MS, function()
-    if licensed() then
-      updateSourceLists()
-    end
-  end, true)
+  showGroups()
   UpdateProperty("Driver Status", "Ready")
   -- Acts on the room at once; the values the new listeners deliver start one more read once the room is quiet.
   evaluate()
@@ -600,14 +685,37 @@ function OPC.Volume_Control(propertyValue)
   evaluate()
 end
 
-for slot = 1, SLOTS do
-  OPC["Source_" .. slot] = function(propertyValue)
-    log:trace("OPC.Source_%d('%s')", slot, propertyValue)
-    showSlots()
-    evaluate()
+for group = 1, GROUPS do
+  --- Check or uncheck the picked source in this group. A source checked here leaves any other group.
+  OPC["Group_" .. group .. "_Sources"] = function(propertyValue)
+    log:trace("OPC.Group_%d_Sources('%s')", group, propertyValue)
+    -- A start replays the stored value, which must not toggle a source again.
+    if not gInitialized then
+      return
+    end
+    local id = optionSource(propertyValue)
+    if id ~= nil then
+      local wasHere = groupOf(id) == group
+      for other = 1, GROUPS do
+        for i = #groups[other], 1, -1 do
+          if groups[other][i] == id then
+            table.remove(groups[other], i)
+          end
+        end
+      end
+      if not wasHere then
+        table.insert(groups[group], id)
+      end
+      saveGroups()
+      showGroups()
+    end
+    if id ~= nil or propertyValue == constants.REFRESH_LIST_OPTION then
+      updateSourceLists(true)
+      evaluate()
+    end
   end
-  OPC["Source_" .. slot .. "_Volume"] = function(propertyValue)
-    log:trace("OPC.Source_%d_Volume('%s')", slot, propertyValue)
+  OPC["Group_" .. group .. "_Volume"] = function(propertyValue)
+    log:trace("OPC.Group_%d_Volume('%s')", group, propertyValue)
     evaluate()
   end
 end
@@ -657,6 +765,8 @@ function EC.Reset_Driver(params)
   notice = nil
   lastSource = nil
   lastLists = nil
+  groups = emptyGroups()
+  saveGroups()
 
   local resetValues = GetPropertyResetValues({})
   for propName, defaultValue in pairs(resetValues) do
@@ -670,7 +780,7 @@ function EC.Reset_Driver(params)
   --#endif
 
   createVariables()
-  showSlots()
+  showGroups()
   evaluate()
 end
 
