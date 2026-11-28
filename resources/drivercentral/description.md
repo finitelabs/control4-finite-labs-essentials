@@ -50,8 +50,10 @@ counting as the room's.
 
 Holds a room at a fixed volume while a source you pick is playing, and puts back
 the level the room had before when another source takes over. It suits a
-computer that sets its own volume. Each picked source has its own level, and
-sources you don't pick are left alone.
+computer that sets its own volume. Picked sources go into groups that each have
+their own level, and they can come from any room, so a room that joins another
+room's audio session holds that session's level too. Sources you don't pick are
+left alone.
 
 ### Device Programmer
 
